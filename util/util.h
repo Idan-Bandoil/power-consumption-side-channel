@@ -11,8 +11,15 @@
 #include <unistd.h>
 #include <x86intrin.h>
 
+struct args_t {
+	uint64_t iters;
+	uint64_t selector;
+};
+
 uint64_t get_time(void);
 
 void pin_cpu(size_t core_ID);
+
+int read_selectors(uint64_t *selectors);
 
 #endif

@@ -7,7 +7,7 @@ import os
 
 def parse_config():
     config = {}
-    with open('config.sh', 'r') as f:
+    with open('configurations', 'r') as f:
         for line in f.readlines():
             if line[0] == '#':
                 continue

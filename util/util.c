@@ -26,3 +26,31 @@ void pin_cpu(size_t core_ID)
 		exit(EXIT_FAILURE);
 	}
 }
+
+
+
+int read_selectors(uint64_t *selectors){
+	// Open the selector file
+	FILE *selectors_file = fopen("input.txt", "r");
+	if (selectors_file == NULL)
+		perror("fopen error");
+
+	// Read the selectors file line by line
+	int num_selectors = 0;
+	size_t len = 0;
+	ssize_t read = 0;
+	char *line = NULL;
+	while ((read = getline(&line, &len, selectors_file)) != -1) {
+		if (line[read - 1] == '\n')
+			line[--read] = '\0';
+
+		// Read selector
+		sscanf(line, "%lu", &(selectors[num_selectors]));
+		num_selectors += 1;
+	}
+
+	// Clean up
+	fclose(selectors_file);
+
+	return num_selectors;
+}

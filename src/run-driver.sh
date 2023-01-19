@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 sudo python3 ./config.py
-source ./config.sh
+source ./configurations
 
 # Load MSR module
 sudo modprobe msr
