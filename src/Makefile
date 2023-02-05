@@ -1,7 +1,7 @@
 CC:= gcc
 CFLAGS:= -D_POSIX_SOURCE -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -mavx -march=native
 LIBS:= -lpthread -lrt -lm
-UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/configuration-utils.o
+UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/configuration-utils.o ../util/victim-utils.o
 
 all: obj bin out data driver
 

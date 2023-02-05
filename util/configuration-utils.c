@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+Config config[MAX_CONFIG_SIZE];
+int config_size;
+
 void parse_config_file(const char *file_path, Config *config, int *config_size) {
     FILE *file = fopen(file_path, "r");
     if (file == NULL) {
@@ -28,7 +31,6 @@ void parse_config_file(const char *file_path, Config *config, int *config_size) 
     *config_size = i;
     fclose(file);
 }
-
 
 char* get_value(Config *config, int config_size, char *key) {
     for (int i = 0; i < config_size; i++) {

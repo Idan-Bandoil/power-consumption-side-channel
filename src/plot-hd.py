@@ -52,7 +52,7 @@ def main():
             label = '0' * (32 - len(bin(number)[2:])) + bin(number)[2:]
             sns.distplot(energies, hist=False, kde=True, kde_kws = {'shade': True, 'linewidth': 3}, label=label)
 
-        plt.legend(prop={'size': 16}, title = 'value')
+        plt.legend(prop={'size': 8}, title = 'value')
         plt.title(f'{config["samples"]} samples, {config["victim"]}')
         plt.xticks(np.arange(15, 50, 1))
         plt.xlim((15, 50))

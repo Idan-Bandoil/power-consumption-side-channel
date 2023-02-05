@@ -1,4 +1,5 @@
 #include "util.h"
+#include "victim-utils.h"
 
 /*
  * Gets the value Time Stamp Counter
@@ -27,8 +28,6 @@ void pin_cpu(size_t core_ID)
 	}
 }
 
-
-
 int read_selectors(uint64_t *selectors){
 	// Open the selector file
 	FILE *selectors_file = fopen("input.txt", "r");
@@ -53,4 +52,27 @@ int read_selectors(uint64_t *selectors){
 	fclose(selectors_file);
 
 	return num_selectors;
+}
+
+void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(void *), struct args_t *arg){
+	// Check arguments
+	if (argc != 5) {
+		fprintf(stderr, "Wrong Input! Enter: %s <ntasks> <samples> <outer> <victim>\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	// Read in args
+	sscanf(argv[1], "%d", ntasks);
+	if (ntasks < 0) {
+		fprintf(stderr, "ntasks cannot be negative!\n");
+		exit(1);
+	}
+	sscanf(argv[2], "%" PRIu64, &(arg->iters));
+	sscanf(argv[3], "%d", outer);
+	if (outer < 0) {
+		fprintf(stderr, "outer cannot be negative!\n");
+		exit(1);
+	}
+	// get victim function pointer
+	*victim = get_victim(argv[4]);
 }

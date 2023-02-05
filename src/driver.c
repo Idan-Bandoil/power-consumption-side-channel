@@ -7,68 +7,11 @@
 #include "../util/rapl-utils.h"
 #include "../util/util.h"
 #include "../util/configuration-utils.h"
+#include "../util/victim-utils.h"
 
 #define TIME_BETWEEN_MEASUREMENTS 1000000L // 1 millisecond
 
 #define STACK_SIZE 8192
-
-static Config config[MAX_CONFIG_SIZE];
-int config_size;
-
-static int NUM_VICTIMS = 2;
-static char *victim_names[] = {"imul", "avx_mul"};
-// declare victim functions
-static int imul_victim(void *varg);
-static int avx_mul_victim(void *varg);
-// array of victim functions
-static int (*victim_functions[])(void *) = {imul_victim, avx_mul_victim};
-
-
-static __attribute__((noinline)) int imul_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-	struct args_t *arg = varg;
-	uint64_t count = arg->selector;
-	// printf("imul_victim\n");
-
-	asm volatile(
-		".align 64\t\n"
-		"loopimul:\n\t"
-
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-		"imul $0xffffffffffffffff, %0, %%r13\n\t"
-
-		"jmp loopimul\n\t"
-		: 
-		: "r"(count)
-		: "r13");
-
-	return 0;
-}
-
-static __attribute__((noinline)) int avx_mul_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-	struct args_t *arg = varg;
-	int count = (int)arg->selector;
-	__m256i m1 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
-	__m256i m2 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
-
-	int constant = get_integer_value(config, config_size, "constant");
-	if(constant != -1)
-		m2 = _mm256_set_epi32(constant, constant, constant, constant, constant, constant, constant, constant);
-
-	while(1)
-		_mm256_mul_epu32(m1, m2);
-
-	return 0;
-}
 
 // Collects traces
 static __attribute__((noinline)) int monitor(void *in){
@@ -122,42 +65,7 @@ static __attribute__((noinline)) int monitor(void *in){
 	return 0;
 }
 
-// function that gets victim name and returns the function pointer
-int (*get_victim(char *victim))(void *){
-	for(int i = 0; i < NUM_VICTIMS; i++){
-		if(strcmp(victim, victim_names[i]) == 0){
-			return victim_functions[i];
-		}
-	}
-	fprintf(stderr, "Victim not found!\n");
-	exit(1);
-}
-
-void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(void *), struct args_t *arg){
-	// Check arguments
-	if (argc != 5) {
-		fprintf(stderr, "Wrong Input! Enter: %s <ntasks> <samples> <outer> <victim>\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
-
-	// Read in args
-	sscanf(argv[1], "%d", ntasks);
-	if (ntasks < 0) {
-		fprintf(stderr, "ntasks cannot be negative!\n");
-		exit(1);
-	}
-	sscanf(argv[2], "%" PRIu64, &(arg->iters));
-	sscanf(argv[3], "%d", outer);
-	if (outer < 0) {
-		fprintf(stderr, "outer cannot be negative!\n");
-		exit(1);
-	}
-	// get victim function pointer
-	*victim = get_victim(argv[4]);
-}
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
 	// initialize variable to hold victim function pointer
 	int (*victim)(void *) = NULL;
 	int ntasks, outer;

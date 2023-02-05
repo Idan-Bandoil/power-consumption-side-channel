@@ -21,7 +21,7 @@ def binary_pattern(pattern='1010', length=32):
 AVX_MUL_VALUES = f'"0 {(2**8)-1} {(2**16)-1} {(2**24)-1} {binary_pattern("1", 32)}"'
 AVX_MUL_CONSTANT = binary_pattern("10", 32)
 
-IMUL_VALUES = f'"0 {binary_pattern("1", 64)}"'
+IMUL_VALUES = f'"0 {binary_pattern("1", 32)}"'
 IMUL_CONSTANT = binary_pattern("10", 64)
 
 def set_params( samples=100000, 
@@ -49,7 +49,7 @@ def config(file_name='configurations'):
         file.write(CONFIGURATIONS)
 
 def main():
-    set_params(samples=200000, victim='avx_mul', values=AVX_MUL_VALUES)
+    set_params(samples=50000, victim='imul', values=IMUL_VALUES)
     config()
 
 if __name__ == "__main__":
