@@ -1,4 +1,5 @@
 #include "configuration-utils.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,8 @@ void parse_config_file(const char *file_path, Config *config, int *config_size) 
                 *comment = '\n';
                 *(comment + 1) = '\0';
             }
+            strip(key);
+            strip(value);
             strcpy(config[i].key, key);
             strcpy(config[i].value, value);
             i++;

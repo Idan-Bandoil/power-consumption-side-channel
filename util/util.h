@@ -24,4 +24,6 @@ int read_selectors(uint64_t *selectors);
 
 void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(void *), struct args_t *arg);
 
+void strip(char *str);
+
 #endif

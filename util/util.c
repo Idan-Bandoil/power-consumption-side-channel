@@ -1,5 +1,7 @@
 #include "util.h"
 #include "victim-utils.h"
+#include <ctype.h>
+#include <string.h>
 
 /*
  * Gets the value Time Stamp Counter
@@ -75,4 +77,15 @@ void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(v
 	}
 	// get victim function pointer
 	*victim = get_victim(argv[4]);
+}
+
+void strip(char *str) {
+  int i, j;
+  int len = strlen(str);
+  for (i = 0, j = 0; i < len; i++) {
+    if (!isspace(str[i])) {
+      str[j++] = str[i];
+    }
+  }
+  str[j] = '\0';
 }

@@ -50,11 +50,16 @@ __attribute__((noinline)) int avx_mul_victim(void *varg){
 	struct args_t *arg = varg;
 	int count = (int)arg->selector;
 	__m256i m1 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
-	__m256i m2 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
+	__m256i m2 = m1;
 
-	int constant = get_integer_value(config, config_size, "constant");
-	if(constant != -1)
+	char *constant_str = get_value(config, config_size, "constant");
+	if(strcmp(constant_str, "None") != 0){
+		int constant = atoi(constant_str);
 		m2 = _mm256_set_epi32(constant, constant, constant, constant, constant, constant, constant, constant);
+	}
+
+	print_m256i(_mm256_mul_epu32(m1, m2), 0);
+	// print_m256i_binary(_mm256_mul_epu32(m1, m2));
 
 	while(1)
 		_mm256_mul_epu32(m1, m2);
@@ -71,4 +76,29 @@ int (*get_victim(char *victim))(void *){
 	}
 	fprintf(stderr, "Victim not found!\n");
 	exit(1);
+}
+
+void print_m256i(__m256i vec, char sign) {
+	int values[8];
+    _mm256_storeu_si256((__m256i *)values, vec);
+    for (int i = 7; i >= 0; i--){
+    	if (sign)
+			printf("%d ", values[i]);
+		else
+			printf("%u ", values[i]);
+	}
+
+    printf("\n");
+}
+
+void print_m256i_binary(__m256i vec) {
+  int i, j, arr[8];
+  _mm256_storeu_si256((__m256i*)arr, vec);
+  for (i = 7; i >= 0; i--) {
+    for (j = 31; j >= 0; j--)
+      printf("%u", (arr[i] >> j) & 1);
+
+    printf(" ");
+  }
+  printf("\n");
 }
