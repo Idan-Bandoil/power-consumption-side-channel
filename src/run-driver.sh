@@ -2,6 +2,7 @@
 
 sudo python3 ./config.py
 source ./configurations
+source ../venv/bin/activate
 
 # Load MSR module
 sudo modprobe msr
@@ -34,6 +35,6 @@ cp -r out data/out-${date}
 # Unload MSR module
 sudo modprobe -r msr
 
-sudo python3 ./plot-hd.py --energydist 0 hd-power
+python3 ./plot-hd.py --energydist 0 hd-power
 
 make clean

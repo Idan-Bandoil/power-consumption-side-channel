@@ -49,13 +49,13 @@ def main():
                     energies = [round(float(x[:x.find(' ')]) * 1000, 8) for x in f.readlines()]
                 data[key] += energies
         for number, energies in data.items():
-            label = '0' * (32 - len(bin(number)[2:])) + bin(number)[2:]
+            label = '0' * (config['bits'] - len(bin(number)[2:])) + bin(number)[2:]
             sns.distplot(energies, hist=False, kde=True, kde_kws = {'shade': True, 'linewidth': 3}, label=label)
 
-        plt.legend(prop={'size': 8}, title = 'value')
+        plt.legend(prop={'size': 16}, title = 'value')
         plt.title(f'{config["samples"]} samples, {config["victim"]}')
-        plt.xticks(np.arange(15, 50, 1))
-        plt.xlim((15, 50))
+        plt.xticks(np.arange(0, 100, 2))
+        plt.xlim((0, 100))
         plt.xlabel('Power Consumption (W)')
         plt.ylabel('Density')
         plt.show()
