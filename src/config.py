@@ -22,7 +22,7 @@ def binary_pattern(pattern='1010', length=32):
 AVX256_MUL_VALUES = f'"0 {2**32-1}"'
 AVX256_MUL_CONSTANT = binary_pattern("10", 32)
 
-AVX512_MUL_VALUES = f'"0 {2**32-1} {binary_pattern("10", 64)} {2**64-1}"'
+AVX512_MUL_VALUES = f'"0 {2**64-1}"'
 AVX512_MUL_CONSTANT = binary_pattern("10", 64)
 
 IMUL_VALUES = f'"0 {binary_pattern("1", 32)}"'
@@ -55,7 +55,7 @@ def config(file_name='configurations'):
         file.write(CONFIGURATIONS)
 
 def main():
-    set_params(samples=200000, victim='avx512_mul', values=AVX512_MUL_VALUES)
+    set_params(samples=100000, victim='avx512_mul', values=AVX512_MUL_VALUES, bits=64, num_thread=1)
     config()
 
 if __name__ == "__main__":

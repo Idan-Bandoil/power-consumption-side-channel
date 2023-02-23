@@ -6,9 +6,9 @@
 #include <string.h>
 #include <immintrin.h>
 
-char *victim_names[] = {"imul", "avx256_mul", "avx512_mul"};
+char *victim_names[] = {"imul", "avx256_mul", "avx512_mul", "pclmul512"};
 // array of victim functions
-int (*victim_functions[])(void *) = {imul_victim, avx256_mul_victim, avx512_mul_victim};
+int (*victim_functions[])(void *) = {imul_victim, avx256_mul_victim, avx512_mul_victim, pclmul512_victim};
 
 __attribute__((noinline)) int imul_victim(void *varg){
 	if(get_integer_value(config, config_size, "num_threads") == 1)
@@ -86,6 +86,28 @@ __attribute__((noinline)) int avx512_mul_victim(void *varg){
 
 	while(1)
 		_mm512_mullo_epi64(m1, m2);
+
+	return 0;
+}
+
+__attribute__((noinline)) int pclmul512_victim(void *varg){
+	if(get_integer_value(config, config_size, "num_threads") == 1)
+		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
+	struct args_t *arg = varg;
+	uint64_t count = (int)arg->selector;
+	printf("pclmul512\n");
+
+	__m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
+	__m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
+
+	char *constant_str = get_value(config, config_size, "constant");
+	if(strcmp(constant_str, "None") != 0){
+		int constant = atoi(constant_str);
+		m2 = _mm512_set_epi64(constant, constant, constant, constant, constant, constant, constant, constant);
+	}
+
+	while(1)
+		_mm512_clmulepi64_epi128(m1, m2, 0);
 
 	return 0;
 }

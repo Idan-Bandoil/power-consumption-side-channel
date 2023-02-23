@@ -49,7 +49,7 @@ def main():
                     energies = [round(float(x[:x.find(' ')]) * 1000, 8) for x in f.readlines()]
                 data[key] += energies
         for number, energies in data.items():
-            label = '0' * (config['bits'] - len(bin(number)[2:])) + bin(number)[2:]
+            label = '0' * (int(config['bits']) - len(bin(number)[2:])) + bin(number)[2:]
             sns.distplot(energies, hist=False, kde=True, kde_kws = {'shade': True, 'linewidth': 3}, label=label)
 
         plt.legend(prop={'size': 16}, title = 'value')
