@@ -19,6 +19,4 @@ void print_m256i(__m256i vec, char sign);
 
 void print_m256i_binary(__m256i vec);
 
-void print_m512i_binary(__m512i vec);
-
 #endif

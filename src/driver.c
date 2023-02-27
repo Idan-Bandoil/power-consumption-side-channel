@@ -13,6 +13,8 @@
 
 #define STACK_SIZE 8192
 
+char *victim_name;
+
 // Collects traces
 static __attribute__((noinline)) int monitor(void *in){
 	struct args_t *arg = (struct args_t *)in;
@@ -25,7 +27,7 @@ static __attribute__((noinline)) int monitor(void *in){
 	// The format is, e.g., ./out/all_02_2330.out
 	// where 02 is the selector and 2330 is an index to prevent overwriting files
 	char output_filename[64];
-	sprintf(output_filename, "./out/all_%02lu.out", arg->selector);
+	sprintf(output_filename, "./out/%s_%02lu.out", victim_name, arg->selector);
 
 	// Prepare output file
 	FILE *output_file = fopen((char *)output_filename, "a");
@@ -72,7 +74,7 @@ int main(int argc, char *argv[]){
 	struct args_t arg;
 	parse_config_file(CONFIG_FILE_NAME, config, &config_size);
 	int attacker_core_id = get_integer_value(config, config_size, "attacker_core_id");
-	read_args(argc, argv, &ntasks, &outer, &victim, &arg);
+	read_args(argc, argv, &ntasks, &outer, &victim, &victim_name, &arg);
 
 	uint64_t selectors[100];
 	int num_selectors = read_selectors(selectors);

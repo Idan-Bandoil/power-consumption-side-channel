@@ -56,7 +56,7 @@ int read_selectors(uint64_t *selectors){
 	return num_selectors;
 }
 
-void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(void *), struct args_t *arg){
+void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(void *), char **victim_name, struct args_t *arg){
 	// Check arguments
 	if (argc != 5) {
 		fprintf(stderr, "Wrong Input! Enter: %s <ntasks> <samples> <outer> <victim>\n", argv[0]);
@@ -77,6 +77,7 @@ void read_args(int argc, char *argv[], int *ntasks, int *outer, int (**victim)(v
 	}
 	// get victim function pointer
 	*victim = get_victim(argv[4]);
+	*victim_name = argv[4];
 }
 
 void strip(char *str) {

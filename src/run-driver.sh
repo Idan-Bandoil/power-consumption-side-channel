@@ -23,13 +23,20 @@ fi
 
 sudo rm -rf out
 mkdir out
-sudo rm -rf input.txt
 
-for selector in $values; do
-	echo $selector >> input.txt
+i=0
+while [ $i -lt ${#victims[@]} ]; do
+	sudo rm -rf input.txt
+
+	for selector in ${values[$i]}; do
+		echo $selector >> input.txt
+	done
+
+	echo "Running ${victims[$i]} with $num_thread threads"
+	sudo ./bin/driver ${num_thread} ${samples} ${outer} ${victims[$i]}
+	i=$((i+1))
 done
 
-sudo ./bin/driver ${num_thread} ${samples} ${outer} ${victim}
 cp -r out data/out-${date}
 
 # Unload MSR module
