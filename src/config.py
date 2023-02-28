@@ -18,11 +18,15 @@ def binary_pattern(pattern='1010', length=32):
     # output is the word binary_pattern^(length/len(binary_pattern)))
     return int(pattern * int(length / len(pattern)), 2)
 
+NOP = 'nop'
+SHL = 'shl'
 IMUL = 'imul'
 AVX256MUL = 'avx256mul'
 AVX512MUL = 'avx512mul'
 PCLMUL = 'pclmul512'
 
+NOP_VALUES = '0'
+SHL_VALUES = f'"0 {2**64-1}"'
 IMUL_VALUES = f'"0 {2**32-1}"'
 AVX256_MUL_VALUES = f'"0 {2**32-1}"'
 AVX512_MUL_VALUES = f'"0 {2**64-1}"'
@@ -58,7 +62,7 @@ def config(file_name='configurations'):
         file.write(CONFIGURATIONS)
 
 def main():
-    set_params(samples=30000, victims=[IMUL, AVX256MUL], values=[IMUL_VALUES, AVX256_MUL_VALUES])
+    set_params(samples=30000, victims=[NOP, SHL, IMUL, AVX256MUL], values=[NOP_VALUES, SHL_VALUES, IMUL_VALUES, AVX256_MUL_VALUES])
     config()
 
 if __name__ == "__main__":

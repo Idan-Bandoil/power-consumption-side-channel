@@ -54,7 +54,7 @@ def main():
             sns.distplot(energies, hist=False, kde=True, kde_kws = {'shade': True, 'linewidth': 3}, label=victim_name + ' ' + number)
 
         plt.legend(prop={'size': 16}, title = 'value')
-        plt.title(f'{config["samples"]} samples, {config["victims"]}')
+        plt.title(f'{config["samples"]} samples')
         plt.xticks(np.arange(0, 100, 2))
         plt.xlim((0, 100))
         plt.xlabel('Power Consumption (W)')

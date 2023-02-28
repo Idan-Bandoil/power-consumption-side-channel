@@ -3,7 +3,11 @@
 #ifndef VICTIM_UTILS_H
 #define VICTIM_UTILS_H
 
-#define NUM_VICTIMS 4
+#define NUM_VICTIMS 6
+
+__attribute__((noinline)) int nop_victim(void *varg);
+
+__attribute__((noinline)) int shl_victim(void *varg);
 
 __attribute__((noinline)) int imul_victim(void *varg);
 
