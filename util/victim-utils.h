@@ -15,7 +15,7 @@ __attribute__((noinline)) int avx256_mul_victim(void *varg);
 
 __attribute__((noinline)) int avx512_mul_victim(void *varg);
 
-__attribute__((noinline)) int pclmul512_victim(void *varg);
+__attribute__((noinline)) int fma_victim(void *varg);
 
 int (*get_victim(char *victim))(void *);
 

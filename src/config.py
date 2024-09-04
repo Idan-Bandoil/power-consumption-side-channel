@@ -23,19 +23,20 @@ SHL = 'shl'
 IMUL = 'imul'
 AVX256MUL = 'avx256mul'
 AVX512MUL = 'avx512mul'
-PCLMUL = 'pclmul512'
+FMA = 'fma'
 
 NOP_VALUES = '0'
 SHL_VALUES = f'"0 {2**64-1}"'
 IMUL_VALUES = f'"0 {2**32-1}"'
 AVX256_MUL_VALUES = f'"0 {2**32-1}"'
 AVX512_MUL_VALUES = f'"0 {2**64-1}"'
+FMA_VALUES = f'"0 {binary_pattern("10", 32)}"'
 
 IMUL_CONSTANT = binary_pattern("10", 64)
 AVX256_MUL_CONSTANT = binary_pattern("10", 32)
 AVX512_MUL_CONSTANT = binary_pattern("10", 64)
 
-def set_params( samples=100000, 
+def set_params( samples=200000, 
                 outer=1, 
                 num_thread='$TOTAL_LOGICAL_CORES', 
                 attacker_core_id=0,
@@ -62,7 +63,7 @@ def config(file_name='configurations'):
         file.write(CONFIGURATIONS)
 
 def main():
-    set_params(samples=30000, victims=[NOP, SHL, IMUL, AVX256MUL], values=[NOP_VALUES, SHL_VALUES, IMUL_VALUES, AVX256_MUL_VALUES])
+    set_params(samples=20000, victims=[AVX512MUL, AVX256MUL], values=[AVX512_MUL_VALUES, AVX256_MUL_VALUES])
     config()
 
 if __name__ == "__main__":

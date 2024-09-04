@@ -11,7 +11,7 @@
 
 #define TIME_BETWEEN_MEASUREMENTS 1000000L // 1 millisecond
 
-#define STACK_SIZE 8192
+#define STACK_SIZE 16384
 
 char *victim_name;
 

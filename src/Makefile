@@ -1,5 +1,5 @@
 CC:= gcc
-CFLAGS:= -D_POSIX_SOURCE -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -march=native -mavx -O3 # -mavx512dq
+CFLAGS:= -D_POSIX_SOURCE -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -march=native -mavx -mavx512dq -O3
 LIBS:= -lpthread -lrt -lm
 UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/configuration-utils.o ../util/victim-utils.o
 

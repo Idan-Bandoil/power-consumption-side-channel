@@ -60,16 +60,6 @@ def main():
         plt.xlabel('Power Consumption (W)')
         plt.ylabel('Density')
 
-        total_energies = sum(energies)
-        dist_percentage = round((len(energies) / total_energies) * 100, 2)
-        # add the percentage to the plot
-        ax = plt.gca()
-        y_min, y_max = ax.get_ylim()
-        x_min, x_max = ax.get_xlim()
-        x_text = x_max - (x_max - x_min) * 0.1  # adjust the x position of the text
-        y_text = y_max - (y_max - y_min) * 0.1  # adjust the y position of the text
-        plt.text(x_text, y_text, f"{dist_percentage}%", ha='right', va='top', fontsize=12)
-
         plt.show()
         plt.savefig(f"./plot/{figname}.pdf", dpi=300)
 

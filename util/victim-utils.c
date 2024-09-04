@@ -1,17 +1,21 @@
 #include "victim-utils.h"
 #include "configuration-utils.h"
 #include "util.h"
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <immintrin.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-char *victim_names[] = {"nop", "shl", "imul", "avx256mul", "avx512mul", "pclmul512"};
+char *victim_names[] = {"nop", "shl", "imul", "avx256mul", "avx512mul", "fma"};
 // array of victim functions
-int (*victim_functions[])(void *) = {nop_victim, shl_victim, imul_victim, avx256_mul_victim, avx512_mul_victim, pclmul512_victim};
+int (*victim_functions[])(void *) = {nop_victim, shl_victim, imul_victim, avx256_mul_victim, avx512_mul_victim, fma_victim};
 
-__attribute__((noinline, optimize("-O0"))) int nop_victim(void *varg){
+__attribute__((noinline)) int nop_victim(void *varg){
 	if(get_integer_value(config, config_size, "num_threads") == 1)
 		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 
@@ -30,7 +34,7 @@ __attribute__((noinline, optimize("-O0"))) int nop_victim(void *varg){
 	return 0;
 }
 
-__attribute__((noinline, optimize("-O0"))) int shl_victim(void *varg){
+__attribute__((noinline)) int shl_victim(void *varg){
 	if(get_integer_value(config, config_size, "num_threads") == 1)
 		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 	struct args_t *arg = varg;
@@ -53,7 +57,7 @@ __attribute__((noinline, optimize("-O0"))) int shl_victim(void *varg){
 	return 0;
 }
 
-__attribute__((noinline, optimize("-O0"))) int imul_victim(void *varg){
+__attribute__((noinline)) int imul_victim(void *varg){
 	if(get_integer_value(config, config_size, "num_threads") == 1)
 		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 	struct args_t *arg = varg;
@@ -61,8 +65,8 @@ __attribute__((noinline, optimize("-O0"))) int imul_victim(void *varg){
 	uint64_t result;
 	// printf("imul: pid %d\n", getpid());
 
-	int seconds = get_integer_value(config, config_size, "samples") / 1000;
-	time_t start_time = time(NULL);
+	// int seconds = get_integer_value(config, config_size, "samples") / 1000;
+	// time_t start_time = time(NULL);
     while (1) {
 		result = count * count;
 	}
@@ -125,51 +129,50 @@ __attribute__((noinline, optimize("-O0"))) int avx256_mul_victim(void *varg){
 }
 
 __attribute__((noinline)) int avx512_mul_victim(void *varg){
-	// if(get_integer_value(config, config_size, "num_threads") == 1)
-	// 	pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-	// struct args_t *arg = varg;
-	// uint64_t count = (int)arg->selector;
+	if(get_integer_value(config, config_size, "num_threads") == 1)
+		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
+	struct args_t *arg = varg;
+	uint64_t count = (int)arg->selector;
 
-	// __m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	// __m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	// __m512i volatile result;
+	__m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
+	__m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
+	__m512i volatile result;
 
-	// char *constant_str = get_value(config, config_size, "constant");
-	// if(strcmp(constant_str, "None") != 0){
-	// 	int constant = atoi(constant_str);
-	// 	m2 = _mm512_set_epi64(constant, constant, constant, constant, constant, constant, constant, constant);
-	// }
+	char *constant_str = get_value(config, config_size, "constant");
+	if(strcmp(constant_str, "None") != 0){
+		int constant = atoi(constant_str);
+		m2 = _mm512_set_epi64(constant, constant, constant, constant, constant, constant, constant, constant);
+	}
 
-	// // print_m512i_binary(_mm512_mullo_epi64(m1, m2));
+	// print_m512i_binary(_mm512_mullo_epi64(m1, m2));
 
-	// while(1)
-	// 	result = _mm512_mullo_epi64(m1, m2);
+	while(1)
+		result = _mm512_mullo_epi64(m1, m2);
 
-	// m1 = result;
+	m1 = result;
 	return 0;
 }
 
-__attribute__((noinline)) int pclmul512_victim(void *varg){
-	// if(get_integer_value(config, config_size, "num_threads") == 1)
-	// 	pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-	// struct args_t *arg = varg;
-	// uint64_t count = (int)arg->selector;
-	// printf("pclmul512\n");
+__attribute__((noinline)) int fma_victim(void *varg){
+	if(get_integer_value(config, config_size, "num_threads") == 1)
+		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 
-	// __m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	// __m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	// __m512i volatile result;
+	struct args_t *arg = varg;
+	int count = (int)arg->selector, constant;
+	double result;
+	volatile int flag = 1;
 
-	// char *constant_str = get_value(config, config_size, "constant");
-	// if(strcmp(constant_str, "None") != 0){
-	// 	int constant = atoi(constant_str);
-	// 	m2 = _mm512_set_epi64(constant, constant, constant, constant, constant, constant, constant, constant);
-	// }
+	char *constant_str = get_value(config, config_size, "constant");
+	if(strcmp(constant_str, "None") != 0){
+		constant = atoi(constant_str);
+	}
 
-	// while(1)
-	// 	result = _mm512_clmulepi64_epi128(m1, m2, 0);
+    while (flag) {
+		result = fma(count, count, count);
+	}
 
-	// m1 = result;
+	printf("%f\n", result);
+	
 	return 0;
 }
 
