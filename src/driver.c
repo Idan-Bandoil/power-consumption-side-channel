@@ -90,7 +90,14 @@ int main(int argc, char *argv[]){
 	rapl_msr(attacker_core_id, PP0_ENERGY);
 
 	// Allocate memory for the threads
-	char *tstacks = mmap(NULL, (ntasks + 1) * STACK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	char *tstacks = mmap(
+		NULL,
+		(ntasks + 1) * STACK_SIZE,
+		PROT_READ | PROT_WRITE,
+		MAP_PRIVATE | MAP_ANONYMOUS,
+		-1,
+		0
+	);
 
 	// Run experiment once for each selector
 	for (int i = 0; i < outer * num_selectors; i++) {
@@ -103,20 +110,35 @@ int main(int argc, char *argv[]){
 		printf("selector: %lu\n", arg.selector);
 
 		// Start victim threads
-		int tids[ntasks];
-		for (int tnum = 0; tnum < ntasks; tnum++) {
-			tids[tnum] = clone(victim, tstacks + (ntasks - tnum) * STACK_SIZE, CLONE_VM | SIGCHLD, &arg);
+		int victim_thread_ids[ntasks];
+		for (int victim_thread_num = 0; victim_thread_num < ntasks; victim_thread_num++) {
+			victim_thread_ids[victim_thread_num] = clone(
+				victim,
+				tstacks + (ntasks - victim_thread_num) * STACK_SIZE, // TODO: probably add +1 to ntasks
+				CLONE_VM | SIGCHLD,
+				&arg
+			);
 		}
 
 		// Start the monitor thread
-		clone(&monitor, tstacks + (ntasks + 1) * STACK_SIZE, CLONE_VM | SIGCHLD, (void *)&arg);
+		clone(
+			&monitor,
+			tstacks + (ntasks + 1) * STACK_SIZE,
+			CLONE_VM | SIGCHLD,
+			(void *)&arg
+		);
 
 		// Join monitor thread
 		wait(NULL);
 
 		// Kill victim threads
-		for (int tnum = 0; tnum < ntasks; tnum++) {
-			syscall(SYS_tgkill, tids[tnum], tids[tnum], SIGTERM);
+		for (int victim_thread_num = 0; victim_thread_num < ntasks; victim_thread_num++) {
+			syscall(
+				SYS_tgkill,
+				victim_thread_ids[victim_thread_num],
+				victim_thread_ids[victim_thread_num],
+				SIGTERM
+			);
 
 			// Need to join o/w the threads remain as zombies
 			// https://askubuntu.com/a/427222/1552488
@@ -136,7 +158,7 @@ for i in range(outer):
 		selector = selectors[j]
 		for k in range(ntasks):
 			victim(selector)
-		monitor() # monitor is on core 0 and measures the energy and frequency for {samples} samples
+		monitor() # (monitor is on core 0 and measures the energy and frequency for {samples} samples)
 		wait for monitor to finish and kill all victim threads
 */
 
