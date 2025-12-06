@@ -3,37 +3,21 @@ from itertools import groupby
 import seaborn as sns
 import numpy as np
 import argparse
-import config
 import os
 
-def parse_config():
-    config = {}
-    with open('configurations', 'r') as f:
-        for line in f.readlines():
-            if line[0] == '#':
-                continue
-            line = line[:line.find('#')]
-            key, value = line.split('=')
-            key = key.strip() # Remove trailing and leading spaces
-            config[key] = value.strip()
-    return config
-
 def main():
-    config = parse_config()
-
-    # Prepare output directory
-    try:
-        os.makedirs('plot')
-    except:
-        pass
+    os.makedirs('plot', exist_ok=True)
 
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--energydist')
     parser.add_argument('figname')
+    parser.add_argument('sample_count')
+    
     args = parser.parse_args()
     energy_dist = args.energydist
     figname = args.figname
+    sample_count = args.sample_count
 
     if (energy_dist):
         if energy_dist == '0':
@@ -54,7 +38,7 @@ def main():
             sns.distplot(energies, hist=False, kde=True, kde_kws = {'shade': True, 'linewidth': 3}, label=victim_name + ' ' + number)
 
         plt.legend(prop={'size': 16}, title = 'value')
-        plt.title(f'{config["samples"]} samples')
+        plt.title(f'{sample_count} samples')
         plt.xticks(np.arange(0, 100, 2))
         plt.xlim((0, 100))
         plt.xlabel('Power Consumption (W)')

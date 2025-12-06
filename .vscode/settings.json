@@ -3,6 +3,7 @@
         "atomic": "c",
         "cstdint": "c",
         "random": "c",
-        "*.tcc": "c"
+        "*.tcc": "c",
+        "freq-utils.h": "c"
     }
 }

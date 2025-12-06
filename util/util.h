@@ -14,6 +14,7 @@
 struct args_t {
 	uint64_t iters;
 	uint64_t selector;
+	int target_core_id;
 };
 
 uint64_t get_time(void);

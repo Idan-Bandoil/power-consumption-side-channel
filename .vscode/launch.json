@@ -1,0 +1,22 @@
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: Current File",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "args": [
+		    "--energydist", "0",
+		    "hd-power"
+		]
+                "console": "integratedTerminal",
+                "cwd": "${fileDirname}",
+                "debugOptions": [
+                    "WaitOnAbnormalExit",
+                    "WaitOnNormalExit",
+                    "Sudo"
+                ]
+            }
+        ]
+    }

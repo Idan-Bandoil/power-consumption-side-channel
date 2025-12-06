@@ -1,5 +1,4 @@
 #include "victim-utils.h"
-#include "configuration-utils.h"
 #include "util.h"
 #include <signal.h>
 #include <stdio.h>
@@ -16,9 +15,6 @@ char *victim_names[] = {"nop", "shl", "imul", "avx256mul", "avx512mul", "fma"};
 int (*victim_functions[])(void *) = {nop_victim, shl_victim, imul_victim, avx256_mul_victim, avx512_mul_victim, fma_victim};
 
 __attribute__((noinline)) int nop_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-
 	asm volatile(
 		".align 64\t\n"
 		"loopnop:\n\t"
@@ -35,8 +31,6 @@ __attribute__((noinline)) int nop_victim(void *varg){
 }
 
 __attribute__((noinline)) int shl_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 	struct args_t *arg = varg;
 	uint32_t count = arg->selector;
 	uint64_t result;
@@ -58,15 +52,11 @@ __attribute__((noinline)) int shl_victim(void *varg){
 }
 
 __attribute__((noinline)) int imul_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 	struct args_t *arg = varg;
 	uint32_t count = arg->selector;
 	uint64_t result;
 	// printf("imul: pid %d\n", getpid());
 
-	// int seconds = get_integer_value(config, config_size, "samples") / 1000;
-	// time_t start_time = time(NULL);
     while (1) {
 		result = count * count;
 	}
@@ -90,25 +80,23 @@ __attribute__((noinline)) int imul_victim(void *varg){
 	return 0;
 }
 
-__attribute__((noinline, optimize("-O0"))) int avx256_mul_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
+__attribute__((noinline)) 
+int avx256_mul_victim(
+	void *varg
+){
 	struct args_t *arg = varg;
 	int count = (int)arg->selector;
+	int target_core_id = arg->target_core_id;
+
+	// **FORCE PINNING IMMEDIATELY**
+    pin_cpu(target_core_id);
+    sched_yield(); // Give the OS a hint to switch contexts
+
 	__m256i m1 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
 	__m256i m2 = _mm256_set_epi32(count, count, count, count, count, count, count, count);
 	__m256i volatile result;
 	volatile int flag = 1;
-	// printf("avx256mul: pid %d\n", getpid());
 
-	char *constant_str = get_value(config, config_size, "constant");
-	if(strcmp(constant_str, "None") != 0){
-		int constant = atoi(constant_str);
-		m2 = _mm256_set_epi32(constant, constant, constant, constant, constant, constant, constant, constant);
-	}
-
-	int seconds = get_integer_value(config, config_size, "samples") / 1000;
-	time_t start_time = time(NULL);
     while (flag) {
 		result = _mm256_mul_epu32(m1, m2);
 	}
@@ -129,20 +117,12 @@ __attribute__((noinline, optimize("-O0"))) int avx256_mul_victim(void *varg){
 }
 
 __attribute__((noinline)) int avx512_mul_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
 	struct args_t *arg = varg;
 	uint64_t count = (int)arg->selector;
 
 	__m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
 	__m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
 	__m512i volatile result;
-
-	char *constant_str = get_value(config, config_size, "constant");
-	if(strcmp(constant_str, "None") != 0){
-		int constant = atoi(constant_str);
-		m2 = _mm512_set_epi64(constant, constant, constant, constant, constant, constant, constant, constant);
-	}
 
 	// print_m512i_binary(_mm512_mullo_epi64(m1, m2));
 
@@ -154,18 +134,10 @@ __attribute__((noinline)) int avx512_mul_victim(void *varg){
 }
 
 __attribute__((noinline)) int fma_victim(void *varg){
-	if(get_integer_value(config, config_size, "num_threads") == 1)
-		pin_cpu(get_integer_value(config, config_size, "attacker_core_id"));
-
 	struct args_t *arg = varg;
 	int count = (int)arg->selector, constant;
 	double result;
 	volatile int flag = 1;
-
-	char *constant_str = get_value(config, config_size, "constant");
-	if(strcmp(constant_str, "None") != 0){
-		constant = atoi(constant_str);
-	}
 
     while (flag) {
 		result = fma(count, count, count);

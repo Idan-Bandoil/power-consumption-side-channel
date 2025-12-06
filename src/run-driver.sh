@@ -39,9 +39,6 @@ done
 
 cp -r out data/out-${date}
 
-# Unload MSR module
-sudo modprobe -r msr
-
 python3 ./plot-hd.py --energydist 0 hd-power
 
 make clean
