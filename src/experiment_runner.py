@@ -6,13 +6,12 @@ import shutil
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, DefaultDict
+from typing import List, Dict
 from collections import defaultdict
 
 # Plotting Libraries
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 
 # ==============================================================================
 # 1. CONFIGURATION & CONSTANTS
@@ -28,14 +27,9 @@ ATTACKER_CORE_ID = 0   # P-Core
 VICTIM_CORE_ID = 2     # P-Core (Distinct from Attacker)
 
 # --- Experiment Parameters ---
-SAMPLES = 30000        # Number of samples
+SAMPLES = 300        # Number of samples
 OUTER_LOOPS = 1        # How many times to repeat the full batch
 NUM_THREADS = 2 
-
-# Warmup Settings
-DO_WARMUP = False
-WARMUP_IN_BACKGROUND = False
-WARMUP_TIME_MINUTES = 3
 
 # --- Experiment Targets ---
 # Dictionary mapping the Victim Name to the Input Selectors to test
@@ -179,21 +173,11 @@ def generate_density_plot(data_path: Path, output_filename: str):
 
 def setup_environment():
     logger.info("--- Phase 1: Environment Setup ---")
-    run_command(["modprobe", "msr"])
+    run_command(["sudo", "modprobe", "msr"])
     run_command(["make"])
     if OUT_DIR.exists():
         shutil.rmtree(OUT_DIR)
     OUT_DIR.mkdir()
-
-def perform_warmup():
-    if not DO_WARMUP: 
-        return
-    logger.info(f"--- Phase 2: Warmup ({WARMUP_TIME_MINUTES} mins) ---")
-    cmd = ["stress-ng", "-q", "--matrix", str(TOTAL_LOGICAL_CORES), "-t", f"{WARMUP_TIME_MINUTES}m"]
-    if WARMUP_IN_BACKGROUND:
-        run_command(cmd, background=True)
-    else:
-        run_command(cmd)
 
 def run_experiments():
     logger.info(f"--- Phase 3: Running Experiments (Samples: {SAMPLES}) ---")
@@ -207,7 +191,8 @@ def run_experiments():
                 f.write(f"{val}\n")
         
         cmd = [str(driver_path), str(NUM_THREADS), str(SAMPLES), str(OUTER_LOOPS), victim_name, str(ATTACKER_CORE_ID)]
-        run_command(cmd)
+        result = run_command(cmd)
+        print(result.stdout)
         
     input_file.unlink(missing_ok=True)
 
@@ -241,7 +226,6 @@ if __name__ == "__main__":
     check_root()
     try:
         setup_environment()
-        perform_warmup()
         run_experiments()
         process_results()
     except KeyboardInterrupt:
