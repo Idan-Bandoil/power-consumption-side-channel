@@ -10,9 +10,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-char *victim_names[] = {"nop", "shl", "imul", "avx256mul", "avx512mul", "fma"};
+char *victim_names[] = {"nop", "shl", "imul", "avx256mul", "fma"};
 // array of victim functions
-int (*victim_functions[])(void *) = {nop_victim, shl_victim, imul_victim, avx256_mul_victim, avx512_mul_victim, fma_victim};
+int (*victim_functions[])(void *) = {nop_victim, shl_victim, imul_victim, avx256_mul_victim, fma_victim};
 
 __attribute__((noinline)) int nop_victim(void *varg){
 	asm volatile(
@@ -113,23 +113,6 @@ int avx256_mul_victim(
     // );
 	
 	printf("%lld", result[0]);
-	return 0;
-}
-
-__attribute__((noinline)) int avx512_mul_victim(void *varg){
-	struct args_t *arg = varg;
-	uint64_t count = (int)arg->selector;
-
-	__m512i m1 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	__m512i m2 = _mm512_set_epi64(count, count, count, count, count, count, count, count);
-	__m512i volatile result;
-
-	// print_m512i_binary(_mm512_mullo_epi64(m1, m2));
-
-	while(1)
-		result = _mm512_mullo_epi64(m1, m2);
-
-	m1 = result;
 	return 0;
 }
 
