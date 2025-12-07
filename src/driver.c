@@ -134,6 +134,8 @@ static __attribute__((noinline)) int monitor(void *in) {
         curr_energy = rapl_msr(ATTACKER_CORE_ID, PP0_ENERGY);
         curr_freq = frequency_msr_raw(ATTACKER_CORE_ID);
 
+        printf("curr_energy = %f\n", curr_energy);
+
         // Log Data (Fast memory write)
         trace_log[i].energy = curr_energy - prev_energy;
         trace_log[i].aperf  = curr_freq.aperf - prev_freq.aperf;

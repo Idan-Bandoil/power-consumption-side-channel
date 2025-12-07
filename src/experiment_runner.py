@@ -216,8 +216,6 @@ def process_results():
 def cleanup():
     logger.info("--- Phase 5: Cleanup ---")
     run_command(["make", "clean"])
-    # Do not unload MSR to prevent instability
-    # run_command(["modprobe", "-r", "msr"]) 
 
 # ==============================================================================
 # 6. ENTRY POINT
