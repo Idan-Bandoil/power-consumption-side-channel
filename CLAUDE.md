@@ -10,6 +10,25 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
+## Where things stand (last updated 2026-08-22)
+
+**Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
+
+**Phase 1 is in progress, with a changed target.** The plan's Phase 1 was written to characterise the *instruction mix* (Hamming weight sweep, HW vs Hamming distance, per-instruction leakage table). Phase 0 found the register-only `vpmuludq` victim does not leak at all, while victims that move the same operand through memory do — so Phase 1 now characterises **operand movement** first. The instruction-family work still matters, but it should be done on a victim that has memory traffic, or it will measure a null.
+
+Done so far in Phase 1: the load/store 2×2 (`experiments/phase1_memory_traffic.json`), replicated with randomised run order (`phase1_memory_replication.json`). In flight at time of writing: `phase1_traffic_volume.json`, sweeping loads-per-iteration and working-set depth — check `results/` for a `*-phase1_traffic_volume` directory and run `analysis.aggregate` on it; if it is there and unanalysed, that is the first thing to pick up.
+
+Next, roughly in order:
+1. Analyse the traffic-volume sweep. The open question is whether leakage tracks bus capacitance — if so, the DRAM working set should leak far more than the L1 one, and that reframes the threat model (real software streams data from memory; microbenchmarks do not).
+2. Hamming-weight sweep and HW-vs-Hamming-distance, on a traffic-bearing victim.
+3. Per-instruction table, likewise.
+4. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive.
+
+Known gaps deliberately left open:
+- `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
+- `analysis/stats.py`'s detector is a mean threshold. It cannot see effects that live in variance rather than mean, which `avx2_load` briefly looked like it might have.
+- `perf` is unusable unprivileged here (`perf_event_paranoid=4`), so cache residency of the working-set victims is argued from sizes, not measured.
+
 ## Running an experiment
 
 Two halves, deliberately split by privilege. The runner is stdlib-only so it needs no venv; analysis needs numpy/matplotlib so it runs unprivileged afterwards.
