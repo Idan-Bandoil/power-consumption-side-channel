@@ -296,12 +296,32 @@ def run_driver(run_spec, driver_opts, out_dir, tag, repeat=0):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("experiment", help="path to an experiment JSON spec")
+    ap.add_argument("experiment", nargs="?",
+                    help="path to an experiment JSON spec")
+    ap.add_argument("--restore-only", action="store_true",
+                    help="re-enable turbo and exit; use if a run was killed "
+                         "before its cleanup could run")
     ap.add_argument("--cooldown", type=float, default=None,
                     help="override per-run cooldown seconds")
     ap.add_argument("--dry-run", action="store_true",
                     help="print the plan and exit")
     args = ap.parse_args()
+
+    if args.restore_only:
+        if os.geteuid() != 0:
+            raise SystemExit("must run as root to change turbo state")
+        # Config-A leaves no_turbo=1. A run killed before its finally block
+        # leaves the machine pinned at base clock indefinitely.
+        live = subprocess.run(["pgrep", "-x", "driver"], capture_output=True)
+        if live.returncode == 0:
+            raise SystemExit("a driver is still running; refusing to change "
+                             "turbo state mid-experiment")
+        restore()
+        give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
+        return
+
+    if not args.experiment:
+        raise SystemExit("need an experiment spec (or --restore-only)")
 
     path = Path(args.experiment)
     if not path.exists():
