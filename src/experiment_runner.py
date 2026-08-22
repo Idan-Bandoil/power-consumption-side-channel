@@ -12,7 +12,7 @@ import glob
 import json
 import logging
 import os
-import shutil
+import random
 import subprocess
 import sys
 import time
@@ -198,7 +198,7 @@ DRIVER_FLAGS = {
 }
 
 
-def run_driver(run_spec, driver_opts, out_dir, tag):
+def run_driver(run_spec, driver_opts, out_dir, tag, repeat=0):
     selectors = run_spec["selectors"]
     input_path = out_dir / f"{tag}.input.txt"
     csv_path = out_dir / f"{tag}.csv"
@@ -242,6 +242,7 @@ def run_driver(run_spec, driver_opts, out_dir, tag):
 
     return {
         "tag": tag,
+        "repeat": repeat,
         "label": run_spec.get("label", run_spec["victim"]),
         "victim": run_spec["victim"],
         "selectors": selectors,
@@ -304,13 +305,33 @@ def main():
         # Let the frequency change settle before the first measurement.
         time.sleep(2)
 
-        for i, run_spec in enumerate(spec["runs"]):
-            tag = run_spec.get("label") or f"{run_spec['victim']}_{i}"
-            cooldown(cool, spec.get("cooldown_target_c"))
-            manifest["runs"].append(
-                run_driver(run_spec, spec.get("driver", {}), out_dir, tag))
-            # Persist after every run so a crash still leaves usable metadata.
-            (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+        repeats = int(spec.get("repeats", 1))
+        base_seed = int(spec.get("driver", {}).get("seed", 12345))
+        order_rng = random.Random(spec.get("run_order_seed", 20260822))
+
+        for rep in range(repeats):
+            runs = list(spec["runs"])
+            # Randomise victim order per repeat. Interleaving cancels drift
+            # *within* a run, but comparing effect sizes *across* runs would
+            # otherwise be confounded with position in the session -- later
+            # runs sit on a warmer die.
+            if spec.get("shuffle_runs", repeats > 1):
+                order_rng.shuffle(runs)
+            logger.info("--- repeat %d/%d: %s ---", rep + 1, repeats,
+                        " ".join(r.get("label", r["victim"]) for r in runs))
+
+            for i, run_spec in enumerate(runs):
+                base = run_spec.get("label") or f"{run_spec['victim']}_{i}"
+                tag = f"{base}_r{rep}" if repeats > 1 else base
+                # A distinct block-order seed per repeat.
+                rs = dict(run_spec)
+                rs["seed"] = int(rs.get("seed", base_seed)) + 1000 * rep
+
+                cooldown(cool, spec.get("cooldown_target_c"))
+                manifest["runs"].append(
+                    run_driver(rs, spec.get("driver", {}), out_dir, tag, repeat=rep))
+                # Persist after every run so a crash still leaves usable metadata.
+                (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
     except KeyboardInterrupt:
         logger.warning("interrupted")

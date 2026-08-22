@@ -62,25 +62,28 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 ## Findings so far (2026-08-22)
 
-**The leakage is in data movement, not the vector ALU.** Same instruction (`vpmuludq`), same operands (0 vs 0xFFFFFFFF), same interleaved methodology — only the surrounding memory traffic differs:
+**The leakage is in operand movement, not the vector ALU.** Same instruction (`vpmuludq`), same operands (0 vs 0xFFFFFFFF), same interleaved methodology — only the surrounding memory traffic differs. Replicated over 3 repeats with victim order reshuffled each repeat (`results/20260822-215306-phase1_memory_replication`, all 39 gates pass):
 
-| victim | traffic | Δ power | p | detector |
-|---|---|---|---|---|
-| `avx2_mul` | none (register-resident) | −0.11 W | 0.032 | 0.60 |
-| `avx2_load` | loads only, no ALU | +0.08 W | 0.119 | 0.79 |
-| `avx2_mul_st` | multiply + stores | +0.16 W | 0.0008 | 0.77 |
-| `avx2_mul_ld` | loads + multiply | +0.35 W | 0.0001 | 0.91 |
-| `avx2_mul_ldst` | loads + multiply + stores | **+0.51 W** | 0.0001 | **0.98** |
+| victim | traffic | Δ power | between-run SD | sign | detector |
+|---|---|---|---|---|---|
+| `avx2_mul` | none (register-resident) | −0.06 W | 0.034 | all − | 0.57 |
+| *(A/A control)* | *none — true zero* | *−0.06 W* | *0.075* | *flips* | *0.52* |
+| `avx2_load` | loads only, **no ALU** | +0.21 W | 0.017 | all + | 0.85 |
+| `avx2_mul_st` | multiply + stores | +0.32 W | 0.049 | all + | 0.93 |
+| `avx2_mul_ld` | loads + multiply | +0.34 W | 0.025 | all + | 0.94 |
+| `avx2_mul_ldst` | loads + multiply + stores | **+0.51 W** | 0.049 | all + | **0.98** |
 
-A/A control on `avx2_mul_ldst` passes (p=0.52), so this is not the harness. Results: `results/20260822-200911-phase1_memory_traffic`.
+Read `avx2_mul` against the A/A row, not against zero: the A/A control has no effect by construction and still lands at −0.06 W, so the register-only victim is at the harness noise floor. **Register-resident operands do not measurably leak.**
 
-This reframes Phase 1: characterise *operand movement*, not just instruction mix. It also explains why the proposal's Eigen/TensorFlow sparsity figures separated so cleanly — those stream large matrices through memory — while a register-resident microbenchmark shows nothing.
+`avx2_load` does no arithmetic whatsoever and still leaks +0.21 W with the tightest between-run spread of any victim. Loads and stores are roughly additive: 0.21 (loads) + 0.32 (stores+mul) ≈ 0.51 (both).
 
-Two open caveats, both of which mean these numbers are not yet quotable:
-- **Between-run variability exceeds within-run CIs.** `avx2_mul` gave +0.0025 W (p=0.95) in one run and −0.106 W (p=0.032) in the next, identical configuration. Per-sample SD ranged 0.66–3.37 W across runs. Replicate every condition across independent runs before quoting a number.
-- **`avx2_load` may leak through variance rather than mean**: its mean difference is not resolved, yet the detector reaches 0.79, and the two conditions have visibly different SDs (0.92 vs 0.74). The mean-threshold detector in `analysis/stats.py` is the wrong tool for that; needs a distributional test.
+This reframes Phase 1 toward characterising *operand movement*, not instruction mix. It also explains the proposal's Eigen/TensorFlow sparsity figures — those stream large matrices through memory — while a register-resident microbenchmark shows nothing.
 
-A deliberately sequential A/A (`experiments/phase0_artifact_demo.json`, `--order sequential`) did **not** reproduce a spurious effect on a warm machine under Config-A (−0.013 W, p=0.74). So the thermal-step story does not by itself explain the old +0.8 W; the memory-traffic explanation is the one that survived testing. The `interleaving` gate still correctly failed that run's design.
+Methodology notes carried forward:
+- **Between-run spread is smaller than within-run CIs** for every traffic-bearing victim (ratio 0.26–0.84 in `analysis.aggregate`). An earlier worry that it exceeded them came from `avx2_mul` flipping sign between runs, which is just a null effect behaving like one. Still replicate: `analysis.report` alone cannot show this.
+- **Randomise victim order across repeats.** Interleaving cancels drift *within* a run; comparing effects *across* runs is separately confounded with position in the session. The first, fixed-order run had `mul_load_store` last, and it also had the largest effect. Reshuffling reproduced the ordering, so it was not an artifact — but the check was needed. `repeats` + `shuffle_runs` in the experiment spec handle this.
+- A deliberately sequential A/A (`experiments/phase0_artifact_demo.json`, `--order sequential`) did **not** reproduce a spurious effect on a warm machine under Config-A (−0.013 W, p=0.74), so the thermal-step story does not by itself explain the old +0.8 W. The `interleaving` gate still correctly failed that run's design.
+- Sampler overshoots are usually <1% of edges but hit 2.7–3.6% in 3 of 18 runs, uncorrelated with victim. Worth watching; `rapl_overshoots` is in every manifest.
 
 ## Validity gates
 

@@ -1,0 +1,65 @@
+{
+  "name": "phase1_memory_replication",
+  "description": [
+    "Replicates phase1_memory_traffic to get honest error bars.",
+    "",
+    "Two reasons the single-run numbers cannot be quoted. First, an identical",
+    "avx2_mul configuration gave +0.0025 W (p=0.95) in one run and -0.106 W",
+    "(p=0.032) in the next, so between-run variability exceeds the within-run",
+    "CIs. Second, phase1_memory_traffic ran its victims in a fixed order and",
+    "mul_load_store was last -- interleaving cancels drift within a run, but",
+    "comparing effects across runs was still confounded with position in the",
+    "session, on a progressively warmer die.",
+    "",
+    "Three repeats, victim order reshuffled each repeat, a different block",
+    "seed per repeat. Analyse with analysis.aggregate, which puts the",
+    "between-run spread next to the within-run CI."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 31337,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 3,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 9001
+  },
+  "runs": [
+    {
+      "label": "aa_control_ldst",
+      "victim": "avx2_mul_ldst",
+      "selectors": [4294967295, 4294967295]
+    },
+    {
+      "label": "reg_only",
+      "victim": "avx2_mul",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "load_only",
+      "victim": "avx2_load",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "mul_load",
+      "victim": "avx2_mul_ld",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "mul_store",
+      "victim": "avx2_mul_st",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "mul_load_store",
+      "victim": "avx2_mul_ldst",
+      "selectors": [0, 4294967295]
+    }
+  ]
+}
