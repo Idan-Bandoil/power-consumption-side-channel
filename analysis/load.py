@@ -16,6 +16,7 @@ class Run:
     max_freq_khz: int
     sample_mode: str
     rapl_period_ms: float
+    bytes_per_s: float
     block: np.ndarray
     cond: np.ndarray
     ticks: np.ndarray
@@ -79,6 +80,7 @@ def load_run(csv_path, entry):
         max_freq_khz=d["max_frequency_khz"],
         sample_mode=d["sample_mode"],
         rapl_period_ms=d.get("rapl_period_ms", float("nan")),
+        bytes_per_s=d.get("victim_bytes_per_s", float("nan")),
         block=raw[:, 0].astype(np.int64),
         cond=raw[:, 1].astype(np.int64),
         ticks=raw[:, 2].astype(np.float64),

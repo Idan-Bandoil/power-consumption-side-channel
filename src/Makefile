@@ -3,7 +3,7 @@ CC:= gcc
 # -O2 is safe here because every victim's hot loop is inline asm, so the
 # compiler cannot hoist or delete the work being measured. Do not add plain-C
 # victims without making their results volatile.
-CFLAGS:= -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -Wextra -march=native -O2
+CFLAGS:= -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -Wextra -march=native -O2 -MMD -MP
 LIBS:= -lpthread -lrt -lm
 UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/victim-utils.o
 
@@ -47,6 +47,8 @@ obj bin out data:
 
 clean:
 	rm -rf bin obj
-	rm -rf ../util/*.o
+	rm -rf ../util/*.o ../util/*.d
+
+-include $(wildcard obj/*.d ../util/*.d)
 
 .PHONY: all clean check

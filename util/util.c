@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
+#include <sys/prctl.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -36,6 +38,17 @@ void pin_cpu(size_t core_ID)
 		fprintf(stderr, "Unable to set affinity to core %zu\n", core_ID);
 		exit(EXIT_FAILURE);
 	}
+}
+
+void victim_pin(int core_ID)
+{
+	pin_cpu((size_t)core_ID);
+	if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0)
+		fprintf(stderr, "warning: PR_SET_PDEATHSIG failed on core %d\n", core_ID);
+	/* The parent may already be gone; re-check after arming. */
+	if (getppid() == 1)
+		_exit(0);
+	sched_yield();
 }
 
 int read_selectors(const char *path, uint64_t *selectors, int max)

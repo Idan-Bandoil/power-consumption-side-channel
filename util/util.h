@@ -32,10 +32,20 @@ struct ctl_t {
 	volatile int run;
 };
 
+/*
+ * One cache line each: victims write `bursts` continuously, and packing
+ * several into a line would make them fight over it.
+ *
+ * `bursts` and `bytes_per_burst` let the driver report actual operand
+ * throughput, which turns a watt difference into leakage per byte moved --
+ * the quantity the traffic-volume sweep is really after.
+ */
 struct victim_args_t {
 	struct ctl_t *ctl;
 	int core_id;
-};
+	volatile uint64_t bursts;
+	uint64_t bytes_per_burst;
+} __attribute__((aligned(64)));
 
 struct run_config_t {
 	int nthreads;
@@ -59,6 +69,17 @@ struct run_config_t {
 uint64_t get_time(void);
 
 void pin_cpu(size_t core_ID);
+
+/*
+ * Pin a victim and arm PR_SET_PDEATHSIG.
+ *
+ * Victims are cloned with CLONE_VM, so they share ctl->run with the driver.
+ * If the driver dies without clearing it -- a crash, a kill, a failed test --
+ * the address space survives in the children and they spin forever at 100%
+ * CPU on their pinned cores. Orphans like that silently corrupt every later
+ * measurement, so the kernel is made to reap them with the parent.
+ */
+void victim_pin(int core_ID);
 
 /* Reads newline-separated unsigned selectors; returns the count, bounded by max. */
 int read_selectors(const char *path, uint64_t *selectors, int max);

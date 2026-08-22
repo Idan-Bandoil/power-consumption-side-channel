@@ -1,0 +1,54 @@
+{
+  "name": "phase1_traffic_volume",
+  "description": [
+    "Does leakage scale with how much operand data moves, and with how far it",
+    "moves?",
+    "",
+    "phase1_memory_replication established that operand movement leaks and",
+    "register-resident operands do not, and hinted that loads and stores are",
+    "roughly additive (0.21 + 0.32 ~ 0.51 W). That was three points at a fixed",
+    "traffic level. This sweeps two axes independently:",
+    "",
+    "  volume  1 / 2 / 4 / 8 loads per iteration, working set pinned in L1",
+    "  depth   16K / 512K / 4M / 32M working set, loads pinned at 8",
+    "",
+    "Sized against this part: L1d 48K and L2 1.25M per P-core, L3 24M shared.",
+    "With four victim threads the 4M variant totals 16M and still fits L3,",
+    "while 32M each must stream from DRAM. If leakage tracks bus capacitance,",
+    "the depth axis should matter more than the volume axis.",
+    "",
+    "The driver now reports victim_bytes_per_s, so the watt differences can be",
+    "normalised to leakage per byte of operand traffic rather than compared",
+    "only by victim name -- the variants do not move data at equal rates."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 8675309,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 2718
+  },
+  "runs": [
+    {
+      "label": "aa_control_dram",
+      "victim": "ws_dram_x8",
+      "selectors": [4294967295, 4294967295],
+      "comment": "A/A on the heaviest-traffic victim; gates the whole sweep."
+    },
+    { "label": "vol_x1",   "victim": "ws_l1_x1", "selectors": [0, 4294967295] },
+    { "label": "vol_x2",   "victim": "ws_l1_x2", "selectors": [0, 4294967295] },
+    { "label": "vol_x4",   "victim": "ws_l1_x4", "selectors": [0, 4294967295] },
+    { "label": "vol_x8",   "victim": "ws_l1_x8", "selectors": [0, 4294967295] },
+    { "label": "depth_l2",   "victim": "ws_l2_x8",   "selectors": [0, 4294967295] },
+    { "label": "depth_l3",   "victim": "ws_l3_x8",   "selectors": [0, 4294967295] },
+    { "label": "depth_dram", "victim": "ws_dram_x8", "selectors": [0, 4294967295] }
+  ]
+}

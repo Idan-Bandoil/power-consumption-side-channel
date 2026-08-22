@@ -10,6 +10,7 @@ src/input.txt
 src/bin/
 src/obj/
 util/*.o
+util/*.d
 
 __pycache__/
 *.pyc

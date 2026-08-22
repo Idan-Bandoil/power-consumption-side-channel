@@ -137,6 +137,40 @@ def restore():
     logger.info("turbo re-enabled")
 
 
+MAX_START_LOAD = 2.0
+
+
+def load1():
+    return float((_read("/proc/loadavg") or "0").split()[0])
+
+
+def preflight():
+    """Refuse to measure on a busy machine.
+
+    Victims are cloned with CLONE_VM and spin on ctl->run; if a driver ever
+    dies without clearing it the children survive at 100% CPU on their pinned
+    cores and quietly poison every later run. Victims now arm PR_SET_PDEATHSIG
+    so that cannot happen, but stale processes from older builds, or anything
+    else the machine is doing, would corrupt the measurement just as well.
+    """
+    stray = []
+    for name in ("driver", "smoke"):
+        out = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True)
+        if out.returncode == 0:
+            stray += [f"{name}:{p}" for p in out.stdout.split()]
+    if stray:
+        raise SystemExit(f"refusing to start: stray measurement processes {stray}\n"
+                         f"  kill them with: pkill -9 -x driver; pkill -9 -x smoke")
+
+    load = load1()
+    if load > MAX_START_LOAD:
+        raise SystemExit(f"refusing to start: 1-minute load average is {load:.2f} "
+                         f"(limit {MAX_START_LOAD}).\n"
+                         f"  Wait for the machine to go idle, or pass a higher "
+                         f"limit if this is expected.")
+    logger.info("preflight ok (load %.2f, package %.1fC)", load, package_temp_c() or -1)
+
+
 def cooldown(seconds, target_c=None):
     """Fixed settle, optionally extended until the package is cool enough.
 
@@ -145,14 +179,16 @@ def cooldown(seconds, target_c=None):
     if seconds:
         logger.info("cooling down %.0fs (package %.1fC)", seconds, package_temp_c() or -1)
         time.sleep(seconds)
-    if target_c:
-        deadline = time.time() + 300
-        while time.time() < deadline:
-            t = package_temp_c()
-            if t is None or t <= target_c:
-                return
-            time.sleep(5)
-        logger.warning("cooldown target %.0fC not reached within 5 min", target_c)
+    deadline = time.time() + 300
+    while time.time() < deadline:
+        t = package_temp_c()
+        cool = target_c is None or t is None or t <= target_c
+        quiet = load1() <= MAX_START_LOAD
+        if cool and quiet:
+            return
+        time.sleep(5)
+    logger.warning("cooldown did not settle within 5 min (%.1fC, load %.2f)",
+                   package_temp_c() or -1, load1())
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +336,7 @@ def main():
     }
 
     try:
+        preflight()
         build()
         apply_config(spec.get("config", "A"))
         # Let the frequency change settle before the first measurement.

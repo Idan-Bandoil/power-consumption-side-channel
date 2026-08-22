@@ -2,6 +2,7 @@
 #include "util.h"
 
 #include <immintrin.h>
+#include <sys/mman.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,13 +78,14 @@
 		__m256i vec __attribute__((aligned(32)));                     \
 		uint64_t cached;                                              \
                                                                               \
-		pin_cpu(a->core_id);                                          \
+		victim_pin(a->core_id);                                          \
 		sched_yield();                                                \
                                                                               \
 		cached = ctl->selector;                                       \
 		vec = _mm256_set1_epi32((int)(uint32_t)cached);               \
                                                                               \
 		while (ctl->run) {                                            \
+			a->bursts++;                                          \
 			uint64_t s = ctl->selector;                           \
 			if (s != cached) {                                    \
 				cached = s;                                   \
@@ -114,10 +116,10 @@ static __attribute__((noinline)) int idle_victim(void *varg)
 	struct victim_args_t *a = varg;
 	struct ctl_t *ctl = a->ctl;
 
-	pin_cpu(a->core_id);
-	sched_yield();
+	victim_pin(a->core_id);
 
 	while (ctl->run) {
+		a->bursts++;
 		for (int i = 0; i < AVX_BURST * 8; i++)
 			_mm_pause();
 	}
@@ -130,10 +132,10 @@ static __attribute__((noinline)) int nop_victim(void *varg)
 	struct victim_args_t *a = varg;
 	struct ctl_t *ctl = a->ctl;
 
-	pin_cpu(a->core_id);
-	sched_yield();
+	victim_pin(a->core_id);
 
 	while (ctl->run) {
+		a->bursts++;
 		asm volatile(
 			"mov $" STR(AVX_BURST) ", %%rcx\n\t"
 			"1:\n\t"
@@ -160,10 +162,10 @@ static __attribute__((noinline)) int scalar_rol_victim(void *varg)
 	struct ctl_t *ctl = a->ctl;
 	uint64_t s;
 
-	pin_cpu(a->core_id);
-	sched_yield();
+	victim_pin(a->core_id);
 
 	while (ctl->run) {
+		a->bursts++;
 		s = ctl->selector;
 		asm volatile(
 			"mov %[v], %%rax\n\t"
@@ -196,10 +198,10 @@ static __attribute__((noinline)) int scalar_imul_victim(void *varg)
 	struct ctl_t *ctl = a->ctl;
 	uint64_t s;
 
-	pin_cpu(a->core_id);
-	sched_yield();
+	victim_pin(a->core_id);
 
 	while (ctl->run) {
+		a->bursts++;
 		s = ctl->selector;
 		/* Accumulators are re-seeded every burst so they cannot drift
 		 * to an absorbing value and decouple from the selector. */
@@ -313,7 +315,7 @@ DEFINE_VEC_VICTIM(avx2_vnni_victim, UNROLL8_3OP, "%{vex%} vpdpbusd", "ymm", ZERO
 	"ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7", \
 	"ymm8", "ymm9", "ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15"
 
-#define DEFINE_MEM_VICTIM(fname, preamble, body)                              \
+#define DEFINE_MEM_VICTIM(fname, preamble, body, periter)                              \
 	static __attribute__((noinline)) int fname(void *varg)                \
 	{                                                                     \
 		struct victim_args_t *a = varg;                               \
@@ -321,14 +323,16 @@ DEFINE_VEC_VICTIM(avx2_vnni_victim, UNROLL8_3OP, "%{vex%} vpdpbusd", "ymm", ZERO
 		__m256i buf[MEM_SLOTS] __attribute__((aligned(64)));          \
 		uint64_t cached;                                              \
                                                                               \
-		pin_cpu(a->core_id);                                          \
+		victim_pin(a->core_id);                                          \
 		sched_yield();                                                \
+		a->bytes_per_burst = (uint64_t)AVX_BURST * (periter);         \
                                                                               \
 		cached = ctl->selector;                                       \
 		for (int i = 0; i < MEM_SLOTS; i++)                           \
 			buf[i] = _mm256_set1_epi32((int)(uint32_t)cached);    \
                                                                               \
 		while (ctl->run) {                                            \
+			a->bursts++;                                          \
 			uint64_t s = ctl->selector;                           \
 			if (s != cached) {                                    \
 				cached = s;                                   \
@@ -352,9 +356,9 @@ DEFINE_VEC_VICTIM(avx2_vnni_victim, UNROLL8_3OP, "%{vex%} vpdpbusd", "ymm", ZERO
 		return 0;                                                     \
 	}
 
-DEFINE_MEM_VICTIM(avx2_mul_ld_victim,   "", LOAD8 MUL8)
-DEFINE_MEM_VICTIM(avx2_mul_ldst_victim, "", LOAD8 MUL8 STORE8)
-DEFINE_MEM_VICTIM(avx2_load_victim,     "", LOAD8)
+DEFINE_MEM_VICTIM(avx2_mul_ld_victim,   "", LOAD8 MUL8, 256)
+DEFINE_MEM_VICTIM(avx2_mul_ldst_victim, "", LOAD8 MUL8 STORE8, 512)
+DEFINE_MEM_VICTIM(avx2_load_victim,     "", LOAD8, 256)
 
 /* Operand fetched once, outside the loop: stores carry the traffic. */
 DEFINE_MEM_VICTIM(avx2_mul_st_victim,
@@ -366,7 +370,128 @@ DEFINE_MEM_VICTIM(avx2_mul_st_victim,
 		  "vmovdqa %%ymm0, %%ymm5\n\t"
 		  "vmovdqa %%ymm0, %%ymm6\n\t"
 		  "vmovdqa %%ymm0, %%ymm7\n\t",
-		  MUL8 STORE8)
+		  MUL8 STORE8, 256)
+
+/* ---- Traffic-volume sweep --------------------------------------------- *
+ *
+ * The variants above establish that operand movement leaks and register-
+ * resident operands do not. These vary how much movement there is, along two
+ * independent axes:
+ *
+ *   loads per iteration  1 / 2 / 4 / 8   at a fixed L1-resident working set
+ *   working set          16K / 512K / 4M / 32M  at a fixed 8 loads
+ *
+ * Sized for this part: L1d 48K and L2 1.25M per P-core, L3 24M shared. With
+ * four victim threads the 4M variant totals 16M and still fits L3, while 32M
+ * each is far past it and must come from DRAM.
+ *
+ * Two buffers are held per victim, one per selector value seen, so switching
+ * conditions is a pointer swap rather than a refill of the whole working set
+ * -- otherwise every block boundary would inject a large burst of write
+ * traffic into the measurement.
+ */
+#define WS_SLOTS 2
+
+struct ws_cache {
+	unsigned char *slot[WS_SLOTS];
+	uint64_t val[WS_SLOTS];
+	int filled[WS_SLOTS];
+	int next;
+	size_t bytes;
+};
+
+static void ws_fill(void *p, size_t bytes, uint32_t v)
+{
+	uint32_t *q = p;
+	for (size_t i = 0; i < bytes / sizeof(*q); i++)
+		q[i] = v;
+}
+
+static void ws_init(struct ws_cache *c, size_t bytes)
+{
+	c->bytes = bytes;
+	c->next = 0;
+	for (int i = 0; i < WS_SLOTS; i++) {
+		c->filled[i] = 0;
+		c->slot[i] = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
+				  MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0);
+		if (c->slot[i] == MAP_FAILED) {
+			fprintf(stderr, "victim: mmap %zu bytes failed\n", bytes);
+			_exit(1);
+		}
+	}
+}
+
+static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
+{
+	for (int i = 0; i < WS_SLOTS; i++)
+		if (c->filled[i] && c->val[i] == sel)
+			return c->slot[i];
+
+	int i = c->next;
+	c->next = (c->next + 1) % WS_SLOTS;
+	ws_fill(c->slot[i], c->bytes, (uint32_t)sel);
+	c->val[i] = sel;
+	c->filled[i] = 1;
+	return c->slot[i];
+}
+
+#define WS_LD1 "vmovdqa    0(%[p],%[o]), %%ymm0\n\t"
+#define WS_LD2 WS_LD1 \
+	"vmovdqa   32(%[p],%[o]), %%ymm1\n\t"
+#define WS_LD4 WS_LD2 \
+	"vmovdqa   64(%[p],%[o]), %%ymm2\n\t" \
+	"vmovdqa   96(%[p],%[o]), %%ymm3\n\t"
+#define WS_LD8 WS_LD4 \
+	"vmovdqa  128(%[p],%[o]), %%ymm4\n\t" \
+	"vmovdqa  160(%[p],%[o]), %%ymm5\n\t" \
+	"vmovdqa  192(%[p],%[o]), %%ymm6\n\t" \
+	"vmovdqa  224(%[p],%[o]), %%ymm7\n\t"
+
+/* Sizes are powers of two so the cursor wraps with a mask. */
+#define DEFINE_WS_VICTIM(fname, bytes, loads, step)                           \
+	static __attribute__((noinline)) int fname(void *varg)                \
+	{                                                                     \
+		struct victim_args_t *a = varg;                               \
+		struct ctl_t *ctl = a->ctl;                                   \
+		struct ws_cache cache;                                        \
+		uint64_t off = 0, mask = (uint64_t)(bytes) - (step);          \
+                                                                              \
+		victim_pin(a->core_id);                                          \
+		sched_yield();                                                \
+		ws_init(&cache, (bytes));                                     \
+		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
+                                                                              \
+		while (ctl->run) {                                            \
+			a->bursts++;                                          \
+			unsigned char *buf = ws_get(&cache, ctl->selector);   \
+			asm volatile(                                         \
+				"mov $" STR(AVX_BURST) ", %%rcx\n\t"          \
+				"1:\n\t"                                      \
+				loads                                         \
+				"add $" STR(step) ", %[o]\n\t"                \
+				"and %[m], %[o]\n\t"                          \
+				"sub $1, %%rcx\n\t"                           \
+				"jnz 1b\n\t"                                  \
+				"vzeroupper\n\t"                              \
+				: [o] "+r" (off)                              \
+				: [p] "r" (buf), [m] "r" (mask)               \
+				: "rcx", "memory", YMM_CLOBBERS);             \
+		}                                                             \
+		_exit(0);                                                     \
+		return 0;                                                     \
+	}
+
+/* Axis 1: loads per iteration, working set pinned in L1. */
+DEFINE_WS_VICTIM(ws_l1_x1_victim, 16384, WS_LD1, 32)
+DEFINE_WS_VICTIM(ws_l1_x2_victim, 16384, WS_LD2, 64)
+DEFINE_WS_VICTIM(ws_l1_x4_victim, 16384, WS_LD4, 128)
+DEFINE_WS_VICTIM(ws_l1_x8_victim, 16384, WS_LD8, 256)
+
+/* Axis 2: working set, loads pinned at 8 per iteration. */
+DEFINE_WS_VICTIM(ws_l2_x8_victim,   524288, WS_LD8, 256)
+DEFINE_WS_VICTIM(ws_l3_x8_victim,  4194304, WS_LD8, 256)
+DEFINE_WS_VICTIM(ws_dram_x8_victim, 33554432, WS_LD8, 256)
 
 /* ---- Lookup table ----------------------------------------------------- */
 
@@ -398,6 +523,13 @@ static const struct victim_entry victims[] = {
 	{ "avx2_mul_st",   avx2_mul_st_victim,   "vpmuludq with results stored to L1 each iteration" },
 	{ "avx2_mul_ldst", avx2_mul_ldst_victim, "vpmuludq with both loads and stores (closest to the original -O0 victim)" },
 	{ "avx2_load",     avx2_load_victim,     "vmovdqa loads only, no ALU work" },
+	{ "ws_l1_x1",   ws_l1_x1_victim,   "1 load/iter,  16K working set (L1)" },
+	{ "ws_l1_x2",   ws_l1_x2_victim,   "2 loads/iter, 16K working set (L1)" },
+	{ "ws_l1_x4",   ws_l1_x4_victim,   "4 loads/iter, 16K working set (L1)" },
+	{ "ws_l1_x8",   ws_l1_x8_victim,   "8 loads/iter, 16K working set (L1)" },
+	{ "ws_l2_x8",   ws_l2_x8_victim,   "8 loads/iter, 512K working set (L2)" },
+	{ "ws_l3_x8",   ws_l3_x8_victim,   "8 loads/iter, 4M working set (L3)" },
+	{ "ws_dram_x8", ws_dram_x8_victim, "8 loads/iter, 32M working set (DRAM)" },
 };
 
 #define NUM_VICTIMS (sizeof(victims) / sizeof(victims[0]))

@@ -32,6 +32,7 @@ def effect_of(run, n_boot):
         "best_acc": max(curve.values()) if curve else float("nan"),
         "repeat": run.meta.get("repeat", 0),
         "is_aa": run.is_aa_control,
+        "bytes_per_s": run.bytes_per_s,
     }
 
 
@@ -51,8 +52,8 @@ def main():
                 groups[run.label].append(e)
 
     print(f"{'label':<20} {'n':>2} {'mean dW':>9} {'between':>9} {'within':>9} "
-          f"{'ratio':>6} {'sign':>10} {'acc':>6}")
-    print("-" * 82)
+          f"{'ratio':>6} {'sign':>7} {'acc':>6} {'GB/s':>8} {'mW/GB/s':>8}")
+    print("-" * 100)
 
     for label in sorted(groups):
         es = sorted(groups[label], key=lambda e: e["repeat"])
@@ -75,8 +76,13 @@ def main():
         ratio = between / within if within > 0 and len(diffs) > 1 else float("nan")
         tag = " (A/A)" if es[0]["is_aa"] else ""
 
+        # Runs from before the driver reported throughput have no value here.
+        bps = [e["bytes_per_s"] for e in es if np.isfinite(e["bytes_per_s"])]
+        gbs = (float(np.mean(bps)) / 1e9) if bps else float("nan")
+        per = 1000.0 * diffs.mean() / gbs if gbs > 0 else float("nan")
         print(f"{label + tag:<20} {len(diffs):>2} {diffs.mean():>+9.4f} "
-              f"{between:>9.4f} {within:>9.4f} {ratio:>6.2f} {sign:>10} {acc:>6.3f}")
+              f"{between:>9.4f} {within:>9.4f} {ratio:>6.2f} {sign:>7} {acc:>6.3f} "
+              f"{gbs:>8.2f} {per:>8.1f}")
         print(f"{'':<20}    per-repeat: "
               + "  ".join(f"{d:+.4f}" for d in diffs))
 
@@ -85,6 +91,8 @@ def main():
     print("within   : mean half-width of each run's own 95% bootstrap CI")
     print("ratio    : between/within. >1 means single-run CIs are optimistic")
     print("sign     : whether every repeat agrees on the direction of the effect")
+    print("GB/s     : measured operand throughput summed over victim threads")
+    print("mW/GB/s  : leakage normalised to traffic rate")
 
 
 if __name__ == "__main__":

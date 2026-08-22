@@ -272,6 +272,13 @@ int main(int argc, char *argv[])
 	uint64_t prev_tsc = _rdtsc();
 	struct freq_sample_t prev_f = frequency_msr_raw(cfg.attacker_core);
 
+	/* Victim throughput, so a watt difference can be expressed per byte of
+	 * operand traffic rather than only per victim name. */
+	uint64_t bursts0 = 0, bursts1 = 0;
+	for (int i = 0; i < cfg.nthreads; i++)
+		bursts0 += vargs[i].bursts;
+	uint64_t work_tsc0 = _rdtsc();
+
 	uint64_t period_est = 0;
 	uint64_t edges_seen = 0;
 	uint64_t overshoots = 0;
@@ -352,6 +359,13 @@ int main(int argc, char *argv[])
 				b + 1, total_blocks, cond, keep);
 	}
 
+	uint64_t work_tsc1 = _rdtsc();
+	for (int i = 0; i < cfg.nthreads; i++)
+		bursts1 += vargs[i].bursts;
+	double work_s = (double)(work_tsc1 - work_tsc0) / tsc_hz;
+	double bursts_per_s = (double)(bursts1 - bursts0) / work_s;
+	double bytes_per_s = bursts_per_s * (double)vargs[0].bytes_per_burst;
+
 	stop_victims(ctl, cfg.nthreads, tids);
 	close(fd);
 	write_csv(cfg.out_path, log, idx);
@@ -382,6 +396,9 @@ int main(int argc, char *argv[])
 	printf("  \"rapl_period_ms\": %.6f,\n", 1000.0 * (double)period_est / tsc_hz);
 	printf("  \"rapl_overshoots\": %" PRIu64 ",\n", overshoots);
 	printf("  \"samples_written\": %" PRIu64 ",\n", idx);
+	printf("  \"victim_bursts\": %" PRIu64 ",\n", bursts1 - bursts0);
+	printf("  \"victim_bytes_per_burst\": %" PRIu64 ",\n", vargs[0].bytes_per_burst);
+	printf("  \"victim_bytes_per_s\": %.6g,\n", bytes_per_s);
 	printf("  \"out\": \"%s\"\n", cfg.out_path);
 	printf("}\n");
 
