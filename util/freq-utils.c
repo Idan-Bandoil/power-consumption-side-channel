@@ -8,6 +8,7 @@ https://github.com/torvalds/linux/blob/master/arch/x86/kernel/cpu/aperfmperf.c *
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "freq-utils.h"
@@ -75,7 +76,7 @@ uint32_t frequency_msr(int core_ID)
 uint32_t frequency_cpufreq(int cpu_id)
 {
 	// Open sysfs CPU frequency file once
-	static FILE *cur_freq_file = NULL;
+	FILE *cur_freq_file = NULL;
 	if (!cur_freq_file) {
 		char file_name[100];
 

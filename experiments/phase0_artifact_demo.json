@@ -1,0 +1,46 @@
+{
+  "name": "phase0_artifact_demo",
+  "description": [
+    "Demonstrates the pre-2026 confound on demand, as a methods figure.",
+    "",
+    "Both runs use IDENTICAL selectors in both conditions, so the true effect",
+    "is exactly zero by construction. The only difference between them is",
+    "block ordering. The sequential run reproduces the old design: each",
+    "condition as one contiguous phase, so die temperature -- and with it",
+    "static leakage power -- rises in lockstep with the condition label.",
+    "",
+    "Any difference the sequential run reports is therefore 100% artifact.",
+    "This is the mechanism that produced the 15 W 'effect' in out-1207-2115",
+    "and, plausibly, the +0.8 W in out-1228-1527.",
+    "",
+    "Start cold and skip the inter-run cooldown so the thermal ramp lands",
+    "inside the measurement rather than before it."
+  ],
+  "config": "A",
+  "cooldown_s": 0,
+  "runs": [
+    {
+      "label": "sequential_aa",
+      "victim": "avx2_mul_ldst",
+      "selectors": [4294967295, 4294967295],
+      "order": "sequential",
+      "comment": "Expect a spurious, statistically significant difference. Must FAIL the interleaving gate."
+    },
+    {
+      "label": "shuffled_aa",
+      "victim": "avx2_mul_ldst",
+      "selectors": [4294967295, 4294967295],
+      "order": "shuffled",
+      "comment": "Same workload, same thermal ramp, interleaved. Must land at chance."
+    }
+  ],
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 3,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 777
+  }
+}

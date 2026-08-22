@@ -1,24 +1,16 @@
-#include <immintrin.h>
-
 #ifndef VICTIM_UTILS_H
 #define VICTIM_UTILS_H
 
-#define NUM_VICTIMS 5
+#include <stdio.h>
 
-__attribute__((noinline)) int nop_victim(void *varg);
+/*
+ * Victims are looked up by name from a single table in victim-utils.c, so
+ * adding one is a single edit there. Every victim runs a tight inline-asm
+ * loop and re-reads ctl->selector between bursts, which lets the driver
+ * change the tested operand live instead of respawning threads.
+ */
+int (*get_victim(const char *name))(void *);
 
-__attribute__((noinline)) int shl_victim(void *varg);
-
-__attribute__((noinline)) int imul_victim(void *varg);
-
-__attribute__((noinline)) int avx256_mul_victim(void *varg);
-
-__attribute__((noinline)) int fma_victim(void *varg);
-
-int (*get_victim(char *victim))(void *);
-
-void print_m256i(__m256i vec, char sign);
-
-void print_m256i_binary(__m256i vec);
+void list_victims(FILE *out);
 
 #endif

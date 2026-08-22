@@ -1,0 +1,52 @@
+{
+  "name": "phase0_validate",
+  "description": [
+    "Phase 0 milestone: re-establish the operand Hamming-weight effect under",
+    "interleaved blocks, and prove the harness cannot manufacture one.",
+    "",
+    "The pre-2026 datasets ran each condition as a single 5-minute block, so",
+    "condition and thermal drift were confounded; out-1207-2115 produced a",
+    "15 W 'effect' pointing the wrong way purely from the package heating up.",
+    "Here every condition is spread over the whole run in randomised short",
+    "blocks, so drift is common-mode.",
+    "",
+    "aa_control is the gate that matters: identical selectors in both",
+    "conditions must come out at chance. If it does not, nothing else in the",
+    "run can be trusted."
+  ],
+  "config": "A",
+  "cooldown_s": 45,
+  "cooldown_target_c": 60,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 3,
+    "mode": "edge",
+    "attacker_core": 0,
+    "victim_core_start": 2,
+    "victim_core_stride": 2,
+    "max_victim_core": 11,
+    "seed": 12345
+  },
+  "runs": [
+    {
+      "label": "aa_control",
+      "victim": "avx2_mul",
+      "selectors": [4294967295, 4294967295],
+      "comment": "A/A negative control: must land at chance."
+    },
+    {
+      "label": "hw_0_vs_32",
+      "victim": "avx2_mul",
+      "selectors": [0, 4294967295],
+      "comment": "The 1228 comparison, now interleaved. Expect ~+0.8 W."
+    },
+    {
+      "label": "idle_baseline",
+      "victim": "idle",
+      "selectors": [0, 4294967295],
+      "comment": "Victims do no AVX work, so the selector cannot matter. A second negative control, this one covering the whole measurement path."
+    }
+  ]
+}

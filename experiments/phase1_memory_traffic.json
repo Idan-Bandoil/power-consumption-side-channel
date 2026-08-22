@@ -1,0 +1,67 @@
+{
+  "name": "phase1_memory_traffic",
+  "description": [
+    "Does operand Hamming weight leak through the ALU, or through the data",
+    "movement around it?",
+    "",
+    "phase0_validate found no effect (+0.0025 W, p=0.95) for a register-only",
+    "vpmuludq loop, despite 9x lower noise than the run that originally",
+    "showed +0.8 W. Two things had changed at once: the methodology, and the",
+    "victim -- the original was C at -O0 with operands and a volatile result",
+    "on the stack, reloaded and restored every iteration.",
+    "",
+    "This isolates the second factor as a 2x2 over loads and stores, holding",
+    "the methodology fixed. If the effect returns with memory traffic, the",
+    "leakage lives in data movement and the register-only null is real and",
+    "informative. If it stays null everywhere, the original +0.8 W was an",
+    "artifact of the sequential design."
+  ],
+  "config": "A",
+  "cooldown_s": 45,
+  "cooldown_target_c": 60,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 3,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 4242
+  },
+  "runs": [
+    {
+      "label": "aa_control_ldst",
+      "victim": "avx2_mul_ldst",
+      "selectors": [4294967295, 4294967295],
+      "comment": "A/A on the heaviest-traffic victim: gates the whole comparison."
+    },
+    {
+      "label": "reg_only",
+      "victim": "avx2_mul",
+      "selectors": [0, 4294967295],
+      "comment": "Reference: reproduces the phase0 null."
+    },
+    {
+      "label": "load_only",
+      "victim": "avx2_load",
+      "selectors": [0, 4294967295],
+      "comment": "Pure data movement, no ALU."
+    },
+    {
+      "label": "mul_load",
+      "victim": "avx2_mul_ld",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "mul_store",
+      "victim": "avx2_mul_st",
+      "selectors": [0, 4294967295]
+    },
+    {
+      "label": "mul_load_store",
+      "victim": "avx2_mul_ldst",
+      "selectors": [0, 4294967295],
+      "comment": "Closest analogue of the original -O0 victim."
+    }
+  ]
+}

@@ -1,1 +1,16 @@
+# Historical raw data (pre-2026 pipeline); kept on disk, not in git
 src/data/*
+
+# Measurement output
+results/
+src/out/
+src/input.txt
+
+# Build products
+src/bin/
+src/obj/
+util/*.o
+
+__pycache__/
+*.pyc
+venv/

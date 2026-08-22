@@ -1,0 +1,39 @@
+{
+  "name": "phase0_sampling",
+  "description": [
+    "Quantifies what edge-triggered sampling buys over the old fixed-window",
+    "sampler, as a methods result for the thesis.",
+    "",
+    "The old sampler used a 2.5M-cycle busy-wait, at or below the RAPL update",
+    "interval: 9.2% of samples in out-1228-1527 read exactly zero energy, and",
+    "the analysis then discarded those zeros while keeping the double-length",
+    "windows that followed them. Same victim, same conditions, both samplers."
+  ],
+  "config": "A",
+  "cooldown_s": 45,
+  "cooldown_target_c": 60,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 3,
+    "attacker_core": 0,
+    "seed": 20260822
+  },
+  "runs": [
+    {
+      "label": "edge_sampling",
+      "victim": "avx2_mul",
+      "selectors": [0, 4294967295],
+      "mode": "edge"
+    },
+    {
+      "label": "fixed_sampling",
+      "victim": "avx2_mul",
+      "selectors": [0, 4294967295],
+      "mode": "fixed",
+      "fixed_cycles": 2500000,
+      "comment": "The old 2.5M-cycle window, for the zero-tick and variance comparison."
+    }
+  ]
+}
