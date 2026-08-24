@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import random
+import signal
 import subprocess
 import sys
 import time
@@ -293,6 +294,11 @@ def run_driver(run_spec, driver_opts, out_dir, tag, repeat=0):
 
 # ---------------------------------------------------------------------------
 
+def _raise_interrupt(signum, frame):
+    """Turn a termination signal into the exception the cleanup path expects."""
+    raise KeyboardInterrupt(f"signal {signum}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -334,6 +340,11 @@ def main():
 
     if os.geteuid() != 0:
         raise SystemExit("must run as root (RAPL MSRs are root-only)")
+
+    # A plain `kill` would otherwise skip both restore() and give_back(),
+    # leaving the machine pinned at base clock and the results root-owned.
+    signal.signal(signal.SIGTERM, _raise_interrupt)
+    signal.signal(signal.SIGHUP, _raise_interrupt)
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + spec["name"]
     out_dir = RESULTS / run_id
@@ -396,12 +407,13 @@ def main():
         manifest["finished"] = datetime.now().isoformat(timespec="seconds")
         (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
         restore()
-
-    # Everything here was created as root. Hand it back, or the next
-    # unprivileged `make` and the analysis step both fail on permissions.
-    # RESULTS itself, not just out_dir: the parent is created by the first
-    # root run and would otherwise stay root-owned and unwritable.
-    give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
+        # Everything here was created as root. Hand it back, or the next
+        # unprivileged `make` and the analysis step both fail on permissions.
+        # RESULTS itself, not just out_dir: the parent is created by the first
+        # root run and would otherwise stay root-owned and unwritable. In the
+        # finally block, not after it, so a kill mid-run still hands back what
+        # was written -- a half-finished sweep is still worth analysing.
+        give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
 
     logger.info("results in %s", out_dir)
     print(f"\nNext: ./venv/bin/python3 -m analysis.report {out_dir}")
