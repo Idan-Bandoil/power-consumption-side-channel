@@ -112,7 +112,22 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 `dP = 0.362 + 0.0500·HW` watts, **R² = 0.974**, slope **+50.0 mW/bit** (SD 0.25 over three repeats). Alternative shapes were tested and rejected: √HW gives R² 0.951, log(1+HW) 0.874, a pure power law through the origin 0.928, and adding a quadratic term, a cyclic bit-transition count, or a non-zero-byte count each buys ≤0.003 of R² for an extra parameter. The `hw32` figure also reproduces `phase1_polarity`'s `l3_forward` (+1.904 vs +1.841 W) across sessions.
 
-**The intercept is the interesting part and the sweep cannot explain it.** The line extrapolates to +362 mW at HW = 0, but dP(0) is zero by construction and the A/A control confirms it (−14 mW). A single set bit already costs +0.42 W, 22% of the full-range effect. Two readings fit equally well: a set bit is disproportionately expensive at the low end, or **the all-zero baseline is anomalously cheap** (zero data may cost less to move on-die), which would make every Δ in this table an overestimate by a constant. They are not separable from this design, because every contrast here uses the all-zero operand as its baseline. **The decisive follow-up is a non-zero-baseline arm** — e.g. HW8 against HW4 directly, which should read 0.28 W if the effects are additive.
+**The intercept is the interesting part and the sweep cannot explain it.** The line extrapolates to +362 mW at HW = 0, but dP(0) is zero by construction and the A/A control confirms it (−14 mW). A single set bit already costs +0.42 W, 22% of the full-range effect. Two readings fit equally well: a set bit is disproportionately expensive at the low end, or **the all-zero baseline is anomalously cheap** (zero data may cost less to move on-die), which would make every Δ in this table an overestimate by a constant. They are not separable from this design, because every contrast here uses the all-zero operand as its baseline. The non-zero-baseline arm below settles that the step is a property of the operand rather than of the measurement, but not which side of it is anomalous.
+
+**The step belongs to the operand, not to the act of switching operands.** `experiments/phase1_nonzero_baseline.json` (`results/20260901-225254-phase1_nonzero_baseline`, 7 runs × 3 repeats, 48/48 gates pass) contrasts non-zero operands against each other, so nothing in it uses the all-zero baseline. This was the dangerous alternative: if alternating a victim between *any* two distinct working sets cost a fixed ~0.36 W, every A/B result in this project would be inflated by it, and no A/A could have caught it, because an A/A holds the same value in both conditions and never swaps buffers.
+
+| contrast | ΔHW | measured | predicted | mW/bit |
+|---|---|---|---|---|
+| `hw04_a → hw08_a` | 4 | +0.326 W | +0.251 | 81 |
+| `hw08_a → hw16_a` | 8 | +0.388 W | +0.418 | 48 |
+| `hw16_a → hw32` | 16 | +0.774 W | +0.771 | 48 |
+| `hw01 → hw32` | 31 | +1.705 W | +1.482 | 55 |
+| `hw16_a → hw16_b` | 0 | +0.071 W | +0.085 | — |
+| `0 → hw16_a` (anchor) | 16 | +1.215 W | +1.133 | 76 |
+
+Regressing measured on predicted gives an **intercept of +14 ± 23 mW** — reading B's +362 mW sits **15 SE away** — and the intercept is identical whether or not the session is rescaled by the anchor. **No per-contrast offset exists; the depth table and every earlier A/B result stand.** The A/A on a non-zero operand is also clean (+10.6 mW, sign flipping, accuracy 0.506), which closes a real gap: every previous A/A held all-zeros or all-ones, so none could have revealed anything peculiar to the zero buffer.
+
+Two loose ends from it. The contrasts touching the lowest weights come in above prediction (+57 mW at z=+2.7 and +115 mW at z=+2.5, both positive), and the session's internal chain implies `hw01 → hw04` = +0.217 W where the sweep puts it at +0.043 W — so the transition is probably not a clean discontinuity at zero but **slightly super-linear across the first few bits**. A dedicated low-end sweep (HW 1,2,3,4,6, several patterns each, ~25 min) would settle it. And the anchor run reproduced the sweep's `hw16_a` at +1.215 vs +1.133 W, a difference of 0.082 ± 0.088 — not distinguishable, but only because an anchor was included. **Put an anchor run in every session**; cross-session comparison has no other check.
 
 **Bit placement matters a little, and is not explained.** At equal Hamming weight, two random patterns differ by 0.04–0.16 W; the largest is at HW 8 (0.71 vs 0.88 W, 2.1× the between-run SD). Neither cyclic adjacent-bit transitions nor the number of non-zero bytes accounts for it. So Hamming weight is a good predictor but not a complete one — worth a sentence in the thesis, not a chapter.
 
