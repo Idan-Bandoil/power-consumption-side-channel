@@ -1,0 +1,124 @@
+### analysis.report results/20260822-202308-phase0_artifact_demo
+
+
+==============================================================================
+Run 20260822-202308-phase0_artifact_demo
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 348c81327ba4d66f9047b9a6f259d8528f946e4b (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 43.0 C at start
+
+==============================================================================
+sequential_aa  [victim=avx2_mul_ldst, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    17.255    1.621     2298
+     1   4294967295   18000    17.241    1.580     2296
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  17.67  17.30  17.17  17.07  17.13  17.25  17.27  17.22  17.28  17.21
+    cond 1:  17.21  17.26  17.28  17.22  17.28  17.35  17.21  17.19  17.24  17.18
+    within-condition span: cond 0 0.601 W, cond 1 0.163 W
+
+  interleaving     : imbalance 0.502  (mean position cond 0 0.25, cond 1 0.75)  [FAIL — conditions are temporally separated]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0134 W  95% CI [-0.0921, +0.0611]  (-0.08% of baseline)
+  Cohen's d        : -0.0084  (per sample)
+  permutation p    : 0.74083  (10000 block relabelings)
+  detector         : best accuracy 0.521 at n<=120
+      n=   1  acc=0.512  
+      n=   2  acc=0.520  #
+      n=   3  acc=0.512  
+      n=   5  acc=0.513  #
+      n=   8  acc=0.521  #
+      n=  13  acc=0.518  #
+      n=  21  acc=0.519  #
+      n=  34  acc=0.510  
+      n=  55  acc=0.467  
+      n=  89  acc=0.498  
+      n= 120  acc=0.484  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260822-202308-phase0_artifact_demo/figures
+
+==============================================================================
+shuffled_aa  [victim=avx2_mul_ldst, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    17.275    1.840     2294
+     1   4294967295   18000    17.254    1.827     2294
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  17.43  17.34  17.35  17.20  17.24  17.23  17.22  17.31  17.18  17.26
+    cond 1:  17.43  17.41  17.22  17.19  17.25  17.30  17.29  17.17  17.23  17.06
+    within-condition span: cond 0 0.248 W, cond 1 0.372 W
+
+  interleaving     : imbalance 0.061  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0212 W  95% CI [-0.0897, +0.0504]  (-0.12% of baseline)
+  Cohen's d        : -0.0116  (per sample)
+  permutation p    : 0.55924  (10000 block relabelings)
+  detector         : best accuracy 0.525 at n<=120
+      n=   1  acc=0.507  
+      n=   2  acc=0.513  #
+      n=   3  acc=0.514  #
+      n=   5  acc=0.499  
+      n=   8  acc=0.497  
+      n=  13  acc=0.521  #
+      n=  21  acc=0.494  
+      n=  34  acc=0.510  
+      n=  55  acc=0.525  ##
+      n=  89  acc=0.520  #
+      n= 120  acc=0.505  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260822-202308-phase0_artifact_demo/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  sequential_aa                zero_ticks       PASS
+  sequential_aa                interleaving     FAIL
+  sequential_aa                aa_0v1           PASS
+  shuffled_aa                  zero_ticks       PASS
+  shuffled_aa                  interleaving     PASS
+  shuffled_aa                  aa_0v1           PASS
+
+FAILED GATES: sequential_aa/interleaving
+
+(report exit: 0)
+
+### analysis.aggregate results/20260822-202308-phase0_artifact_demo
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s  mW/GB/s
+----------------------------------------------------------------------------------------------------
+sequential_aa (A/A)   1   -0.0134       nan    0.0780    nan       -  0.521      nan      nan
+                        per-repeat: -0.0134
+shuffled_aa (A/A)     1   -0.0212       nan    0.0724    nan       -  0.525      nan      nan
+                        per-repeat: -0.0212
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+mW/GB/s  : leakage normalised to traffic rate

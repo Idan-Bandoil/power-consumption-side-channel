@@ -1,8 +1,12 @@
 # Historical raw data (pre-2026 pipeline); kept on disk, not in git
 src/data/*
 
-# Measurement output
-results/
+# Measurement output.
+# Raw per-sample CSVs are large (~100 MB) and stay out of git; everything needed to
+# reconstruct a claim without them -- manifest.json (git commit, every driver argument,
+# selectors, turbo/thermal state), the selector files, the generated figures and the
+# analysis.report/aggregate summary -- is tracked.
+results/**/*.csv
 src/out/
 src/input.txt
 

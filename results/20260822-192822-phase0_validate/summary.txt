@@ -1,0 +1,166 @@
+### analysis.report results/20260822-192822-phase0_validate
+
+
+==============================================================================
+Run 20260822-192822-phase0_validate
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 348c81327ba4d66f9047b9a6f259d8528f946e4b (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 42.0 C at start
+
+==============================================================================
+aa_control  [victim=avx2_mul, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    12.170    0.710     2298
+     1   4294967295   18000    12.118    0.651     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.60  12.12  12.11  12.12  12.13  12.12  12.29  12.06  12.09  12.07
+    cond 1:  12.21  12.13  12.10  12.17  12.13  12.07  12.05  12.18  12.09  12.06
+    within-condition span: cond 0 0.541 W, cond 1 0.168 W
+
+  interleaving     : imbalance 0.022  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0521 W  95% CI [-0.1194, +0.0065]  (-0.43% of baseline)
+  Cohen's d        : -0.0765  (per sample)
+  permutation p    : 0.10069  (10000 block relabelings)
+  detector         : best accuracy 0.541 at n<=120
+      n=   1  acc=0.515  #
+      n=   2  acc=0.533  ##
+      n=   3  acc=0.513  #
+      n=   5  acc=0.524  #
+      n=   8  acc=0.541  ###
+      n=  13  acc=0.529  ##
+      n=  21  acc=0.532  ##
+      n=  34  acc=0.532  ##
+      n=  55  acc=0.518  #
+      n=  89  acc=0.526  ##
+      n= 120  acc=0.497  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260822-192822-phase0_validate/figures
+
+==============================================================================
+hw_0_vs_32  [victim=avx2_mul, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    12.092    0.656     2299
+     1   4294967295   18000    12.094    0.790     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.35  12.05  12.02  11.99  12.01  12.02  12.12  12.12  12.11  12.14
+    cond 1:  12.59  12.01  11.98  11.97  11.97  11.97  12.10  12.11  12.11  12.13
+    within-condition span: cond 0 0.361 W, cond 1 0.618 W
+
+  interleaving     : imbalance 0.022  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0025 W  95% CI [-0.0648, +0.0750]  (+0.02% of baseline)
+  Cohen's d        : +0.0035  (per sample)
+  permutation p    : 0.94661  (10000 block relabelings)
+  detector         : best accuracy 0.498 at n<=120
+      n=   1  acc=0.495  
+      n=   2  acc=0.481  
+      n=   3  acc=0.491  
+      n=   5  acc=0.477  
+      n=   8  acc=0.487  
+      n=  13  acc=0.483  
+      n=  21  acc=0.491  
+      n=  34  acc=0.487  
+      n=  55  acc=0.498  
+      n=  89  acc=0.482  
+      n= 120  acc=0.487  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260822-192822-phase0_validate/figures
+
+==============================================================================
+idle_baseline  [victim=idle, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000     8.103    0.623     2299
+     1   4294967295   18000     8.096    0.571     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:   8.48   8.02   8.03   8.10   8.09   8.04   8.06   8.06   8.06   8.09
+    cond 1:   8.44   8.05   8.02   8.06   8.06   8.04   8.05   8.09   8.07   8.08
+    within-condition span: cond 0 0.464 W, cond 1 0.419 W
+
+  interleaving     : imbalance 0.022  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0072 W  95% CI [-0.1034, +0.0849]  (-0.09% of baseline)
+  Cohen's d        : -0.0121  (per sample)
+  permutation p    : 0.80802  (10000 block relabelings)
+  detector         : best accuracy 0.507 at n<=120
+      n=   1  acc=0.497  
+      n=   2  acc=0.506  
+      n=   3  acc=0.507  
+      n=   5  acc=0.491  
+      n=   8  acc=0.472  
+      n=  13  acc=0.499  
+      n=  21  acc=0.496  
+      n=  34  acc=0.489  
+      n=  55  acc=0.480  
+      n=  89  acc=0.453  
+      n= 120  acc=0.420  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260822-192822-phase0_validate/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  aa_control                   zero_ticks       PASS
+  aa_control                   interleaving     PASS
+  aa_control                   aa_0v1           PASS
+  hw_0_vs_32                   zero_ticks       PASS
+  hw_0_vs_32                   interleaving     PASS
+  idle_baseline                zero_ticks       PASS
+  idle_baseline                interleaving     PASS
+
+(report exit: 0)
+
+### analysis.aggregate results/20260822-192822-phase0_validate
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s  mW/GB/s
+----------------------------------------------------------------------------------------------------
+aa_control (A/A)      1   -0.0521       nan    0.0623    nan       -  0.541      nan      nan
+                        per-repeat: -0.0521
+hw_0_vs_32            1   +0.0025       nan    0.0695    nan       -  0.498      nan      nan
+                        per-repeat: +0.0025
+idle_baseline         1   -0.0072       nan    0.0910    nan       -  0.507      nan      nan
+                        per-repeat: -0.0072
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+mW/GB/s  : leakage normalised to traffic rate

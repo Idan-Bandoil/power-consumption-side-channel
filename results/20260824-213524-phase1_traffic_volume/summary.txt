@@ -1,0 +1,1083 @@
+### analysis.report results/20260824-213524-phase1_traffic_volume
+
+
+==============================================================================
+Run 20260824-213524-phase1_traffic_volume
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 8cc4405fd8d255d77af67c92b28091a6215e5f4f (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 35.0 C at start
+
+==============================================================================
+depth_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.986 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.158    2.983     2297
+     1   4294967295   18000    13.957    3.108     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.13  13.22  13.16  13.13  13.15  13.16  13.13  13.12  13.20  13.17
+    cond 1:  13.93  13.93  13.93  13.92  13.91  13.99  13.93  13.98  14.03  14.01
+    within-condition span: cond 0 0.096 W, cond 1 0.120 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7993 W  95% CI [+0.7627, +0.8365]  (+6.07% of baseline)
+  Cohen's d        : +0.2624  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.671  #############
+      n=   2  acc=0.662  ############
+      n=   3  acc=0.688  ###############
+      n=   5  acc=0.752  ####################
+      n=   8  acc=0.810  ########################
+      n=  13  acc=0.860  ############################
+      n=  21  acc=0.907  ################################
+      n=  34  acc=0.951  ####################################
+      n=  55  acc=0.984  ######################################
+      n=  89  acc=0.993  #######################################
+      n= 120  acc=0.995  #######################################
+  n for 95%        : 34  ->  29.8 bit/s raw
+  n for 99%        : 89  ->  11.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+aa_control_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    14.041    0.915     2298
+     1   4294967295   18000    14.060    0.930     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.01  13.98  14.11  14.01  14.00  14.09  14.04  14.09  14.04  14.06
+    cond 1:  14.05  13.97  14.01  14.05  14.03  14.26  14.05  14.00  14.06  14.12
+    within-condition span: cond 0 0.139 W, cond 1 0.291 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0186 W  95% CI [-0.0242, +0.0605]  (+0.13% of baseline)
+  Cohen's d        : +0.0201  (per sample)
+  permutation p    : 0.40896  (10000 block relabelings)
+  detector         : best accuracy 0.523 at n<=120
+      n=   1  acc=0.510  
+      n=   2  acc=0.505  
+      n=   3  acc=0.488  
+      n=   5  acc=0.483  
+      n=   8  acc=0.489  
+      n=  13  acc=0.497  
+      n=  21  acc=0.490  
+      n=  34  acc=0.485  
+      n=  55  acc=0.468  
+      n=  89  acc=0.443  
+      n= 120  acc=0.523  #
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x4  [victim=ws_l1_x4, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.646    1.592     2298
+     1   4294967295   18000    14.270    1.401     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.31  15.16  15.55  13.27  13.25  13.23  13.16  13.18  13.15  13.19
+    cond 1:  13.88  14.07  16.10  15.14  13.98  13.89  13.93  13.90  13.88  13.94
+    within-condition span: cond 0 2.399 W, cond 1 2.224 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6240 W  95% CI [+0.3343, +0.9071]  (+4.57% of baseline)
+  Cohen's d        : +0.4162  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.664 at n<=120
+      n=   1  acc=0.648  ###########
+      n=   2  acc=0.644  ###########
+      n=   3  acc=0.643  ###########
+      n=   5  acc=0.637  ##########
+      n=   8  acc=0.628  ##########
+      n=  13  acc=0.637  ##########
+      n=  21  acc=0.625  #########
+      n=  34  acc=0.626  ##########
+      n=  55  acc=0.639  ###########
+      n=  89  acc=0.654  ############
+      n= 120  acc=0.664  #############
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x2  [victim=ws_l1_x2, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    12.824    1.980     2298
+     1   4294967295   18000    13.263    2.033     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.74  12.76  12.77  12.77  12.83  12.84  12.91  12.91  12.83  12.87
+    cond 1:  13.18  13.22  13.28  13.26  13.27  13.29  13.27  13.28  13.25  13.35
+    within-condition span: cond 0 0.168 W, cond 1 0.170 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4389 W  95% CI [+0.4146, +0.4637]  (+3.42% of baseline)
+  Cohen's d        : +0.2187  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.974 at n<=120
+      n=   1  acc=0.705  ################
+      n=   2  acc=0.712  ################
+      n=   3  acc=0.722  #################
+      n=   5  acc=0.779  ######################
+      n=   8  acc=0.813  #########################
+      n=  13  acc=0.855  ############################
+      n=  21  acc=0.900  ################################
+      n=  34  acc=0.932  ##################################
+      n=  55  acc=0.941  ###################################
+      n=  89  acc=0.961  ####################################
+      n= 120  acc=0.974  #####################################
+  n for 95%        : 89  ->  11.2 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l2  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.282    2.605     2299
+     1   4294967295   18000    14.316    2.833     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.21  13.24  13.30  13.22  13.23  13.30  13.36  13.28  13.33  13.34
+    cond 1:  13.96  14.35  14.32  14.35  14.32  14.38  14.38  14.36  14.35  14.39
+    within-condition span: cond 0 0.152 W, cond 1 0.424 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.0338 W  95% CI [+1.0032, +1.0633]  (+7.78% of baseline)
+  Cohen's d        : +0.3799  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.628  ##########
+      n=   2  acc=0.675  ##############
+      n=   3  acc=0.740  ###################
+      n=   5  acc=0.811  ########################
+      n=   8  acc=0.920  #################################
+      n=  13  acc=0.970  #####################################
+      n=  21  acc=0.980  ######################################
+      n=  34  acc=0.991  #######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=0.996  #######################################
+      n= 120  acc=0.995  #######################################
+  n for 95%        : 13  ->  77.2 bit/s raw
+  n for 99%        : 34  ->  29.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x8  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.753    1.224     2298
+     1   4294967295   18000    14.969    1.150     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.35  14.42  14.44  14.77  14.83  15.18  14.81  14.85  14.87  15.01
+    cond 1:  14.63  14.66  14.68  14.67  15.19  15.21  14.86  15.07  15.20  15.51
+    within-condition span: cond 0 0.833 W, cond 1 0.878 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2151 W  95% CI [+0.0987, +0.3281]  (+1.46% of baseline)
+  Cohen's d        : +0.1811  (per sample)
+  permutation p    : 0.00030  (10000 block relabelings)
+  detector         : best accuracy 0.528 at n<=120
+      n=   1  acc=0.528  ##
+      n=   2  acc=0.512  
+      n=   3  acc=0.505  
+      n=   5  acc=0.517  #
+      n=   8  acc=0.506  
+      n=  13  acc=0.525  ##
+      n=  21  acc=0.517  #
+      n=  34  acc=0.506  
+      n=  55  acc=0.474  
+      n=  89  acc=0.476  
+      n= 120  acc=0.511  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x1  [victim=ws_l1_x1, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.086    1.832     2298
+     1   4294967295   18000    13.129    1.817     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.93  13.08  13.08  13.32  13.01  13.15  13.08  13.06  13.04  13.10
+    cond 1:  13.06  13.08  13.04  13.19  13.23  13.14  13.14  13.24  13.12  13.05
+    within-condition span: cond 0 0.393 W, cond 1 0.193 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0429 W  95% CI [-0.0316, +0.1142]  (+0.33% of baseline)
+  Cohen's d        : +0.0235  (per sample)
+  permutation p    : 0.25647  (10000 block relabelings)
+  detector         : best accuracy 0.603 at n<=120
+      n=   1  acc=0.514  #
+      n=   2  acc=0.511  
+      n=   3  acc=0.530  ##
+      n=   5  acc=0.499  
+      n=   8  acc=0.515  #
+      n=  13  acc=0.516  #
+      n=  21  acc=0.520  #
+      n=  34  acc=0.530  ##
+      n=  55  acc=0.531  ##
+      n=  89  acc=0.603  ########
+      n= 120  acc=0.588  #######
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.688    1.100     2298
+     1   4294967295   18000    17.705    1.124     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.99  15.96  15.83  15.86  15.91  15.57  15.52  15.57  15.36  15.31
+    cond 1:  17.92  17.90  17.88  17.92  17.94  17.66  17.55  17.45  17.40  17.43
+    within-condition span: cond 0 0.683 W, cond 1 0.537 W
+
+  interleaving     : imbalance 0.049  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.0176 W  95% CI [+1.9251, +2.1057]  (+12.86% of baseline)
+  Cohen's d        : +1.8137  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.988 at n<=120
+      n=   1  acc=0.917  #################################
+      n=   2  acc=0.942  ###################################
+      n=   3  acc=0.949  ###################################
+      n=   5  acc=0.958  ####################################
+      n=   8  acc=0.965  #####################################
+      n=  13  acc=0.962  ####################################
+      n=  21  acc=0.966  #####################################
+      n=  34  acc=0.985  ######################################
+      n=  55  acc=0.983  ######################################
+      n=  89  acc=0.982  ######################################
+      n= 120  acc=0.988  #######################################
+  n for 95%        : 5  ->  200.4 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x8  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.560    0.497     2298
+     1   4294967295   18000    14.771    0.505     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.50  14.62  14.56  14.55  14.54  14.57  14.57  14.56  14.56  14.57
+    cond 1:  14.70  14.78  14.87  14.72  14.72  14.73  14.75  14.77  14.82  14.85
+    within-condition span: cond 0 0.128 W, cond 1 0.175 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2113 W  95% CI [+0.1928, +0.2297]  (+1.45% of baseline)
+  Cohen's d        : +0.4214  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.901 at n<=120
+      n=   1  acc=0.736  ##################
+      n=   2  acc=0.758  ####################
+      n=   3  acc=0.773  #####################
+      n=   5  acc=0.801  ########################
+      n=   8  acc=0.818  #########################
+      n=  13  acc=0.839  ###########################
+      n=  21  acc=0.840  ###########################
+      n=  34  acc=0.838  ###########################
+      n=  55  acc=0.852  ############################
+      n=  89  acc=0.885  ##############################
+      n= 120  acc=0.901  ################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.237    1.214     2299
+     1   4294967295   18000    14.133    1.281     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.12  13.15  13.18  13.19  13.26  13.26  13.31  13.30  13.28  13.32
+    cond 1:  13.94  14.08  14.14  14.11  14.16  14.15  14.17  14.21  14.21  14.17
+    within-condition span: cond 0 0.201 W, cond 1 0.277 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8962 W  95% CI [+0.8754, +0.9169]  (+6.77% of baseline)
+  Cohen's d        : +0.7181  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.884  ##############################
+      n=   2  acc=0.886  ##############################
+      n=   3  acc=0.885  ##############################
+      n=   5  acc=0.909  ################################
+      n=   8  acc=0.938  ###################################
+      n=  13  acc=0.980  ######################################
+      n=  21  acc=0.995  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 13  ->  77.5 bit/s raw
+  n for 99%        : 21  ->  48.0 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x1  [victim=ws_l1_x1, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    11.073    2.123     2299
+     1   4294967295   18000    11.309    2.177     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  11.00  11.01  11.02  11.02  11.04  11.07  11.08  11.09  11.16  11.22
+    cond 1:  11.18  11.30  11.30  11.30  11.30  11.33  11.31  11.34  11.36  11.36
+    within-condition span: cond 0 0.221 W, cond 1 0.179 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2362 W  95% CI [+0.2173, +0.2550]  (+2.13% of baseline)
+  Cohen's d        : +0.1098  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.923 at n<=120
+      n=   1  acc=0.544  ###
+      n=   2  acc=0.536  ##
+      n=   3  acc=0.585  ######
+      n=   5  acc=0.606  ########
+      n=   8  acc=0.656  ############
+      n=  13  acc=0.704  ################
+      n=  21  acc=0.778  ######################
+      n=  34  acc=0.834  ##########################
+      n=  55  acc=0.887  ##############################
+      n=  89  acc=0.909  ################################
+      n= 120  acc=0.923  #################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x2  [victim=ws_l1_x2, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    11.995    0.577     2299
+     1   4294967295   18000    12.464    0.594     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  11.89  11.90  11.92  11.94  11.95  11.98  12.01  12.07  12.12  12.18
+    cond 1:  12.33  12.38  12.46  12.42  12.45  12.49  12.50  12.55  12.52  12.54
+    within-condition span: cond 0 0.285 W, cond 1 0.225 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4686 W  95% CI [+0.4465, +0.4903]  (+3.91% of baseline)
+  Cohen's d        : +0.8006  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.848  ###########################
+      n=   2  acc=0.902  ################################
+      n=   3  acc=0.917  #################################
+      n=   5  acc=0.940  ###################################
+      n=   8  acc=0.958  ####################################
+      n=  13  acc=0.971  #####################################
+      n=  21  acc=0.975  ######################################
+      n=  34  acc=0.979  ######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=0.992  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.4 bit/s raw
+  n for 99%        : 55  ->  18.1 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x4  [victim=ws_l1_x4, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.589    0.485     2299
+     1   4294967295   18000    14.324    0.493     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.53  13.63  13.69  13.62  13.57  13.59  13.52  13.59  13.59  13.56
+    cond 1:  14.28  14.39  14.53  14.42  14.27  14.31  14.26  14.26  14.26  14.24
+    within-condition span: cond 0 0.175 W, cond 1 0.291 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7349 W  95% CI [+0.7106, +0.7594]  (+5.41% of baseline)
+  Cohen's d        : +1.5020  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.924  #################################
+      n=   2  acc=0.959  ####################################
+      n=   3  acc=0.975  #####################################
+      n=   5  acc=0.981  ######################################
+      n=   8  acc=0.988  #######################################
+      n=  13  acc=0.989  #######################################
+      n=  21  acc=0.988  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  499.3 bit/s raw
+  n for 99%        : 34  ->  29.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.339    0.543     2299
+     1   4294967295   18000    17.468    0.545     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.29  15.33  15.38  15.39  15.37  15.33  15.33  15.31  15.31  15.35
+    cond 1:  17.40  17.43  17.46  17.52  17.50  17.45  17.45  17.49  17.48  17.51
+    within-condition span: cond 0 0.103 W, cond 1 0.119 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.1292 W  95% CI [+2.1118, +2.1471]  (+13.88% of baseline)
+  Cohen's d        : +3.9154  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.973  #####################################
+      n=   2  acc=0.992  #######################################
+      n=   3  acc=0.995  #######################################
+      n=   5  acc=0.998  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=1.000  ########################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  999.7 bit/s raw
+  n for 99%        : 2  ->  499.9 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+aa_control_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    14.156    0.492     2299
+     1   4294967295   18000    14.166    0.575     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.04  14.11  14.19  14.17  14.18  14.21  14.21  14.16  14.16  14.13
+    cond 1:  14.05  14.13  14.30  14.16  14.17  14.21  14.19  14.16  14.15  14.14
+    within-condition span: cond 0 0.170 W, cond 1 0.247 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0101 W  95% CI [-0.0106, +0.0332]  (+0.07% of baseline)
+  Cohen's d        : +0.0188  (per sample)
+  permutation p    : 0.38166  (10000 block relabelings)
+  detector         : best accuracy 0.477 at n<=120
+      n=   1  acc=0.466  
+      n=   2  acc=0.457  
+      n=   3  acc=0.465  
+      n=   5  acc=0.464  
+      n=   8  acc=0.471  
+      n=  13  acc=0.451  
+      n=  21  acc=0.452  
+      n=  34  acc=0.476  
+      n=  55  acc=0.472  
+      n=  89  acc=0.474  
+      n= 120  acc=0.477  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l2  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.386    0.469     2299
+     1   4294967295   18000    14.488    0.486     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.04  13.11  13.46  13.49  13.52  13.51  13.48  13.44  13.42  13.38
+    cond 1:  14.12  14.27  14.58  14.60  14.60  14.60  14.55  14.54  14.52  14.50
+    within-condition span: cond 0 0.472 W, cond 1 0.487 W
+
+  interleaving     : imbalance 0.012  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1020 W  95% CI [+1.0643, +1.1411]  (+8.23% of baseline)
+  Cohen's d        : +2.3082  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.938  ###################################
+      n=   2  acc=0.967  #####################################
+      n=   3  acc=0.979  ######################################
+      n=   5  acc=0.979  ######################################
+      n=   8  acc=0.979  ######################################
+      n=  13  acc=0.980  ######################################
+      n=  21  acc=0.987  ######################################
+      n=  34  acc=0.989  #######################################
+      n=  55  acc=0.996  #######################################
+      n=  89  acc=0.993  #######################################
+      n= 120  acc=0.996  #######################################
+  n for 95%        : 2  ->  502.4 bit/s raw
+  n for 99%        : 55  ->  18.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l2  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.168    0.611     2299
+     1   4294967295   18000    15.346    0.626     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.68  14.02  14.09  14.10  14.10  14.09  14.00  14.10  14.67  14.82
+    cond 1:  14.91  15.24  15.32  15.29  15.31  15.30  15.36  15.28  15.43  16.02
+    within-condition span: cond 0 1.137 W, cond 1 1.115 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1784 W  95% CI [+1.1048, +1.2519]  (+8.32% of baseline)
+  Cohen's d        : +1.9059  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.899 at n<=120
+      n=   1  acc=0.855  ############################
+      n=   2  acc=0.886  ##############################
+      n=   3  acc=0.899  ###############################
+      n=   5  acc=0.893  ###############################
+      n=   8  acc=0.888  ###############################
+      n=  13  acc=0.892  ###############################
+      n=  21  acc=0.883  ##############################
+      n=  34  acc=0.884  ##############################
+      n=  55  acc=0.880  ##############################
+      n=  89  acc=0.869  #############################
+      n= 120  acc=0.865  #############################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.380    0.492     2299
+     1   4294967295   18000    14.287    0.554     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.11  13.21  13.35  13.43  13.44  13.49  13.44  13.45  13.44  13.43
+    cond 1:  14.02  14.08  14.35  14.34  14.39  14.40  14.35  14.32  14.30  14.32
+    within-condition span: cond 0 0.374 W, cond 1 0.381 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.9072 W  95% CI [+0.8758, +0.9383]  (+6.78% of baseline)
+  Cohen's d        : +1.7317  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.916  #################################
+      n=   2  acc=0.945  ###################################
+      n=   3  acc=0.965  #####################################
+      n=   5  acc=0.976  ######################################
+      n=   8  acc=0.980  ######################################
+      n=  13  acc=0.980  ######################################
+      n=  21  acc=0.984  ######################################
+      n=  34  acc=0.990  #######################################
+      n=  55  acc=0.995  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 3  ->  335.3 bit/s raw
+  n for 99%        : 55  ->  18.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+aa_control_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    14.284    0.435     2299
+     1   4294967295   18000    14.301    0.459     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.26  14.26  14.29  14.29  14.31  14.30  14.30  14.27  14.27  14.28
+    cond 1:  14.27  14.28  14.31  14.30  14.34  14.34  14.31  14.29  14.27  14.29
+    within-condition span: cond 0 0.055 W, cond 1 0.074 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0175 W  95% CI [+0.0077, +0.0275]  (+0.12% of baseline)
+  Cohen's d        : +0.0392  (per sample)
+  permutation p    : 0.00060  (10000 block relabelings)
+  detector         : best accuracy 0.556 at n<=120
+      n=   1  acc=0.512  
+      n=   2  acc=0.517  #
+      n=   3  acc=0.513  #
+      n=   5  acc=0.524  #
+      n=   8  acc=0.507  
+      n=  13  acc=0.519  #
+      n=  21  acc=0.510  
+      n=  34  acc=0.514  #
+      n=  55  acc=0.536  ##
+      n=  89  acc=0.537  ##
+      n= 120  acc=0.556  ####
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : FAIL (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x1  [victim=ws_l1_x1, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    11.704    0.413     2299
+     1   4294967295   18000    11.751    0.395     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  11.41  11.47  11.47  11.61  11.84  11.83  11.85  11.86  11.85  11.84
+    cond 1:  11.47  11.50  11.52  11.81  11.87  11.86  11.87  11.87  11.86  11.88
+    within-condition span: cond 0 0.451 W, cond 1 0.406 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0476 W  95% CI [+0.0057, +0.0895]  (+0.41% of baseline)
+  Cohen's d        : +0.1176  (per sample)
+  permutation p    : 0.02900  (10000 block relabelings)
+  detector         : best accuracy 0.459 at n<=120
+      n=   1  acc=0.447  
+      n=   2  acc=0.456  
+      n=   3  acc=0.459  
+      n=   5  acc=0.453  
+      n=   8  acc=0.446  
+      n=  13  acc=0.438  
+      n=  21  acc=0.456  
+      n=  34  acc=0.448  
+      n=  55  acc=0.445  
+      n=  89  acc=0.448  
+      n= 120  acc=0.441  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+depth_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.665    0.519     2299
+     1   4294967295   18000    17.680    0.555     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.57  15.68  15.69  15.64  15.63  15.65  15.67  15.69  15.71  15.71
+    cond 1:  17.65  17.71  17.69  17.61  17.64  17.65  17.69  17.69  17.74  17.74
+    within-condition span: cond 0 0.139 W, cond 1 0.125 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.0147 W  95% CI [+1.9991, +2.0298]  (+12.86% of baseline)
+  Cohen's d        : +3.7523  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.967  #####################################
+      n=   2  acc=0.993  #######################################
+      n=   3  acc=0.994  #######################################
+      n=   5  acc=0.997  #######################################
+      n=   8  acc=0.996  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  995.8 bit/s raw
+  n for 99%        : 2  ->  497.9 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x8  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.009 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.449    2.765     2299
+     1   4294967295   18000    14.706    2.832     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.30  14.39  14.37  14.38  14.46  14.46  14.50  14.60  14.57  14.46
+    cond 1:  14.54  14.71  14.69  14.72  14.74  14.76  14.72  14.73  14.74  14.72
+    within-condition span: cond 0 0.294 W, cond 1 0.218 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2576 W  95% CI [+0.2341, +0.2809]  (+1.78% of baseline)
+  Cohen's d        : +0.0920  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.859 at n<=120
+      n=   1  acc=0.528  ##
+      n=   2  acc=0.528  ##
+      n=   3  acc=0.594  #######
+      n=   5  acc=0.602  ########
+      n=   8  acc=0.634  ##########
+      n=  13  acc=0.691  ###############
+      n=  21  acc=0.753  ####################
+      n=  34  acc=0.795  #######################
+      n=  55  acc=0.823  #########################
+      n=  89  acc=0.841  ###########################
+      n= 120  acc=0.859  ############################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x2  [victim=ws_l1_x2, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    12.195    0.572     2299
+     1   4294967295   18000    12.610    0.599     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.18  12.22  12.23  12.24  12.19  12.17  12.18  12.18  12.17  12.17
+    cond 1:  12.64  12.64  12.64  12.66  12.64  12.59  12.57  12.58  12.57  12.57
+    within-condition span: cond 0 0.073 W, cond 1 0.092 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4152 W  95% CI [+0.4035, +0.4272]  (+3.40% of baseline)
+  Cohen's d        : +0.7087  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.866  #############################
+      n=   2  acc=0.917  #################################
+      n=   3  acc=0.930  ##################################
+      n=   5  acc=0.962  ####################################
+      n=   8  acc=0.976  ######################################
+      n=  13  acc=0.979  ######################################
+      n=  21  acc=0.981  ######################################
+      n=  34  acc=0.985  ######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  201.6 bit/s raw
+  n for 99%        : 55  ->  18.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+vol_x4  [victim=ws_l1_x4, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.849    0.465     2298
+     1   4294967295   18000    14.582    0.475     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.76  13.82  13.83  13.82  13.88  13.84  13.87  13.88  13.90  13.87
+    cond 1:  14.49  14.56  14.59  14.57  14.59  14.60  14.58  14.60  14.63  14.60
+    within-condition span: cond 0 0.136 W, cond 1 0.138 W
+
+  interleaving     : imbalance 0.035  (mean position cond 0 0.52, cond 1 0.48)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7333 W  95% CI [+0.7181, +0.7486]  (+5.30% of baseline)
+  Cohen's d        : +1.5593  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.915  #################################
+      n=   2  acc=0.955  ####################################
+      n=   3  acc=0.975  #####################################
+      n=   5  acc=0.978  ######################################
+      n=   8  acc=0.986  ######################################
+      n=  13  acc=0.990  #######################################
+      n=  21  acc=0.992  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  497.2 bit/s raw
+  n for 99%        : 13  ->  76.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260824-213524-phase1_traffic_volume/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  depth_dram                   zero_ticks       PASS
+  depth_dram                   interleaving     PASS
+  aa_control_dram              zero_ticks       PASS
+  aa_control_dram              interleaving     PASS
+  aa_control_dram              aa_0v1           PASS
+  vol_x4                       zero_ticks       PASS
+  vol_x4                       interleaving     PASS
+  vol_x2                       zero_ticks       PASS
+  vol_x2                       interleaving     PASS
+  depth_l2                     zero_ticks       PASS
+  depth_l2                     interleaving     PASS
+  vol_x8                       zero_ticks       PASS
+  vol_x8                       interleaving     PASS
+  vol_x1                       zero_ticks       PASS
+  vol_x1                       interleaving     PASS
+  depth_l3                     zero_ticks       PASS
+  depth_l3                     interleaving     PASS
+  vol_x8                       zero_ticks       PASS
+  vol_x8                       interleaving     PASS
+  depth_dram                   zero_ticks       PASS
+  depth_dram                   interleaving     PASS
+  vol_x1                       zero_ticks       PASS
+  vol_x1                       interleaving     PASS
+  vol_x2                       zero_ticks       PASS
+  vol_x2                       interleaving     PASS
+  vol_x4                       zero_ticks       PASS
+  vol_x4                       interleaving     PASS
+  depth_l3                     zero_ticks       PASS
+  depth_l3                     interleaving     PASS
+  aa_control_dram              zero_ticks       PASS
+  aa_control_dram              interleaving     PASS
+  aa_control_dram              aa_0v1           PASS
+  depth_l2                     zero_ticks       PASS
+  depth_l2                     interleaving     PASS
+  depth_l2                     zero_ticks       PASS
+  depth_l2                     interleaving     PASS
+  depth_dram                   zero_ticks       PASS
+  depth_dram                   interleaving     PASS
+  aa_control_dram              zero_ticks       PASS
+  aa_control_dram              interleaving     PASS
+  aa_control_dram              aa_0v1           FAIL
+  vol_x1                       zero_ticks       PASS
+  vol_x1                       interleaving     PASS
+  depth_l3                     zero_ticks       PASS
+  depth_l3                     interleaving     PASS
+  vol_x8                       zero_ticks       PASS
+  vol_x8                       interleaving     PASS
+  vol_x2                       zero_ticks       PASS
+  vol_x2                       interleaving     PASS
+  vol_x4                       zero_ticks       PASS
+  vol_x4                       interleaving     PASS
+
+FAILED GATES: aa_control_dram/aa_0v1
+
+(report exit: 0)
+
+### analysis.aggregate results/20260824-213524-phase1_traffic_volume
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s  mW/GB/s
+----------------------------------------------------------------------------------------------------
+aa_control_dram (A/A)  3   +0.0154    0.0046    0.0247   0.19   all +  0.518    41.62      0.4
+                        per-repeat: +0.0186  +0.0101  +0.0175
+depth_dram            3   +0.8675    0.0594    0.0297   2.00   all +  0.998    41.28     21.0
+                        per-repeat: +0.7993  +0.8962  +0.9072
+depth_l2              3   +1.1048    0.0723    0.0477   1.51   all +  0.964   329.64      3.4
+                        per-repeat: +1.0338  +1.1020  +1.1784
+depth_l3              3   +2.0538    0.0653    0.0406   1.61   all +  0.996   147.93     13.9
+                        per-repeat: +2.0176  +2.1292  +2.0147
+vol_x1                3   +0.1089    0.1102    0.0455   2.42   all +  0.661   216.63      0.5
+                        per-repeat: +0.0429  +0.2362  +0.0476
+vol_x2                3   +0.4409    0.0267    0.0194   1.38   all +  0.991   399.99      1.1
+                        per-repeat: +0.4389  +0.4686  +0.4152
+vol_x4                3   +0.6974    0.0635    0.1082   0.59   all +  0.888   665.49      1.0
+                        per-repeat: +0.6240  +0.7349  +0.7333
+vol_x8                3   +0.2280    0.0257    0.0525   0.49   all +  0.763   740.68      0.3
+                        per-repeat: +0.2151  +0.2113  +0.2576
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+mW/GB/s  : leakage normalised to traffic rate

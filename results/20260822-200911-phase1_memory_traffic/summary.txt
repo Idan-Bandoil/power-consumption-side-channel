@@ -1,0 +1,301 @@
+### analysis.report results/20260822-200911-phase1_memory_traffic
+
+
+==============================================================================
+Run 20260822-200911-phase1_memory_traffic
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 348c81327ba4d66f9047b9a6f259d8528f946e4b (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 38.0 C at start
+
+==============================================================================
+aa_control_ldst  [victim=avx2_mul_ldst, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295   18000    17.086    1.763     2297
+     1   4294967295   18000    17.136    1.748     2297
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  17.13  17.17  17.48  16.98  16.97  17.01  17.13  17.07  17.18  16.75
+    cond 1:  17.49  17.19  17.54  16.83  17.33  16.76  16.92  17.20  17.24  16.86
+    within-condition span: cond 0 0.728 W, cond 1 0.786 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0496 W  95% CI [-0.1019, +0.1944]  (+0.29% of baseline)
+  Cohen's d        : +0.0283  (per sample)
+  permutation p    : 0.51535  (10000 block relabelings)
+  detector         : best accuracy 0.511 at n<=120
+      n=   1  acc=0.499  
+      n=   2  acc=0.497  
+      n=   3  acc=0.508  
+      n=   5  acc=0.499  
+      n=   8  acc=0.500  
+      n=  13  acc=0.496  
+      n=  21  acc=0.506  
+      n=  34  acc=0.511  
+      n=  55  acc=0.496  
+      n=  89  acc=0.482  
+      n= 120  acc=0.481  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+reg_only  [victim=avx2_mul, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    12.164    2.535     2297
+     1   4294967295   18000    12.058    2.439     2297
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  12.63  11.96  12.02  12.07  12.12  12.10  12.08  12.47  12.09  12.10
+    cond 1:  12.22  11.97  11.96  11.96  12.02  12.09  12.09  12.10  12.09  12.08
+    within-condition span: cond 0 0.675 W, cond 1 0.259 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.1061 W  95% CI [-0.2058, -0.0101]  (-0.87% of baseline)
+  Cohen's d        : -0.0427  (per sample)
+  permutation p    : 0.03170  (10000 block relabelings)
+  detector         : best accuracy 0.599 at n<=120
+      n=   1  acc=0.512  
+      n=   2  acc=0.526  ##
+      n=   3  acc=0.516  #
+      n=   5  acc=0.536  ##
+      n=   8  acc=0.542  ###
+      n=  13  acc=0.540  ###
+      n=  21  acc=0.555  ####
+      n=  34  acc=0.569  #####
+      n=  55  acc=0.573  #####
+      n=  89  acc=0.599  #######
+      n= 120  acc=0.594  #######
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+load_only  [victim=avx2_load, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    13.967    0.923     2297
+     1   4294967295   18000    14.049    0.735     2297
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.59  14.31  13.85  13.85  13.84  13.82  13.88  13.88  13.84  13.81
+    cond 1:  14.33  14.01  14.07  14.00  13.99  14.01  14.01  14.00  14.02  14.06
+    within-condition span: cond 0 0.780 W, cond 1 0.341 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0817 W  95% CI [-0.0230, +0.1792]  (+0.58% of baseline)
+  Cohen's d        : +0.0979  (per sample)
+  permutation p    : 0.11859  (10000 block relabelings)
+  detector         : best accuracy 0.791 at n<=120
+      n=   1  acc=0.574  #####
+      n=   2  acc=0.584  ######
+      n=   3  acc=0.608  ########
+      n=   5  acc=0.648  ###########
+      n=   8  acc=0.660  ############
+      n=  13  acc=0.684  ##############
+      n=  21  acc=0.715  #################
+      n=  34  acc=0.740  ###################
+      n=  55  acc=0.751  ####################
+      n=  89  acc=0.754  ####################
+      n= 120  acc=0.791  #######################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+mul_load  [victim=avx2_mul_ld, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.014 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.598    3.301     2297
+     1   4294967295   18000    15.950    3.374     2297
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.19  15.45  15.51  15.48  15.98  15.47  15.47  15.44  15.52  15.47
+    cond 1:  16.20  15.88  15.89  15.89  16.12  16.09  15.83  15.89  15.82  15.88
+    within-condition span: cond 0 0.748 W, cond 1 0.379 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3520 W  95% CI [+0.2496, +0.4524]  (+2.26% of baseline)
+  Cohen's d        : +0.1054  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.913 at n<=120
+      n=   1  acc=0.567  #####
+      n=   2  acc=0.560  ####
+      n=   3  acc=0.588  #######
+      n=   5  acc=0.613  #########
+      n=   8  acc=0.663  #############
+      n=  13  acc=0.723  #################
+      n=  21  acc=0.781  ######################
+      n=  34  acc=0.812  ########################
+      n=  55  acc=0.855  ############################
+      n=  89  acc=0.889  ###############################
+      n= 120  acc=0.913  #################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+mul_store  [victim=avx2_mul_st, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.449    0.864     2298
+     1   4294967295   18000    15.608    0.894     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.04  15.59  15.52  15.43  15.30  15.29  15.30  15.32  15.35  15.36
+    cond 1:  15.85  15.59  15.64  15.59  15.54  15.53  15.50  15.65  15.72  15.48
+    within-condition span: cond 0 0.750 W, cond 1 0.372 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1589 W  95% CI [+0.0543, +0.2677]  (+1.03% of baseline)
+  Cohen's d        : +0.1808  (per sample)
+  permutation p    : 0.00080  (10000 block relabelings)
+  detector         : best accuracy 0.768 at n<=120
+      n=   1  acc=0.661  ############
+      n=   2  acc=0.693  ###############
+      n=   3  acc=0.695  ###############
+      n=   5  acc=0.696  ###############
+      n=   8  acc=0.706  ################
+      n=  13  acc=0.723  #################
+      n=  21  acc=0.750  ###################
+      n=  34  acc=0.747  ###################
+      n=  55  acc=0.750  ###################
+      n=  89  acc=0.751  ####################
+      n= 120  acc=0.768  #####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+mul_load_store  [victim=avx2_mul_ldst, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    16.200    0.998     2298
+     1   4294967295   18000    16.711    1.073     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.91  16.18  16.19  15.98  16.06  16.09  16.11  16.13  16.19  16.15
+    cond 1:  17.01  17.03  16.68  16.65  16.63  16.64  16.63  16.62  16.60  16.60
+    within-condition span: cond 0 0.929 W, cond 1 0.430 W
+
+  interleaving     : imbalance 0.052  (mean position cond 0 0.53, cond 1 0.47)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5109 W  95% CI [+0.4105, +0.6114]  (+3.15% of baseline)
+  Cohen's d        : +0.4930  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.975 at n<=120
+      n=   1  acc=0.863  #############################
+      n=   2  acc=0.868  #############################
+      n=   3  acc=0.907  ################################
+      n=   5  acc=0.936  ##################################
+      n=   8  acc=0.943  ###################################
+      n=  13  acc=0.957  ####################################
+      n=  21  acc=0.973  #####################################
+      n=  34  acc=0.974  #####################################
+      n=  55  acc=0.970  #####################################
+      n=  89  acc=0.975  #####################################
+      n= 120  acc=0.974  #####################################
+  n for 95%        : 13  ->  76.6 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260822-200911-phase1_memory_traffic/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  aa_control_ldst              zero_ticks       PASS
+  aa_control_ldst              interleaving     PASS
+  aa_control_ldst              aa_0v1           PASS
+  reg_only                     zero_ticks       PASS
+  reg_only                     interleaving     PASS
+  load_only                    zero_ticks       PASS
+  load_only                    interleaving     PASS
+  mul_load                     zero_ticks       PASS
+  mul_load                     interleaving     PASS
+  mul_store                    zero_ticks       PASS
+  mul_store                    interleaving     PASS
+  mul_load_store               zero_ticks       PASS
+  mul_load_store               interleaving     PASS
+
+(report exit: 0)
+
+### analysis.aggregate results/20260822-200911-phase1_memory_traffic
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s  mW/GB/s
+----------------------------------------------------------------------------------------------------
+aa_control_ldst (A/A)  1   +0.0496       nan    0.1485    nan       -  0.511      nan      nan
+                        per-repeat: +0.0496
+load_only             1   +0.0817       nan    0.0978    nan       -  0.791      nan      nan
+                        per-repeat: +0.0817
+mul_load              1   +0.3520       nan    0.1006    nan       -  0.913      nan      nan
+                        per-repeat: +0.3520
+mul_load_store        1   +0.5109       nan    0.1005    nan       -  0.975      nan      nan
+                        per-repeat: +0.5109
+mul_store             1   +0.1589       nan    0.1043    nan       -  0.768      nan      nan
+                        per-repeat: +0.1589
+reg_only              1   -0.1061       nan    0.0988    nan       -  0.599      nan      nan
+                        per-repeat: -0.1061
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+mW/GB/s  : leakage normalised to traffic rate
