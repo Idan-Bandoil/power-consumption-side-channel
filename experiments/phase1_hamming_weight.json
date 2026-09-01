@@ -1,0 +1,127 @@
+{
+  "name": "phase1_hamming_weight",
+  "description": [
+    "Does the operand-movement leakage scale with operand Hamming weight, and",
+    "how steeply?",
+    "",
+    "Phase 1 so far establishes that leakage lives in operand movement rather",
+    "than in the vector ALU, and that the per-byte cost rises ~68x from an",
+    "L1-resident working set to a DRAM-resident one. Both were measured at a",
+    "single contrast, HW 0 against HW 32. This sweeps the operand value while",
+    "holding everything else fixed, which is the measurement the leakage model",
+    "P = a + b*HW needs.",
+    "",
+    "Victim is ws_l3_x8, chosen over ws_dram_x8 deliberately: the depth sweep",
+    "gives it the largest absolute effect (+1.85 W, replicated) and a detector",
+    "that reaches 1.000, whereas ws_dram_x8 has the higher per-byte cost but",
+    "worse detectability. Largest pJ/byte is not the same as best conditioned.",
+    "",
+    "Condition 0 is HW 0 in every run and condition 1 is the test pattern, so",
+    "each run reads as 'power at HW k relative to an all-zero working set'.",
+    "The polarity control established that the condition index itself carries",
+    "no bias (B = +0.7 +/- 3.1 mW over eight A/A runs), so no reverse arm is",
+    "needed here; one A/A is carried anyway as the per-session gate.",
+    "",
+    "Bit placement is decorrelated from Hamming weight: HW 4, 8, 16 and 24 each",
+    "run two independent random patterns of that weight (seeded, listed below),",
+    "so a difference between patterns at equal HW measures sensitivity to which",
+    "bits are set, and averaging over patterns leaves HW itself. Structured",
+    "values such as 0x55555555 are avoided on purpose -- a periodic pattern",
+    "could interact with bus or DRAM encoding and would not be a clean HW probe.",
+    "",
+    "What this does NOT measure: Hamming distance. ws_fill replicates one 32-bit",
+    "value across the whole buffer, so consecutive transferred words are",
+    "identical and the HD between them is zero by construction. That is the",
+    "point -- it isolates the static HW effect. Separating HW from HD needs a",
+    "victim that alternates two operands at fixed HW, which is the next",
+    "experiment.",
+    "",
+    "warmup_blocks is 4 throughout: ws_l3_x8 populates 2 x 4 MB per thread, far",
+    "less than the ws_dram_x8 case that motivated the flag, but the cost is",
+    "half a second per run and it removes the question."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 90125,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 90125
+  },
+  "runs": [
+    {
+      "label": "aa_hw0",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 0],
+      "comment": "A/A gate for this session."
+    },
+    {
+      "label": "hw01",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 8],
+      "comment": "HW 1, 0x00000008."
+    },
+    {
+      "label": "hw04_a",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 9437196],
+      "comment": "HW 4, 0x0090000C."
+    },
+    {
+      "label": "hw04_b",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 18504],
+      "comment": "HW 4, 0x00004848."
+    },
+    {
+      "label": "hw08_a",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 25219587],
+      "comment": "HW 8, 0x0180D203."
+    },
+    {
+      "label": "hw08_b",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 3489968256],
+      "comment": "HW 8, 0xD004B080."
+    },
+    {
+      "label": "hw16_a",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 94757711],
+      "comment": "HW 16, 0x05A5E34F."
+    },
+    {
+      "label": "hw16_b",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 3803821067],
+      "comment": "HW 16, 0xE2B9B40B."
+    },
+    {
+      "label": "hw24_a",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4051164923],
+      "comment": "HW 24, 0xF177DEFB."
+    },
+    {
+      "label": "hw24_b",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 3220151772],
+      "comment": "HW 24, 0xBFEF9DDC."
+    },
+    {
+      "label": "hw32",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "comment": "HW 32, 0xFFFFFFFF. Directly comparable to l3_forward in phase1_polarity."
+    }
+  ]
+}

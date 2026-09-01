@@ -137,6 +137,13 @@ static void usage(const char *prog)
 		"  --blocks N              blocks per condition           (default 100)\n"
 		"  --settle N              samples discarded after each\n"
 		"                          condition switch               (default 3)\n"
+		"  --warmup-blocks N       whole blocks discarded at the start\n"
+		"                          of a run, cycling through every\n"
+		"                          condition. --settle discards samples\n"
+		"                          within a block and so cannot remove a\n"
+		"                          run-level transient; a victim that\n"
+		"                          faults in a large working set has one\n"
+		"                          (default 0)\n"
 		"  --attacker-core N       core the monitor pins to       (default 0)\n"
 		"  --victim-core-start N   first victim core              (default 2)\n"
 		"  --victim-core-stride N  stride between victim cores    (default 2)\n"
@@ -157,7 +164,8 @@ static void usage(const char *prog)
 		"Conditions are interleaved in a seeded random block order so that\n"
 		"thermal drift is common-mode across them rather than confounded with\n"
 		"them. Total run time is roughly\n"
-		"    blocks * conditions * (samples + settle) * RAPL update period.\n",
+		"    (blocks * conditions + warmup) * (samples + settle)\n"
+		"    * RAPL update period.\n",
 		prog);
 }
 
@@ -169,6 +177,7 @@ void parse_args(int argc, char *argv[], struct run_config_t *cfg)
 		{ "samples",           required_argument, 0, 's' },
 		{ "blocks",            required_argument, 0, 'b' },
 		{ "settle",            required_argument, 0, 'S' },
+		{ "warmup-blocks",     required_argument, 0, 'W' },
 		{ "attacker-core",     required_argument, 0, 'a' },
 		{ "victim-core-start", required_argument, 0, 'c' },
 		{ "victim-core-stride",required_argument, 0, 'd' },
@@ -189,6 +198,7 @@ void parse_args(int argc, char *argv[], struct run_config_t *cfg)
 	cfg->samples_per_block = 100;
 	cfg->blocks_per_condition = 100;
 	cfg->settle_samples = 3;
+	cfg->warmup_blocks = 0;
 	cfg->attacker_core = 0;
 	cfg->victim_core_start = 2;
 	cfg->victim_core_stride = 2;
@@ -212,6 +222,7 @@ void parse_args(int argc, char *argv[], struct run_config_t *cfg)
 		case 's': cfg->samples_per_block = strtoull(optarg, NULL, 10); break;
 		case 'b': cfg->blocks_per_condition = atoi(optarg); break;
 		case 'S': cfg->settle_samples = atoi(optarg); break;
+		case 'W': cfg->warmup_blocks = atoi(optarg); break;
 		case 'a': cfg->attacker_core = atoi(optarg); break;
 		case 'c': cfg->victim_core_start = atoi(optarg); break;
 		case 'd': cfg->victim_core_stride = atoi(optarg); break;

@@ -1,0 +1,61 @@
+{
+  "name": "phase0_warmup_check",
+  "description": [
+    "Does --warmup-blocks remove the run-level startup transient that --settle",
+    "cannot?",
+    "",
+    "ws_init mmaps WS_SLOTS x working-set bytes per thread under MAP_POPULATE,",
+    "and ws_get fills a slot the first time a selector selects it. For a",
+    "4-thread ws_dram_x8 run that is 256 MB faulted in and 128 MB written",
+    "before the second condition is ever measured. In",
+    "results/20260822-234811-phase1_traffic_volume that showed as +2.75 W across",
+    "the first ~4 blocks, and moved that run's A/A estimate anywhere from +8 to",
+    "-37 mW depending on how many blocks were dropped after the fact. --settle",
+    "discards samples within a block, so it is no defence.",
+    "",
+    "Both arms are A/A, so any difference between the first blocks and the run's",
+    "steady state is transient and nothing else. The warmup arm cycles through",
+    "both conditions before recording, which also forces ws_get to fill every",
+    "slot up front.",
+    "",
+    "Second purpose: these are six more ws_dram_x8 A/A repeats, against the",
+    "unexplained +15.4 mW cond-1 offset that victim showed in the sweep. The",
+    "polarity control established the measurement path carries no such bias",
+    "(B = +0.7 +/- 3.1 mW over eight ws_l3_x8 A/A runs), so if the offset is",
+    "real it is specific to this victim or that session and should show here.",
+    "",
+    "Driver settings match phase1_traffic_volume and phase1_polarity so the",
+    "numbers are directly comparable; the seed differs again."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 27182818,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 27182
+  },
+  "runs": [
+    {
+      "label": "dram_aa_nowarm",
+      "victim": "ws_dram_x8",
+      "selectors": [4294967295, 4294967295],
+      "warmup_blocks": 0,
+      "comment": "Current behaviour. The transient, if present, lands in block 0."
+    },
+    {
+      "label": "dram_aa_warm",
+      "victim": "ws_dram_x8",
+      "selectors": [4294967295, 4294967295],
+      "warmup_blocks": 8,
+      "comment": "Eight discarded blocks, cycling both conditions, before recording."
+    }
+  ]
+}

@@ -52,6 +52,7 @@ struct run_config_t {
 	uint64_t samples_per_block;
 	int blocks_per_condition;
 	int settle_samples;
+	int warmup_blocks;	/* discarded blocks at the head of a run */
 	int attacker_core;
 	int victim_core_start;
 	int victim_core_stride;

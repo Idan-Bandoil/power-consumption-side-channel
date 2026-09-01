@@ -239,11 +239,23 @@ int main(int argc, char *argv[])
 	 * drift, which is what made the older datasets unusable.
 	 */
 	int total_blocks = num_conditions * cfg.blocks_per_condition;
-	uint32_t *order = calloc(total_blocks, sizeof(*order));
+	int warmup = cfg.warmup_blocks < 0 ? 0 : cfg.warmup_blocks;
+	uint32_t *order = calloc(warmup + total_blocks, sizeof(*order));
 	if (!order) {
 		fprintf(stderr, "out of memory\n");
 		return EXIT_FAILURE;
 	}
+	/*
+	 * Warmup blocks run before anything is recorded and cycle through
+	 * every condition, so each one's operand buffers are faulted in and
+	 * filled before the first measured sample. --settle discards samples
+	 * inside a block and is no defence against a run-level transient: a
+	 * victim that populates hundreds of megabytes under MAP_POPULATE has
+	 * been seen to draw an extra 2.75 W across the first few blocks.
+	 */
+	for (int i = 0; i < warmup; i++)
+		order[i] = (uint32_t)(i % num_conditions);
+	uint32_t *measured = order + warmup;
 	uint64_t rng = cfg.seed;
 	if (cfg.sequential) {
 		/* Deliberately confounded: each condition as one contiguous
@@ -251,11 +263,11 @@ int main(int argc, char *argv[])
 		 * with the condition label. Only for demonstrating the
 		 * artifact -- the analysis will fail the interleaving gate. */
 		for (int i = 0; i < total_blocks; i++)
-			order[i] = (uint32_t)(i / cfg.blocks_per_condition);
+			measured[i] = (uint32_t)(i / cfg.blocks_per_condition);
 	} else {
 		for (int i = 0; i < total_blocks; i++)
-			order[i] = (uint32_t)(i % num_conditions);
-		shuffle_u32(order, total_blocks, &rng);
+			measured[i] = (uint32_t)(i % num_conditions);
+		shuffle_u32(measured, total_blocks, &rng);
 	}
 
 	uint64_t total_samples = (uint64_t)total_blocks * cfg.samples_per_block;
@@ -284,11 +296,23 @@ int main(int argc, char *argv[])
 	uint64_t overshoots = 0;
 	uint64_t idx = 0;
 
-	fprintf(stderr, "victim=%s threads=%d conditions=%d blocks=%d samples/block=%" PRIu64 "\n",
-		cfg.victim_name, cfg.nthreads, num_conditions, total_blocks, cfg.samples_per_block);
+	fprintf(stderr, "victim=%s threads=%d conditions=%d blocks=%d samples/block=%" PRIu64
+		" warmup=%d\n",
+		cfg.victim_name, cfg.nthreads, num_conditions, total_blocks,
+		cfg.samples_per_block, warmup);
 
-	for (int b = 0; b < total_blocks; b++) {
+	for (int b = 0; b < warmup + total_blocks; b++) {
 		uint32_t cond = order[b];
+		int measuring = b >= warmup;
+
+		/* Throughput is counted over the measured blocks only, so a
+		 * warmup that runs at a different rate cannot skew pJ/byte. */
+		if (b == warmup) {
+			bursts0 = 0;
+			for (int i = 0; i < cfg.nthreads; i++)
+				bursts0 += vargs[i].bursts;
+			work_tsc0 = _rdtsc();
+		}
 
 		ctl->selector = selectors[cond];
 		__sync_synchronize();
@@ -338,8 +362,8 @@ int main(int argc, char *argv[])
 				edges_seen++;
 			}
 
-			if (k >= (uint64_t)cfg.settle_samples) {
-				log[idx].block = (uint32_t)b;
+			if (measuring && k >= (uint64_t)cfg.settle_samples) {
+				log[idx].block = (uint32_t)(b - warmup);
 				log[idx].cond = cond;
 				log[idx].ticks = ticks;
 				log[idx].dtsc = dtsc;
@@ -354,9 +378,12 @@ int main(int argc, char *argv[])
 			prev_f = cur_f;
 		}
 
-		if ((b % 20) == 0 || b == total_blocks - 1)
+		if (!measuring)
+			fprintf(stderr, "  warmup block %d/%d (cond %u, discarded)\n",
+				b + 1, warmup, cond);
+		else if (((b - warmup) % 20) == 0 || b == warmup + total_blocks - 1)
 			fprintf(stderr, "  block %d/%d (cond %u, %d kept)\n",
-				b + 1, total_blocks, cond, keep);
+				b - warmup + 1, total_blocks, cond, keep);
 	}
 
 	uint64_t work_tsc1 = _rdtsc();
@@ -383,6 +410,7 @@ int main(int argc, char *argv[])
 	printf("  \"blocks_per_condition\": %d,\n", cfg.blocks_per_condition);
 	printf("  \"samples_per_block\": %" PRIu64 ",\n", cfg.samples_per_block);
 	printf("  \"settle_samples\": %d,\n", cfg.settle_samples);
+	printf("  \"warmup_blocks\": %d,\n", warmup);
 	printf("  \"attacker_core\": %d,\n", cfg.attacker_core);
 	printf("  \"victim_core_start\": %d,\n", cfg.victim_core_start);
 	printf("  \"victim_core_stride\": %d,\n", cfg.victim_core_stride);

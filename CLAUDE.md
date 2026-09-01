@@ -45,6 +45,15 @@ Experiments are declarative JSON in `experiments/`. Any key in `DRIVER_FLAGS` (`
 
 Each run writes `results/<timestamp>-<name>/` containing one CSV per run plus `manifest.json` (git commit, every driver argument, turbo/governor state, PL1/PL2, package temperature before and after, per-CPU frequencies). Ownership is handed back to `SUDO_UID` on exit.
 
+**Results provenance is tracked in git; the raw CSVs are not.** `.gitignore` excludes `results/**/*.csv` and nothing else under `results/`, so every run's `manifest.json`, selector files, figures and `summary.txt` are committed. After a run, regenerate the summary so the numbers survive without the CSVs:
+
+```bash
+r=results/<run_id>
+{ ./venv/bin/python3 -m analysis.report "$r"; ./venv/bin/python3 -m analysis.aggregate "$r"; } > "$r/summary.txt" 2>&1
+```
+
+Chapter drafts live in `thesis/`, one per phase, written as the phase completes. Every number in a draft cites the run directory it came from.
+
 ### Driver by hand
 
 ```bash
@@ -82,7 +91,7 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 **Output schema** — `block,cond,ticks,dtsc,daperf,dmperf`, one row per sample. `ticks` is raw RAPL energy units (`uint32` subtraction, so counter wraparound is handled); power is `ticks * energy_unit / (dtsc / tsc_hz)`.
 
-**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate.
+**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·HW` once per repeat and takes the spread across repeats as the error bar, and reports whether operands of equal Hamming weight but different bit placement differ).
 
 ## Findings so far (2026-08-24)
 
@@ -153,7 +162,7 @@ An A/A control is just an experiment with the same selector in both conditions �
 - **`isolcpus=0` only isolates the attacker core.** Victim cores 2,4,6,8,10 still take stray work. Extending to `isolcpus=0,2,4,6,8,10` needs a GRUB edit and reboot.
 - **`-O2` is safe only because every victim hot loop is inline asm.** Do not add a plain-C victim without making its result `volatile`, or the compiler will delete the work being measured.
 - **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while a `driver` is still running.
-- **`settle` is samples-per-block, not blocks-per-run.** It does not protect against a run-level startup transient, which large working sets do produce — see *Known gaps*. When adding a victim that allocates hundreds of MB, check the first few blocks against the run's steady state before trusting anything.
+- **`settle` is samples-per-block, not blocks-per-run.** It does not protect against a run-level startup transient, which large working sets do produce. Use `--warmup-blocks N` (`warmup_blocks` in an experiment spec) for that: it runs N whole blocks before recording starts, cycling every condition so each one's buffers are faulted in and filled first, and it excludes them from the throughput figure too. Cheap enough to set by default on any working-set victim.
 - **Config-A and Config-B are not interchangeable.** Pinning frequency removes the DVFS response that the Phase 2 tier-2/tier-3 receivers depend on entirely.
 - **AVX-VNNI must be assembled as VEX, not EVEX.** `vpdpbusd` exists in both AVX-VNNI (VEX) and AVX512-VNNI (EVEX); gas defaults to EVEX, which SIGILLs here. Hence the `%{vex%}` prefix in `util/victim-utils.c` — spelled with `%` escapes because bare braces mean dialect alternatives to GCC. Any new dual-encoded instruction needs the same treatment; verify with `objdump -d util/victim-utils.o` (VEX starts `c4`, EVEX `62`).
 - `legacy/` holds the superseded pipeline; see `legacy/README.md` for why it no longer runs. `src/data/` and `src/plot/` are pre-2026 outputs kept for provenance.
