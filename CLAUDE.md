@@ -10,7 +10,7 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-08-24)
+## Where things stand (last updated 2026-09-01)
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
@@ -18,19 +18,22 @@ Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pai
 
 Done so far in Phase 1: the load/store 2×2 (`experiments/phase1_memory_traffic.json`), replicated with randomised run order (`phase1_memory_replication.json`); the traffic-volume and working-set-depth sweep (`phase1_traffic_volume.json`, analysed in `results/20260824-213524-*`); and the polarity control (`phase1_polarity.json`, `results/20260824-222234-*`) that cleared the A/A anomaly that sweep raised. **Leakage tracks distance travelled, not instruction count** — see *Findings so far*.
 
+The Hamming-weight sweep (`experiments/phase1_hamming_weight.json`, `ws_l3_x8`, 11 runs × 3 repeats) was launched on 2026-09-01; read it with `analysis.hwfit`, which fits the slope per repeat and takes the between-repeat spread as the error bar.
+
 Next, roughly in order:
 1. Hamming-weight sweep and HW-vs-Hamming-distance, on a traffic-bearing victim. Use a working-set victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one.
 2. Per-instruction table, likewise.
 3. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
 
-Worth doing when convenient, neither blocking: replicate the unexplained `ws_dram_x8` A/A offset (below) on its own, and add a run-level warmup discard for large-working-set victims.
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` is a full first draft of the Phase 0 chapter; the Phase 1 chapter is not started and should be once the sweep above lands.
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
 - `analysis/stats.py`'s detector is a mean threshold. It cannot see effects that live in variance rather than mean, which `avx2_load` briefly looked like it might have.
 - `perf` is unusable unprivileged here (`perf_event_paranoid=4`), so cache residency is not measured directly. It is now corroborated indirectly: achieved bandwidth matches each level's expected ceiling (68 B/cycle/core for the L1 variant against Golden Cove's 3×32 B peak, 34 B/cycle for L2, 42 GB/s aggregate for DRAM ≈ 55% of DDR5-4800 dual-channel). That is weaker than a counter but it is not nothing.
-- **The `ws_dram_x8` A/A offset is unexplained.** Its three repeats in the traffic-volume sweep read +18.6, +10.1, +17.5 mW with both selectors identical, and one repeat failed the `aa_*` gate. It is real energy (in `ticks`, not `dtsc`), uniform across the run (dropping the first 20 blocks leaves it unchanged, so it is not the startup transient below), and absent from eight `ws_l3_x8` A/A runs. So it is victim- or session-specific, not a bias in the measurement path — the polarity control settles that. It is 1.8% of that victim's effect. Replicating it alone, ~6 repeats in a fresh session, would close it.
-- **Large working sets can carry a run-level startup transient that `settle` cannot remove.** `ws_init` faults in 2 × 32 MB per thread under `MAP_POPULATE` — 256 MB for a 4-thread `ws_dram_x8` run. In `results/20260822-234811-*` that showed as +2.75 W across the first ~4 blocks, and moved that run's A/A estimate anywhere from +8 to −37 mW depending on how many blocks were dropped. `settle` discards *samples per block*, not blocks per run, so it is no defence. Later runs happen not to show it, which is luck. A `--warmup-blocks` flag, or touching both slots in `ws_init` before sampling starts, would fix it.
+- **The `ws_dram_x8` A/A offset is unreproduced rather than explained.** Its three repeats in the traffic-volume sweep read +18.6, +10.1, +17.5 mW with both selectors identical (between-run SD 4.6 mW), and one repeat failed the `aa_*` gate. Six fresh A/A repeats in `results/20260901-212214-phase0_warmup_check` do not reproduce it: they scatter around zero (−25.9 and +26.1 mW by arm) with the sign flipping, so it is not a stable property of the victim. But that session's between-run SD is 59–71 mW, an order of magnitude wider than the sweep's, so it cannot resolve 15 mW either. Treat the offset as session-specific and treat `ws_dram_x8` as poorly conditioned; the polarity control already ruled out a bias in the measurement path.
+- **`ws_dram_x8` is noisy at block level, and worst late in a run.** Per-block dispersion in the warmup check is 0.45–0.75 W over blocks 100+, against 0.11–0.22 W over the first 20. That is on top of its weaker detectability (n=13–89 for 95% versus n=1–8 for `ws_l3_x8`). Highest pJ/byte, worst instrument — prefer `ws_l3_x8` for anything that needs resolution.
+- **The run-level startup transient is reduced, not eliminated.** `ws_init` faults in 2 × 32 MB per thread under `MAP_POPULATE` — 256 MB for a 4-thread `ws_dram_x8` run — and `settle` discards *samples per block*, so it was no defence. `--warmup-blocks N` now discards whole blocks at the head of a run, cycling every condition first. In `results/20260901-212214-phase0_warmup_check` the early-block deficit is −0.19 W (SD 0.19) without it and −0.10 W (SD 0.08) with 8 blocks; the clearest single case is −0.62 W in block 0 of a run that reached steady state by block 4. Three repeats per arm cannot separate those means, so the flag is justified but not calibrated. Size it in seconds, not blocks — 8 blocks is ~1 s of recording.
 
 ## Running an experiment
 
@@ -93,7 +96,29 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 **`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·HW` once per repeat and takes the spread across repeats as the error bar, and reports whether operands of equal Hamming weight but different bit placement differ).
 
-## Findings so far (2026-08-24)
+## Findings so far (2026-09-01)
+
+**Leakage is linear in operand Hamming weight above a step at zero.** `experiments/phase1_hamming_weight.json` on `ws_l3_x8`, 11 runs × 3 repeats, every run contrasting the test operand against an all-zero working set (`results/20260901-213211-phase1_hamming_weight`, 70/71 gates pass — see below):
+
+| HW | operand(s) | Δ power | between-run SD | detector |
+|---|---|---|---|---|
+| 0 | *(A/A control)* | −0.014 W | 0.028 | 0.54 |
+| 1 | `0x00000008` | +0.42 W | 0.039 | 0.84 |
+| 4 | two patterns | +0.46 / +0.56 W | 0.085 / 0.055 | 0.90 / 0.86 |
+| 8 | two patterns | +0.71 / +0.88 W | 0.107 / 0.047 | 0.85 / 0.99 |
+| 16 | two patterns | +1.13 / +1.22 W | 0.120 / 0.022 | 1.00 / 1.00 |
+| 24 | two patterns | +1.57 / +1.61 W | 0.044 / 0.014 | 1.00 / 1.00 |
+| 32 | `0xFFFFFFFF` | +1.90 W | 0.051 | 1.00 |
+
+`dP = 0.362 + 0.0500·HW` watts, **R² = 0.974**, slope **+50.0 mW/bit** (SD 0.25 over three repeats). Alternative shapes were tested and rejected: √HW gives R² 0.951, log(1+HW) 0.874, a pure power law through the origin 0.928, and adding a quadratic term, a cyclic bit-transition count, or a non-zero-byte count each buys ≤0.003 of R² for an extra parameter. The `hw32` figure also reproduces `phase1_polarity`'s `l3_forward` (+1.904 vs +1.841 W) across sessions.
+
+**The intercept is the interesting part and the sweep cannot explain it.** The line extrapolates to +362 mW at HW = 0, but dP(0) is zero by construction and the A/A control confirms it (−14 mW). A single set bit already costs +0.42 W, 22% of the full-range effect. Two readings fit equally well: a set bit is disproportionately expensive at the low end, or **the all-zero baseline is anomalously cheap** (zero data may cost less to move on-die), which would make every Δ in this table an overestimate by a constant. They are not separable from this design, because every contrast here uses the all-zero operand as its baseline. **The decisive follow-up is a non-zero-baseline arm** — e.g. HW8 against HW4 directly, which should read 0.28 W if the effects are additive.
+
+**Bit placement matters a little, and is not explained.** At equal Hamming weight, two random patterns differ by 0.04–0.16 W; the largest is at HW 8 (0.71 vs 0.88 W, 2.1× the between-run SD). Neither cyclic adjacent-bit transitions nor the number of non-zero bytes accounts for it. So Hamming weight is a good predictor but not a complete one — worth a sentence in the thesis, not a chapter.
+
+**One A/A repeat failed its gate**, marginally: its 95% CI was [−100.2, −0.6] mW, excluding zero by 0.6 mW, with p = 0.072 and a decile spike of +0.3 W in one condition. Across the three repeats the A/A is −14.1 mW with the sign flipping, so the aggregate is clean. This is the documented pattern — a single run's CI is optimistic — and it is why `analysis.aggregate` over ≥3 repeats is the reporting unit, but the failure is recorded rather than waved away.
+
+## Earlier findings (2026-08-24)
 
 **The leakage is in operand movement, not the vector ALU.** Same instruction (`vpmuludq`), same operands (0 vs 0xFFFFFFFF), same interleaved methodology — only the surrounding memory traffic differs. Replicated over 3 repeats with victim order reshuffled each repeat (`results/20260822-215306-phase1_memory_replication`, all 39 gates pass):
 

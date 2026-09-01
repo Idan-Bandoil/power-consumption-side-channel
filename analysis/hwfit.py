@@ -25,6 +25,37 @@ from .load import load_results
 from .stats import block_bootstrap_ci
 
 
+def figure(points, slope, intercept, out_path):
+    """Per-repeat effects against Hamming weight, with the fitted line."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    hw = np.array([p["hw"] for p in points], float)
+    y = np.array([p["diff"] for p in points], float)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.scatter(hw, y, s=26, alpha=0.75, label="per-repeat effect", zorder=3)
+    by_hw = defaultdict(list)
+    for h, d in zip(hw, y):
+        by_hw[h].append(d)
+    xs = np.array(sorted(by_hw))
+    ax.plot(xs, [np.mean(by_hw[x]) for x in xs], "o-", ms=7, lw=1.4,
+            label="mean per Hamming weight", zorder=4)
+    grid = np.linspace(0, hw.max(), 128)
+    ax.plot(grid, intercept + slope * grid, "--", lw=1.2,
+            label=f"fit: {1000 * slope:.1f} mW/bit, intercept {1000 * intercept:+.0f} mW")
+    ax.axhline(0.0, color="k", lw=0.8, alpha=0.4)
+    ax.set_xlabel("operand Hamming weight (bits set per 32-bit word)")
+    ax.set_ylabel("delta package power vs all-zero operand (W)")
+    ax.set_title("Leakage against operand Hamming weight")
+    ax.grid(alpha=0.25)
+    ax.legend(loc="upper left", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=130)
+    plt.close(fig)
+
+
 def popcount(x):
     return bin(int(x)).count("1")
 
@@ -67,6 +98,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("results_dirs", nargs="+")
     ap.add_argument("--bootstrap", type=int, default=4000)
+    ap.add_argument("--no-figure", action="store_true")
     args = ap.parse_args()
 
     points = []
@@ -160,6 +192,13 @@ def main():
             gbs = float(np.mean(bps)) / 1e9
             print(f"          {1000 * s.mean() / gbs:+.4f} mW/bit per GB/s at "
                   f"{gbs:.0f} GB/s aggregate operand throughput")
+
+    if slopes and not args.no_figure:
+        b, a, _ = ols([p["hw"] for p in fit_pts], [p["diff"] for p in fit_pts])
+        out = Path(args.results_dirs[0]) / "figures"
+        out.mkdir(exist_ok=True)
+        figure(fit_pts, b, a, out / "hamming-weight-fit.png")
+        print(f"\nfigure -> {out / 'hamming-weight-fit.png'}")
 
     print("\nRead the slope against the A/A row, not against zero. Bit-placement")
     print("spread larger than the between-repeat SD would mean the leakage")

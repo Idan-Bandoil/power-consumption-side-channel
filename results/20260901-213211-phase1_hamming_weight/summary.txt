@@ -1,0 +1,1513 @@
+### analysis.report results/20260901-213211-phase1_hamming_weight
+
+
+==============================================================================
+Run 20260901-213211-phase1_hamming_weight
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : ba34cf86bbac2ee377da24cb6af37fe1d0bf08eb (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 45.0 C at start
+
+==============================================================================
+hw04_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 18504]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.837    0.985     2298
+     1        18504   18000    15.436    1.019     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.15  14.73  14.71  14.74  14.81  14.74  14.72  14.66  15.01  15.10
+    cond 1:  15.63  15.20  15.29  15.36  15.36  15.61  15.33  15.26  15.60  15.71
+    within-condition span: cond 0 0.485 W, cond 1 0.510 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5993 W  95% CI [+0.5286, +0.6767]  (+4.04% of baseline)
+  Cohen's d        : +0.5979  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.927 at n<=120
+      n=   1  acc=0.795  #######################
+      n=   2  acc=0.826  ##########################
+      n=   3  acc=0.852  ############################
+      n=   5  acc=0.879  ##############################
+      n=   8  acc=0.890  ###############################
+      n=  13  acc=0.911  ################################
+      n=  21  acc=0.910  ################################
+      n=  34  acc=0.922  #################################
+      n=  55  acc=0.918  #################################
+      n=  89  acc=0.927  ##################################
+      n= 120  acc=0.925  ##################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3803821067]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.320    2.456     2299
+     1   3803821067   18000    16.551    2.594     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.51  15.34  15.32  15.32  15.23  15.24  15.28  15.27  15.31  15.37
+    cond 1:  16.55  16.58  16.60  16.57  16.47  16.49  16.51  16.54  16.61  16.60
+    within-condition span: cond 0 0.290 W, cond 1 0.135 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2317 W  95% CI [+1.1768, +1.2735]  (+8.04% of baseline)
+  Cohen's d        : +0.4877  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.993 at n<=120
+      n=   1  acc=0.772  #####################
+      n=   2  acc=0.804  ########################
+      n=   3  acc=0.829  ##########################
+      n=   5  acc=0.878  ##############################
+      n=   8  acc=0.949  ###################################
+      n=  13  acc=0.977  ######################################
+      n=  21  acc=0.985  ######################################
+      n=  34  acc=0.988  #######################################
+      n=  55  acc=0.989  #######################################
+      n=  89  acc=0.992  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 13  ->  77.0 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.836    0.542     2299
+     1     94757711   18000    15.869    0.600     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.77  14.84  14.88  14.88  14.87  14.82  14.80  14.82  14.87  14.82
+    cond 1:  15.85  15.87  15.90  15.92  15.90  15.83  15.82  15.83  15.86  15.90
+    within-condition span: cond 0 0.114 W, cond 1 0.096 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.0329 W  95% CI [+1.0169, +1.0488]  (+6.96% of baseline)
+  Cohen's d        : +1.8057  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.917  #################################
+      n=   2  acc=0.967  #####################################
+      n=   3  acc=0.979  ######################################
+      n=   5  acc=0.984  ######################################
+      n=   8  acc=0.988  #######################################
+      n=  13  acc=0.992  #######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  502.4 bit/s raw
+  n for 99%        : 13  ->  77.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.989 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.753    3.373     2299
+     1     25219587   18000    16.356    3.503     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.99  15.03  15.05  15.02  14.96  15.07  15.02  16.37  18.00  18.02
+    cond 1:  15.64  15.64  15.66  15.68  15.61  15.78  15.69  16.60  18.56  18.70
+    within-condition span: cond 0 3.061 W, cond 1 3.088 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6024 W  95% CI [+0.3130, +0.8935]  (+3.82% of baseline)
+  Cohen's d        : +0.1752  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.600 at n<=120
+      n=   1  acc=0.534  ##
+      n=   2  acc=0.527  ##
+      n=   3  acc=0.558  ####
+      n=   5  acc=0.600  #######
+      n=   8  acc=0.572  #####
+      n=  13  acc=0.547  ###
+      n=  21  acc=0.543  ###
+      n=  34  acc=0.504  
+      n=  55  acc=0.500  
+      n=  89  acc=0.511  
+      n= 120  acc=0.510  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    16.956    1.721     2298
+     1            8   18000    17.414    1.648     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  17.29  17.46  17.64  17.70  17.81  17.57  18.08  15.34  15.35  15.32
+    cond 1:  17.06  18.15  18.10  18.17  18.14  18.36  18.18  16.53  15.73  15.71
+    within-condition span: cond 0 2.764 W, cond 1 2.650 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4582 W  95% CI [+0.1825, +0.7247]  (+2.70% of baseline)
+  Cohen's d        : +0.2720  (per sample)
+  permutation p    : 0.00100  (10000 block relabelings)
+  detector         : best accuracy 0.562 at n<=120
+      n=   1  acc=0.526  ##
+      n=   2  acc=0.544  ###
+      n=   3  acc=0.519  #
+      n=   5  acc=0.521  #
+      n=   8  acc=0.553  ####
+      n=  13  acc=0.519  #
+      n=  21  acc=0.530  ##
+      n=  34  acc=0.545  ###
+      n=  55  acc=0.562  #####
+      n=  89  acc=0.547  ###
+      n= 120  acc=0.548  ###
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4051164923]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.003 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.728    0.607     2299
+     1   4051164923   18000    17.267    0.659     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.72  15.71  15.60  15.64  15.69  15.69  15.74  15.99  15.77  15.73
+    cond 1:  17.29  17.32  17.20  17.20  17.22  17.24  17.24  17.32  17.28  17.37
+    within-condition span: cond 0 0.388 W, cond 1 0.171 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.5388 W  95% CI [+1.4989, +1.5754]  (+9.78% of baseline)
+  Cohen's d        : +2.4285  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.938  ###################################
+      n=   2  acc=0.968  #####################################
+      n=   3  acc=0.979  ######################################
+      n=   5  acc=0.985  ######################################
+      n=   8  acc=0.987  ######################################
+      n=  13  acc=0.993  #######################################
+      n=  21  acc=0.991  #######################################
+      n=  34  acc=0.994  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  498.6 bit/s raw
+  n for 99%        : 13  ->  76.7 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw04_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 9437196]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.003 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.858    0.973     2298
+     1      9437196   18000    16.372    0.947     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.82  17.64  15.55  15.61  15.68  15.65  15.66  15.64  15.67  15.66
+    cond 1:  16.20  17.51  16.66  16.20  16.18  16.16  16.18  16.18  16.20  16.24
+    within-condition span: cond 0 2.083 W, cond 1 1.358 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5134 W  95% CI [+0.3588, +0.6686]  (+3.24% of baseline)
+  Cohen's d        : +0.5347  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.748 at n<=120
+      n=   1  acc=0.667  #############
+      n=   2  acc=0.681  ##############
+      n=   3  acc=0.669  #############
+      n=   5  acc=0.689  ###############
+      n=   8  acc=0.689  ###############
+      n=  13  acc=0.705  ################
+      n=  21  acc=0.712  ################
+      n=  34  acc=0.728  ##################
+      n=  55  acc=0.741  ###################
+      n=  89  acc=0.748  ###################
+      n= 120  acc=0.730  ##################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3489968256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.643    0.837     2299
+     1   3489968256   18000    16.466    0.923     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.66  15.58  15.56  15.61  15.64  15.66  15.66  15.67  15.68  15.69
+    cond 1:  16.49  16.46  16.42  16.46  16.44  16.47  16.48  16.48  16.47  16.48
+    within-condition span: cond 0 0.124 W, cond 1 0.076 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8229 W  95% CI [+0.8071, +0.8404]  (+5.26% of baseline)
+  Cohen's d        : +0.9338  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.868  #############################
+      n=   2  acc=0.928  ##################################
+      n=   3  acc=0.939  ###################################
+      n=   5  acc=0.974  #####################################
+      n=   8  acc=0.978  ######################################
+      n=  13  acc=0.991  #######################################
+      n=  21  acc=0.993  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  201.3 bit/s raw
+  n for 99%        : 13  ->  77.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3220151772]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.054    3.000     2299
+     1   3220151772   18000    16.680    3.332     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.05  14.97  14.97  15.01  15.01  15.06  15.05  15.02  15.29  15.11
+    cond 1:  16.66  16.59  16.60  16.61  16.62  16.60  16.58  16.76  17.06  16.71
+    within-condition span: cond 0 0.323 W, cond 1 0.484 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6258 W  95% CI [+1.5681, +1.6968]  (+10.80% of baseline)
+  Cohen's d        : +0.5129  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.662  ############
+      n=   2  acc=0.726  ##################
+      n=   3  acc=0.802  ########################
+      n=   5  acc=0.887  ##############################
+      n=   8  acc=0.970  #####################################
+      n=  13  acc=0.982  ######################################
+      n=  21  acc=0.987  ######################################
+      n=  34  acc=0.985  ######################################
+      n=  55  acc=0.990  #######################################
+      n=  89  acc=0.994  #######################################
+      n= 120  acc=0.995  #######################################
+  n for 95%        : 8  ->  126.2 bit/s raw
+  n for 99%        : 55  ->  18.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.268    0.618     2299
+     1   4294967295   18000    17.198    0.700     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.96  15.19  15.25  15.33  15.35  15.27  15.31  15.35  15.34  15.34
+    cond 1:  16.82  17.11  17.16  17.45  17.19  17.28  17.25  17.25  17.24  17.24
+    within-condition span: cond 0 0.392 W, cond 1 0.627 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.9302 W  95% CI [+1.8796, +1.9945]  (+12.64% of baseline)
+  Cohen's d        : +2.9232  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.958  ####################################
+      n=   2  acc=0.989  #######################################
+      n=   3  acc=0.992  #######################################
+      n=   5  acc=0.993  #######################################
+      n=   8  acc=0.994  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=0.998  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=0.997  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  997.5 bit/s raw
+  n for 99%        : 3  ->  332.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+aa_hw0  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.638    0.731     2299
+     1            0   18000    15.627    0.746     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.59  15.52  15.61  15.61  15.63  15.65  15.68  15.71  15.69  15.71
+    cond 1:  15.65  15.53  15.55  15.59  15.62  15.62  15.65  15.68  15.69  15.70
+    within-condition span: cond 0 0.189 W, cond 1 0.175 W
+
+  interleaving     : imbalance 0.029  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0112 W  95% CI [-0.0312, +0.0091]  (-0.07% of baseline)
+  Cohen's d        : -0.0152  (per sample)
+  permutation p    : 0.28637  (10000 block relabelings)
+  detector         : best accuracy 0.565 at n<=120
+      n=   1  acc=0.514  #
+      n=   2  acc=0.512  
+      n=   3  acc=0.507  
+      n=   5  acc=0.516  #
+      n=   8  acc=0.522  #
+      n=  13  acc=0.523  #
+      n=  21  acc=0.543  ###
+      n=  34  acc=0.550  ####
+      n=  55  acc=0.565  #####
+      n=  89  acc=0.547  ###
+      n= 120  acc=0.532  ##
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.654    0.657     2299
+     1   4294967295   18000    17.590    0.636     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.57  15.52  15.61  15.60  15.65  15.63  15.66  15.67  15.72  15.90
+    cond 1:  17.58  17.52  17.50  17.57  17.56  17.59  17.64  17.62  17.63  17.70
+    within-condition span: cond 0 0.380 W, cond 1 0.201 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.9358 W  95% CI [+1.8927, +1.9737]  (+12.37% of baseline)
+  Cohen's d        : +2.9921  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.963  #####################################
+      n=   2  acc=0.983  ######################################
+      n=   3  acc=0.983  ######################################
+      n=   5  acc=0.988  #######################################
+      n=   8  acc=0.988  #######################################
+      n=  13  acc=0.989  #######################################
+      n=  21  acc=0.990  #######################################
+      n=  34  acc=0.992  #######################################
+      n=  55  acc=0.994  #######################################
+      n=  89  acc=0.995  #######################################
+      n= 120  acc=0.994  #######################################
+  n for 95%        : 1  ->  1003.0 bit/s raw
+  n for 99%        : 34  ->  29.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.989 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.811    1.518     2299
+     1     25219587   18000    16.627    1.546     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.69  15.80  15.96  15.78  15.76  15.85  15.86  15.83  15.80  15.79
+    cond 1:  16.54  16.63  16.88  16.67  16.59  16.64  16.64  16.57  16.54  16.57
+    within-condition span: cond 0 0.270 W, cond 1 0.334 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8161 W  95% CI [+0.7657, +0.8722]  (+5.16% of baseline)
+  Cohen's d        : +0.5328  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.981 at n<=120
+      n=   1  acc=0.816  #########################
+      n=   2  acc=0.861  ############################
+      n=   3  acc=0.874  #############################
+      n=   5  acc=0.905  ################################
+      n=   8  acc=0.944  ###################################
+      n=  13  acc=0.964  #####################################
+      n=  21  acc=0.976  ######################################
+      n=  34  acc=0.981  ######################################
+      n=  55  acc=0.977  ######################################
+      n=  89  acc=0.981  ######################################
+      n= 120  acc=0.980  ######################################
+  n for 95%        : 13  ->  77.8 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    14.958    0.632     2299
+     1            8   18000    15.339    0.596     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.90  14.82  14.82  14.86  14.95  14.97  15.25  15.01  15.02  14.98
+    cond 1:  15.34  15.26  15.23  15.30  15.32  15.35  15.43  15.36  15.39  15.41
+    within-condition span: cond 0 0.428 W, cond 1 0.194 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3806 W  95% CI [+0.3249, +0.4221]  (+2.54% of baseline)
+  Cohen's d        : +0.6197  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.963 at n<=120
+      n=   1  acc=0.850  ###########################
+      n=   2  acc=0.899  ###############################
+      n=   3  acc=0.898  ###############################
+      n=   5  acc=0.924  #################################
+      n=   8  acc=0.931  ##################################
+      n=  13  acc=0.953  ####################################
+      n=  21  acc=0.949  ###################################
+      n=  34  acc=0.953  ####################################
+      n=  55  acc=0.955  ####################################
+      n=  89  acc=0.963  #####################################
+      n= 120  acc=0.955  ####################################
+  n for 95%        : 13  ->  76.5 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4051164923]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.003 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.687    0.691     2299
+     1   4051164923   18000    17.241    0.647     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.87  15.57  15.61  15.63  15.68  15.73  15.70  15.70  15.72  15.65
+    cond 1:  17.27  17.21  17.20  17.23  17.26  17.30  17.26  17.26  17.22  17.22
+    within-condition span: cond 0 0.295 W, cond 1 0.106 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.5544 W  95% CI [+1.5008, +1.5937]  (+9.91% of baseline)
+  Cohen's d        : +2.3220  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.992 at n<=120
+      n=   1  acc=0.946  ###################################
+      n=   2  acc=0.968  #####################################
+      n=   3  acc=0.976  ######################################
+      n=   5  acc=0.982  ######################################
+      n=   8  acc=0.987  ######################################
+      n=  13  acc=0.988  #######################################
+      n=  21  acc=0.992  #######################################
+      n=  34  acc=0.990  #######################################
+      n=  55  acc=0.990  #######################################
+      n=  89  acc=0.991  #######################################
+      n= 120  acc=0.989  #######################################
+  n for 95%        : 2  ->  498.6 bit/s raw
+  n for 99%        : 21  ->  47.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw04_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 9437196]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.638    0.642     2299
+     1      9437196   18000    16.151    0.653     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.47  15.52  15.53  15.59  15.63  15.64  15.67  15.69  15.69  15.95
+    cond 1:  16.01  16.08  16.10  16.09  16.14  16.19  16.20  16.29  16.23  16.17
+    within-condition span: cond 0 0.480 W, cond 1 0.279 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5131 W  95% CI [+0.4622, +0.5546]  (+3.28% of baseline)
+  Cohen's d        : +0.7919  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.972 at n<=120
+      n=   1  acc=0.875  ##############################
+      n=   2  acc=0.903  ################################
+      n=   3  acc=0.928  ##################################
+      n=   5  acc=0.945  ###################################
+      n=   8  acc=0.962  ####################################
+      n=  13  acc=0.962  ####################################
+      n=  21  acc=0.967  #####################################
+      n=  34  acc=0.965  #####################################
+      n=  55  acc=0.972  #####################################
+      n=  89  acc=0.963  #####################################
+      n= 120  acc=0.965  #####################################
+  n for 95%        : 8  ->  125.3 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3220151772]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.680    0.647     2299
+     1   3220151772   18000    17.293    0.567     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.56  15.86  15.66  15.62  15.67  15.68  15.70  15.68  15.70  15.66
+    cond 1:  17.23  17.24  17.27  17.27  17.29  17.34  17.32  17.35  17.32  17.30
+    within-condition span: cond 0 0.304 W, cond 1 0.120 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6133 W  95% CI [+1.5623, +1.6515]  (+10.29% of baseline)
+  Cohen's d        : +2.6510  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.955  ####################################
+      n=   2  acc=0.977  ######################################
+      n=   3  acc=0.978  ######################################
+      n=   5  acc=0.984  ######################################
+      n=   8  acc=0.987  ######################################
+      n=  13  acc=0.986  ######################################
+      n=  21  acc=0.990  #######################################
+      n=  34  acc=0.991  #######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=0.995  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 1  ->  1008.2 bit/s raw
+  n for 99%        : 34  ->  29.7 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw04_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 18504]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.664    0.549     2299
+     1        18504   18000    16.165    0.544     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.57  15.61  15.61  15.66  15.70  15.70  15.70  15.72  15.69  15.68
+    cond 1:  16.10  16.09  16.18  16.12  16.17  16.20  16.18  16.20  16.21  16.20
+    within-condition span: cond 0 0.154 W, cond 1 0.117 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5007 W  95% CI [+0.4834, +0.5181]  (+3.20% of baseline)
+  Cohen's d        : +0.9160  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.886  ##############################
+      n=   2  acc=0.918  #################################
+      n=   3  acc=0.935  ##################################
+      n=   5  acc=0.962  ####################################
+      n=   8  acc=0.974  #####################################
+      n=  13  acc=0.979  ######################################
+      n=  21  acc=0.979  ######################################
+      n=  34  acc=0.986  ######################################
+      n=  55  acc=0.994  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  200.2 bit/s raw
+  n for 99%        : 55  ->  18.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+aa_hw0  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.645    0.952     2299
+     1            0   18000    15.602    0.843     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.56  15.50  15.59  15.59  15.62  15.93  15.67  15.71  15.64  15.63
+    cond 1:  15.59  15.52  15.55  15.60  15.57  15.62  15.64  15.64  15.63  15.64
+    within-condition span: cond 0 0.427 W, cond 1 0.129 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0431 W  95% CI [-0.1002, -0.0006]  (-0.28% of baseline)
+  Cohen's d        : -0.0479  (per sample)
+  permutation p    : 0.07209  (10000 block relabelings)
+  detector         : best accuracy 0.512 at n<=120
+      n=   1  acc=0.512  
+      n=   2  acc=0.502  
+      n=   3  acc=0.490  
+      n=   5  acc=0.504  
+      n=   8  acc=0.496  
+      n=  13  acc=0.493  
+      n=  21  acc=0.502  
+      n=  34  acc=0.488  
+      n=  55  acc=0.473  
+      n=  89  acc=0.463  
+      n= 120  acc=0.501  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : FAIL (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.291    0.586     2298
+     1     94757711   18000    16.391    0.610     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.29  15.22  15.25  15.30  15.29  15.31  15.30  15.31  15.31  15.31
+    cond 1:  16.39  16.36  16.30  16.37  16.38  16.41  16.41  16.45  16.42  16.40
+    within-condition span: cond 0 0.095 W, cond 1 0.143 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1000 W  95% CI [+1.0735, +1.1238]  (+7.19% of baseline)
+  Cohen's d        : +1.8397  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.927  ##################################
+      n=   2  acc=0.970  #####################################
+      n=   3  acc=0.982  ######################################
+      n=   5  acc=0.989  #######################################
+      n=   8  acc=0.990  #######################################
+      n=  13  acc=0.994  #######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  497.4 bit/s raw
+  n for 99%        : 8  ->  124.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3803821067]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.659    0.778     2299
+     1   3803821067   18000    16.852    0.786     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.61  15.59  15.60  15.67  15.66  15.69  15.68  15.71  15.70  15.68
+    cond 1:  16.83  16.80  16.81  16.84  16.84  16.88  16.90  16.88  16.86  16.86
+    within-condition span: cond 0 0.112 W, cond 1 0.101 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1929 W  95% CI [+1.1756, +1.2100]  (+7.62% of baseline)
+  Cohen's d        : +1.5259  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.911  ################################
+      n=   2  acc=0.951  ####################################
+      n=   3  acc=0.971  #####################################
+      n=   5  acc=0.979  ######################################
+      n=   8  acc=0.989  #######################################
+      n=  13  acc=0.994  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  504.6 bit/s raw
+  n for 99%        : 13  ->  77.6 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3489968256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.655    0.648     2299
+     1   3489968256   18000    16.554    0.613     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.52  15.55  15.80  15.72  15.62  15.64  15.65  15.68  15.70  15.66
+    cond 1:  16.49  16.49  16.52  16.60  16.53  16.57  16.59  16.61  16.60  16.54
+    within-condition span: cond 0 0.281 W, cond 1 0.127 W
+
+  interleaving     : imbalance 0.016  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8987 W  95% CI [+0.8401, +0.9391]  (+5.74% of baseline)
+  Cohen's d        : +1.4242  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.989 at n<=120
+      n=   1  acc=0.911  ################################
+      n=   2  acc=0.945  ###################################
+      n=   3  acc=0.968  #####################################
+      n=   5  acc=0.976  ######################################
+      n=   8  acc=0.981  ######################################
+      n=  13  acc=0.980  ######################################
+      n=  21  acc=0.982  ######################################
+      n=  34  acc=0.984  ######################################
+      n=  55  acc=0.987  ######################################
+      n=  89  acc=0.989  #######################################
+      n= 120  acc=0.987  ######################################
+  n for 95%        : 3  ->  332.6 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+aa_hw0  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.640    0.627     2299
+     1            0   18000    15.652    0.578     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.55  15.55  15.61  15.59  15.63  15.68  15.67  15.71  15.71  15.70
+    cond 1:  15.60  15.54  15.62  15.61  15.65  15.68  15.69  15.70  15.72  15.71
+    within-condition span: cond 0 0.166 W, cond 1 0.173 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0120 W  95% CI [-0.0070, +0.0305]  (+0.08% of baseline)
+  Cohen's d        : +0.0199  (per sample)
+  permutation p    : 0.21218  (10000 block relabelings)
+  detector         : best accuracy 0.552 at n<=120
+      n=   1  acc=0.512  
+      n=   2  acc=0.513  #
+      n=   3  acc=0.508  
+      n=   5  acc=0.528  ##
+      n=   8  acc=0.513  #
+      n=  13  acc=0.539  ###
+      n=  21  acc=0.547  ###
+      n=  34  acc=0.552  ####
+      n=  55  acc=0.551  ####
+      n=  89  acc=0.546  ###
+      n= 120  acc=0.533  ##
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.101    2.916     2299
+     1   4294967295   18000    16.946    3.222     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.00  14.97  15.00  15.09  15.08  15.09  15.32  15.21  15.14  15.12
+    cond 1:  16.90  16.91  16.91  16.99  16.91  17.04  16.98  16.96  16.95  16.91
+    within-condition span: cond 0 0.351 W, cond 1 0.138 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.8450 W  95% CI [+1.7890, +1.8877]  (+12.22% of baseline)
+  Cohen's d        : +0.6005  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.699  ###############
+      n=   2  acc=0.744  ###################
+      n=   3  acc=0.811  ########################
+      n=   5  acc=0.917  #################################
+      n=   8  acc=0.975  #####################################
+      n=  13  acc=0.986  ######################################
+      n=  21  acc=0.989  #######################################
+      n=  34  acc=0.989  #######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=0.994  #######################################
+      n= 120  acc=0.996  #######################################
+  n for 95%        : 8  ->  125.3 bit/s raw
+  n for 99%        : 55  ->  18.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3803821067]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.672    0.771     2298
+     1   3803821067   18000    16.902    0.808     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.64  15.59  15.63  15.65  15.64  15.71  15.71  15.72  15.74  15.70
+    cond 1:  16.89  16.87  16.88  16.87  16.88  16.92  16.95  16.95  16.95  16.85
+    within-condition span: cond 0 0.146 W, cond 1 0.101 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2297 W  95% CI [+1.2138, +1.2455]  (+7.85% of baseline)
+  Cohen's d        : +1.5572  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.923  #################################
+      n=   2  acc=0.967  #####################################
+      n=   3  acc=0.973  #####################################
+      n=   5  acc=0.984  ######################################
+      n=   8  acc=0.987  ######################################
+      n=  13  acc=0.993  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  503.5 bit/s raw
+  n for 99%        : 13  ->  77.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3489968256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.672    0.894     2299
+     1   3489968256   18000    16.580    0.944     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.68  15.57  15.59  15.62  15.64  15.65  15.71  15.75  15.84  15.67
+    cond 1:  16.56  16.51  16.51  16.54  16.53  16.58  16.55  16.89  16.60  16.52
+    within-condition span: cond 0 0.279 W, cond 1 0.375 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.9084 W  95% CI [+0.8631, +0.9766]  (+5.80% of baseline)
+  Cohen's d        : +0.9883  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.987 at n<=120
+      n=   1  acc=0.874  #############################
+      n=   2  acc=0.919  #################################
+      n=   3  acc=0.943  ###################################
+      n=   5  acc=0.967  #####################################
+      n=   8  acc=0.969  #####################################
+      n=  13  acc=0.978  ######################################
+      n=  21  acc=0.979  ######################################
+      n=  34  acc=0.986  ######################################
+      n=  55  acc=0.987  ######################################
+      n=  89  acc=0.984  ######################################
+      n= 120  acc=0.982  ######################################
+  n for 95%        : 5  ->  200.8 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw08_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.012 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.357    2.402     2298
+     1     25219587   18000    16.083    2.360     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.95  15.47  15.15  15.34  15.22  15.30  15.24  15.29  15.30  15.29
+    cond 1:  16.11  16.38  15.98  16.02  16.04  16.03  16.03  16.11  16.09  16.03
+    within-condition span: cond 0 0.800 W, cond 1 0.404 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7259 W  95% CI [+0.6374, +0.8068]  (+4.73% of baseline)
+  Cohen's d        : +0.3049  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.980 at n<=120
+      n=   1  acc=0.744  ###################
+      n=   2  acc=0.723  #################
+      n=   3  acc=0.733  ##################
+      n=   5  acc=0.785  ######################
+      n=   8  acc=0.837  ##########################
+      n=  13  acc=0.911  ################################
+      n=  21  acc=0.951  ####################################
+      n=  34  acc=0.966  #####################################
+      n=  55  acc=0.968  #####################################
+      n=  89  acc=0.980  ######################################
+      n= 120  acc=0.980  ######################################
+  n for 95%        : 21  ->  47.0 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4051164923]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.066    0.873     2299
+     1   4051164923   18000    16.687    0.995     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.82  14.74  14.81  14.89  14.87  15.25  15.29  15.30  15.33  15.37
+    cond 1:  16.39  16.40  16.40  16.42  16.73  16.82  16.94  16.89  16.87  17.03
+    within-condition span: cond 0 0.629 W, cond 1 0.637 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6211 W  95% CI [+1.5551, +1.6878]  (+10.76% of baseline)
+  Cohen's d        : +1.7318  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.924  #################################
+      n=   2  acc=0.966  #####################################
+      n=   3  acc=0.976  ######################################
+      n=   5  acc=0.989  #######################################
+      n=   8  acc=0.989  #######################################
+      n=  13  acc=0.994  #######################################
+      n=  21  acc=0.993  #######################################
+      n=  34  acc=0.995  #######################################
+      n=  55  acc=0.996  #######################################
+      n=  89  acc=0.995  #######################################
+      n= 120  acc=0.996  #######################################
+  n for 95%        : 2  ->  502.0 bit/s raw
+  n for 99%        : 13  ->  77.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.284    0.647     2299
+     1            8   18000    15.710    0.704     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.26  15.22  15.24  15.27  15.29  15.27  15.30  15.32  15.33  15.33
+    cond 1:  15.67  15.60  15.96  15.67  15.68  15.68  15.70  15.71  15.73  15.69
+    within-condition span: cond 0 0.108 W, cond 1 0.355 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4253 W  95% CI [+0.3902, +0.4797]  (+2.78% of baseline)
+  Cohen's d        : +0.6289  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.875  ##############################
+      n=   2  acc=0.904  ################################
+      n=   3  acc=0.927  ##################################
+      n=   5  acc=0.954  ####################################
+      n=   8  acc=0.966  #####################################
+      n=  13  acc=0.971  #####################################
+      n=  21  acc=0.977  ######################################
+      n=  34  acc=0.988  #######################################
+      n=  55  acc=0.996  #######################################
+      n=  89  acc=0.994  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 5  ->  198.5 bit/s raw
+  n for 99%        : 55  ->  18.0 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw04_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 9437196]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.643    0.570     2299
+     1      9437196   18000    16.009    0.591     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.58  15.53  15.62  15.59  15.63  15.70  15.69  15.67  15.71  15.70
+    cond 1:  15.97  15.94  15.99  15.99  16.00  16.04  16.07  16.06  16.05  15.97
+    within-condition span: cond 0 0.176 W, cond 1 0.121 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3658 W  95% CI [+0.3447, +0.3866]  (+2.34% of baseline)
+  Cohen's d        : +0.6299  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.975 at n<=120
+      n=   1  acc=0.842  ###########################
+      n=   2  acc=0.872  #############################
+      n=   3  acc=0.893  ###############################
+      n=   5  acc=0.935  ##################################
+      n=   8  acc=0.948  ###################################
+      n=  13  acc=0.964  #####################################
+      n=  21  acc=0.967  #####################################
+      n=  34  acc=0.968  #####################################
+      n=  55  acc=0.975  #####################################
+      n=  89  acc=0.972  #####################################
+      n= 120  acc=0.971  #####################################
+  n for 95%        : 13  ->  76.5 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw04_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 18504]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.110    3.201     2298
+     1        18504   18000    15.700    3.300     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.69  14.60  14.59  14.66  14.66  15.07  15.78  15.61  15.92  15.54
+    cond 1:  15.22  15.15  15.19  15.14  15.38  16.10  16.25  16.46  16.09  16.03
+    within-condition span: cond 0 1.333 W, cond 1 1.320 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5900 W  95% CI [+0.4599, +0.7240]  (+3.90% of baseline)
+  Cohen's d        : +0.1815  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.663 at n<=120
+      n=   1  acc=0.561  ####
+      n=   2  acc=0.566  #####
+      n=   3  acc=0.597  #######
+      n=   5  acc=0.646  ###########
+      n=   8  acc=0.663  #############
+      n=  13  acc=0.656  ############
+      n=  21  acc=0.630  ##########
+      n=  34  acc=0.600  ########
+      n=  55  acc=0.586  ######
+      n=  89  acc=0.571  #####
+      n= 120  acc=0.553  ####
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw16_a  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.456    2.531     2299
+     1     94757711   18000    16.722    2.879     2298
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.44  15.43  15.40  15.41  15.48  15.45  15.47  15.48  15.51  15.49
+    cond 1:  16.71  17.03  16.66  16.68  16.66  16.70  16.67  16.74  16.70  16.67
+    within-condition span: cond 0 0.110 W, cond 1 0.370 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2655 W  95% CI [+1.2273, +1.3173]  (+8.19% of baseline)
+  Cohen's d        : +0.4669  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.745  ###################
+      n=   2  acc=0.797  #######################
+      n=   3  acc=0.838  ###########################
+      n=   5  acc=0.878  ##############################
+      n=   8  acc=0.959  ####################################
+      n=  13  acc=0.988  #######################################
+      n=  21  acc=0.995  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=0.998  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.0 bit/s raw
+  n for 99%        : 21  ->  47.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+hw24_b  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 3220151772]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0   18000    15.659    0.543     2299
+     1   3220151772   18000    17.257    0.601     2299
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.34  15.62  15.65  15.66  15.71  15.72  15.71  15.73  15.74  15.72
+    cond 1:  16.97  17.27  17.25  17.26  17.31  17.29  17.30  17.36  17.32  17.24
+    within-condition span: cond 0 0.402 W, cond 1 0.384 W
+
+  interleaving     : imbalance 0.060  (mean position cond 0 0.47, cond 1 0.53)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.5978 W  95% CI [+1.5677, +1.6282]  (+10.20% of baseline)
+  Cohen's d        : +2.7880  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.954  ####################################
+      n=   2  acc=0.979  ######################################
+      n=   3  acc=0.988  #######################################
+      n=   5  acc=0.993  #######################################
+      n=   8  acc=0.994  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=1.000  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  996.5 bit/s raw
+  n for 99%        : 5  ->  199.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260901-213211-phase1_hamming_weight/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  hw04_b                       zero_ticks       PASS
+  hw04_b                       interleaving     PASS
+  hw16_b                       zero_ticks       PASS
+  hw16_b                       interleaving     PASS
+  hw16_a                       zero_ticks       PASS
+  hw16_a                       interleaving     PASS
+  hw08_a                       zero_ticks       PASS
+  hw08_a                       interleaving     PASS
+  hw01                         zero_ticks       PASS
+  hw01                         interleaving     PASS
+  hw24_a                       zero_ticks       PASS
+  hw24_a                       interleaving     PASS
+  hw04_a                       zero_ticks       PASS
+  hw04_a                       interleaving     PASS
+  hw08_b                       zero_ticks       PASS
+  hw08_b                       interleaving     PASS
+  hw24_b                       zero_ticks       PASS
+  hw24_b                       interleaving     PASS
+  hw32                         zero_ticks       PASS
+  hw32                         interleaving     PASS
+  aa_hw0                       zero_ticks       PASS
+  aa_hw0                       interleaving     PASS
+  aa_hw0                       aa_0v1           PASS
+  hw32                         zero_ticks       PASS
+  hw32                         interleaving     PASS
+  hw08_a                       zero_ticks       PASS
+  hw08_a                       interleaving     PASS
+  hw01                         zero_ticks       PASS
+  hw01                         interleaving     PASS
+  hw24_a                       zero_ticks       PASS
+  hw24_a                       interleaving     PASS
+  hw04_a                       zero_ticks       PASS
+  hw04_a                       interleaving     PASS
+  hw24_b                       zero_ticks       PASS
+  hw24_b                       interleaving     PASS
+  hw04_b                       zero_ticks       PASS
+  hw04_b                       interleaving     PASS
+  aa_hw0                       zero_ticks       PASS
+  aa_hw0                       interleaving     PASS
+  aa_hw0                       aa_0v1           FAIL
+  hw16_a                       zero_ticks       PASS
+  hw16_a                       interleaving     PASS
+  hw16_b                       zero_ticks       PASS
+  hw16_b                       interleaving     PASS
+  hw08_b                       zero_ticks       PASS
+  hw08_b                       interleaving     PASS
+  aa_hw0                       zero_ticks       PASS
+  aa_hw0                       interleaving     PASS
+  aa_hw0                       aa_0v1           PASS
+  hw32                         zero_ticks       PASS
+  hw32                         interleaving     PASS
+  hw16_b                       zero_ticks       PASS
+  hw16_b                       interleaving     PASS
+  hw08_b                       zero_ticks       PASS
+  hw08_b                       interleaving     PASS
+  hw08_a                       zero_ticks       PASS
+  hw08_a                       interleaving     PASS
+  hw24_a                       zero_ticks       PASS
+  hw24_a                       interleaving     PASS
+  hw01                         zero_ticks       PASS
+  hw01                         interleaving     PASS
+  hw04_a                       zero_ticks       PASS
+  hw04_a                       interleaving     PASS
+  hw04_b                       zero_ticks       PASS
+  hw04_b                       interleaving     PASS
+  hw16_a                       zero_ticks       PASS
+  hw16_a                       interleaving     PASS
+  hw24_b                       zero_ticks       PASS
+  hw24_b                       interleaving     PASS
+
+FAILED GATES: aa_hw0/aa_0v1
+
+### analysis.aggregate results/20260901-213211-phase1_hamming_weight
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s  mW/GB/s
+----------------------------------------------------------------------------------------------------
+aa_hw0 (A/A)          3   -0.0141    0.0277    0.0306   0.90   FLIPS  0.543   145.23     -0.1
+                        per-repeat: -0.0112  -0.0431  +0.0120
+hw01                  3   +0.4213    0.0389    0.1211   0.32   all +  0.840   139.19      3.0
+                        per-repeat: +0.4582  +0.3806  +0.4253
+hw04_a                3   +0.4641    0.0851    0.0730   1.17   all +  0.898   144.81      3.2
+                        per-repeat: +0.5134  +0.5131  +0.3658
+hw04_b                3   +0.5633    0.0545    0.0735   0.74   all +  0.863   140.77      4.0
+                        per-repeat: +0.5993  +0.5007  +0.5900
+hw08_a                3   +0.7148    0.1073    0.1430   0.75   all +  0.854   143.07      5.0
+                        per-repeat: +0.6024  +0.8161  +0.7259
+hw08_b                3   +0.8767    0.0468    0.0408   1.15   all +  0.992   145.65      6.0
+                        per-repeat: +0.8229  +0.8987  +0.9084
+hw16_a                3   +1.1328    0.1197    0.0287   4.17   all +  1.000   142.32      8.0
+                        per-repeat: +1.0329  +1.1000  +1.2655
+hw16_b                3   +1.2181    0.0219    0.0274   0.80   all +  0.998   145.54      8.4
+                        per-repeat: +1.2317  +1.1929  +1.2297
+hw24_a                3   +1.5714    0.0437    0.0506   0.86   all +  0.996   143.05     11.0
+                        per-repeat: +1.5388  +1.5544  +1.6211
+hw24_b                3   +1.6123    0.0140    0.0465   0.30   all +  0.997   143.69     11.2
+                        per-repeat: +1.6258  +1.6133  +1.5978
+hw32                  3   +1.9037    0.0509    0.0496   1.03   all +  0.997   143.54     13.3
+                        per-repeat: +1.9302  +1.9358  +1.8450
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+mW/GB/s  : leakage normalised to traffic rate
+
+### analysis.hwfit results/20260901-213211-phase1_hamming_weight
+
+label         HW      operand  n   mean dW   between    within   mW/bit
+------------------------------------------------------------------------------
+hw01           1            8  3   +0.4213    0.0389    0.1211   421.34
+hw04_a         4      9437196  3   +0.4641    0.0851    0.0730   116.03
+hw04_b         4        18504  3   +0.5633    0.0545    0.0735   140.83
+hw08_a         8     25219587  3   +0.7148    0.1073    0.1430    89.35
+hw08_b         8   3489968256  3   +0.8767    0.0468    0.0408   109.58
+hw16_a        16     94757711  3   +1.1328    0.1197    0.0287    70.80
+hw16_b        16   3803821067  3   +1.2181    0.0219    0.0274    76.13
+hw24_a        24   4051164923  3   +1.5714    0.0437    0.0506    65.48
+hw24_b        24   3220151772  3   +1.6123    0.0140    0.0465    67.18
+hw32          32   4294967295  3   +1.9037    0.0509    0.0496    59.49
+(A/A)          0            0  3   -0.0141    0.0277
+
+bit placement at fixed Hamming weight
+ HW  patterns                      spread W  between W  verdict
+  4  hw04_b, hw04_a                  0.0992     0.0698  within run-to-run noise
+  8  hw08_a, hw08_b                  0.1619     0.0771  LARGER than run-to-run noise
+ 16  hw16_b, hw16_a                  0.0853     0.0708  within run-to-run noise
+ 24  hw24_a, hw24_b                  0.0409     0.0289  within run-to-run noise
+
+per-repeat fit of dP = a + b*HW
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0  10       49.78    353.56   0.975
+     1  10       50.29    361.60   0.985
+     2  10       50.07    371.56   0.963
+
+slope   : +50.04 mW/bit  (SD 0.25 over 3 repeats, SE 0.15)
+          95% CI [+49.76, +50.33] mW/bit
+mean R^2: 0.974
+          i.e. +1601 mW over the full 0 -> 32 bit range
+          +0.3496 mW/bit per GB/s at 143 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Bit-placement
+spread larger than the between-repeat SD would mean the leakage
+depends on which bits are set, not on how many.
