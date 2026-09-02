@@ -10,7 +10,7 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-09-01)
+## Where things stand (last updated 2026-09-02)
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
@@ -18,14 +18,16 @@ Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pai
 
 Done so far in Phase 1: the load/store 2×2 (`experiments/phase1_memory_traffic.json`), replicated with randomised run order (`phase1_memory_replication.json`); the traffic-volume and working-set-depth sweep (`phase1_traffic_volume.json`, analysed in `results/20260824-213524-*`); and the polarity control (`phase1_polarity.json`, `results/20260824-222234-*`) that cleared the A/A anomaly that sweep raised. **Leakage tracks distance travelled, not instruction count** — see *Findings so far*.
 
-The Hamming-weight sweep (`experiments/phase1_hamming_weight.json`, `ws_l3_x8`, 11 runs × 3 repeats) was launched on 2026-09-01; read it with `analysis.hwfit`, which fits the slope per repeat and takes the between-repeat spread as the error bar.
+The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 3 repeats), `phase1_nonzero_baseline.json` which ruled out a per-contrast offset, and `phase1_low_end.json` which settled the shape of the curve near zero. Read a sweep with `analysis.hwfit`, which fits the slope per repeat and takes the between-repeat spread as the error bar; `--axis hd` reads a `ws_*_ab` sweep as a Hamming *distance* instead. **Leakage is linear in Hamming weight above a discontinuity at zero** — see *Findings so far*.
+
+`experiments/phase1_hamming_distance.json` (11 runs × 3 repeats, `ws_l3_x8_ab`) was launched on 2026-09-02 to separate the weight and switching models, which every measurement so far confounds. Read it with `analysis.aggregate` and `analysis.hwfit --axis hd --labels 'hd*'`.
 
 Next, roughly in order:
-1. Hamming-weight sweep and HW-vs-Hamming-distance, on a traffic-bearing victim. Use a working-set victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one.
-2. Per-instruction table, likewise.
+1. Hamming distance — in flight; see above. If it comes back null, that *is* the result, and a strong one: this would be a static-weight channel rather than the switching channel classical DPA predicts.
+2. Per-instruction table, on a traffic-bearing victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one.
 3. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
 
-Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` is a full first draft of the Phase 0 chapter; the Phase 1 chapter is not started and should be once the sweep above lands.
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` is a full first draft of the Phase 0 chapter, and `thesis/phase1-leakage.md` a draft of the Phase 1 one — complete except §9, which is stubbed against the Hamming-distance run in flight.
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
@@ -79,6 +81,8 @@ sudo ./bin/driver --victim avx2_mul --threads 4 --blocks 100 --samples 100
 
 **`util/victim-utils.c`** — every victim is a `DEFINE_VEC_VICTIM` macro instantiation wrapping an inline-asm loop, 8 independent destinations deep so the loop is throughput-bound rather than latency-bound. Victims re-read `ctl->selector` between bursts of `8 * AVX_BURST` instructions. Adding one is a single table edit; `NUM_VICTIMS` is computed from the table, so the old three-places-to-edit footgun is gone. `avx2_vnni` is guarded by `#ifdef __AVXVNNI__`.
 
+The `ws_*` working-set victims fill their buffer with one repeated 32-bit word, so the Hamming *distance* between consecutive transfers is zero by construction — which confounds the weight and switching models of leakage. The `ws_*_ab` variants split the 64-bit selector into two words and alternate them, so two words of equal weight hold the mean weight of the stream fixed while varying how many bits flip per transfer. `ws_l3_x8_ab` alternates every 32 bytes (every `ymm` load differs from the last); `ws_l3_x8_ab64` every 64 (every cache line differs, at half the load-to-load toggle rate). With both halves equal the fill is bit-identical to the single-word one, so `ws_l3_x8_ab` holding `A|A` *is* `ws_l3_x8` holding `A`.
+
 Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inputs (result Hamming weight tracks the operand) while `vpxor` always yields zero (result HW pinned at 0) — comparing them separates input- from output-driven leakage. `scalar_rol` preserves Hamming weight indefinitely, varying only bit position.
 
 **`util/freq-utils.c`** — APERF/MPERF ratio scaled by `MSR_PLATFORM_INFO`; `set_frequency_units()` must run before any frequency read. `frequency_cpufreq()` reads world-readable sysfs and is the basis of the Phase 2 unprivileged receiver.
@@ -94,9 +98,9 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 **Output schema** — `block,cond,ticks,dtsc,daperf,dmperf`, one row per sample. `ticks` is raw RAPL energy units (`uint32` subtraction, so counter wraparound is handled); power is `ticks * energy_unit / (dtsc / tsc_hz)`.
 
-**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·HW` once per repeat and takes the spread across repeats as the error bar, and reports whether operands of equal Hamming weight but different bit placement differ).
+**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·x` once per repeat and takes the spread across repeats as the error bar, and reports whether operands at the same point on the axis but with different bit placement differ). `hwfit` takes `--axis hw` (default, popcount of the selector) or `--axis hd` (popcount of the XOR of the selector's two halves — the bits a `ws_*_ab` victim flips per transfer), and `--labels GLOB` to restrict which runs are fitted, which a mixed session needs so that an anchor run sitting at distance 0 is not fitted as a point on the distance axis. It accepts several result directories and pools them, which is how the two Hamming-weight sessions are read together.
 
-## Findings so far (2026-09-01)
+## Findings so far (2026-09-02)
 
 **Leakage is linear in operand Hamming weight above a step at zero.** `experiments/phase1_hamming_weight.json` on `ws_l3_x8`, 11 runs × 3 repeats, every run contrasting the test operand against an all-zero working set (`results/20260901-213211-phase1_hamming_weight`, 70/71 gates pass — see below):
 
@@ -112,7 +116,7 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 `dP = 0.362 + 0.0500·HW` watts, **R² = 0.974**, slope **+50.0 mW/bit** (SD 0.25 over three repeats). Alternative shapes were tested and rejected: √HW gives R² 0.951, log(1+HW) 0.874, a pure power law through the origin 0.928, and adding a quadratic term, a cyclic bit-transition count, or a non-zero-byte count each buys ≤0.003 of R² for an extra parameter. The `hw32` figure also reproduces `phase1_polarity`'s `l3_forward` (+1.904 vs +1.841 W) across sessions.
 
-**The intercept is the interesting part and the sweep cannot explain it.** The line extrapolates to +362 mW at HW = 0, but dP(0) is zero by construction and the A/A control confirms it (−14 mW). A single set bit already costs +0.42 W, 22% of the full-range effect. Two readings fit equally well: a set bit is disproportionately expensive at the low end, or **the all-zero baseline is anomalously cheap** (zero data may cost less to move on-die), which would make every Δ in this table an overestimate by a constant. They are not separable from this design, because every contrast here uses the all-zero operand as its baseline. The non-zero-baseline arm below settles that the step is a property of the operand rather than of the measurement, but not which side of it is anomalous.
+**The intercept is the interesting part.** The line extrapolates to +362 mW at HW = 0, but dP(0) is zero by construction and the A/A control confirms it (−14 mW). A single set bit already costs +0.42 W, 22% of the full-range effect. Two readings fitted this session equally well: a set bit is disproportionately expensive at the low end, or **the all-zero baseline is anomalously cheap**, which would make every Δ in this table an overestimate by a constant. They are not separable from this design, because every contrast here uses the all-zero operand as its baseline. The non-zero-baseline arm settles that the step is a property of the operand rather than of the measurement; the low-end sweep below settles that it sits entirely at the 0 → 1 boundary.
 
 **The step belongs to the operand, not to the act of switching operands.** `experiments/phase1_nonzero_baseline.json` (`results/20260901-225254-phase1_nonzero_baseline`, 7 runs × 3 repeats, 48/48 gates pass) contrasts non-zero operands against each other, so nothing in it uses the all-zero baseline. This was the dangerous alternative: if alternating a victim between *any* two distinct working sets cost a fixed ~0.36 W, every A/B result in this project would be inflated by it, and no A/A could have caught it, because an A/A holds the same value in both conditions and never swaps buffers.
 
@@ -127,11 +131,23 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 Regressing measured on predicted gives an **intercept of +14 ± 23 mW** — reading B's +362 mW sits **15 SE away** — and the intercept is identical whether or not the session is rescaled by the anchor. **No per-contrast offset exists; the depth table and every earlier A/B result stand.** The A/A on a non-zero operand is also clean (+10.6 mW, sign flipping, accuracy 0.506), which closes a real gap: every previous A/A held all-zeros or all-ones, so none could have revealed anything peculiar to the zero buffer.
 
-Two loose ends from it. The contrasts touching the lowest weights come in above prediction (+57 mW at z=+2.7 and +115 mW at z=+2.5, both positive), and the session's internal chain implies `hw01 → hw04` = +0.217 W where the sweep puts it at +0.043 W — so the transition is probably not a clean discontinuity at zero but **slightly super-linear across the first few bits**. A dedicated low-end sweep (HW 1,2,3,4,6, several patterns each, ~25 min) would settle it. And the anchor run reproduced the sweep's `hw16_a` at +1.215 vs +1.133 W, a difference of 0.082 ± 0.088 — not distinguishable, but only because an anchor was included. **Put an anchor run in every session**; cross-session comparison has no other check.
+Two loose ends from it, one now closed. The contrasts touching the lowest weights came in above prediction (+57 mW at z=+2.7 and +115 mW at z=+2.5, both positive), and the session's internal chain implies `hw01 → hw04` = +0.217 W where the sweep puts it at +0.043 W, which suggested the transition might be super-linear across the first few bits rather than a clean discontinuity. The low-end sweep above settles that: it is a discontinuity. And the anchor run reproduced the sweep's `hw16_a` at +1.215 vs +1.133 W, a difference of 0.082 ± 0.088 — not distinguishable, but only because an anchor was included. **Put an anchor run in every session**; cross-session comparison has no other check.
 
-**Bit placement matters a little, and is not explained.** At equal Hamming weight, two random patterns differ by 0.04–0.16 W; the largest is at HW 8 (0.71 vs 0.88 W, 2.1× the between-run SD). Neither cyclic adjacent-bit transitions nor the number of non-zero bytes accounts for it. So Hamming weight is a good predictor but not a complete one — worth a sentence in the thesis, not a chapter.
+**Bit placement matters a little, and is not explained.** At equal Hamming weight, two patterns differ by 0.01–0.16 W. Pooling both sweep sessions gives eight weights with more than one pattern, and at two of them the spread exceeds the between-repeat SD: HW 8 (0.162 W against 0.077) and HW 2 (0.102 W against 0.018). The rest are within noise. Neither cyclic adjacent-bit transitions nor the number of non-zero bytes accounts for it, and the two that exceed noise share no structure. So Hamming weight is a good predictor but not a complete one — worth a sentence in the thesis, not a chapter.
 
 **One A/A repeat failed its gate**, marginally: its 95% CI was [−100.2, −0.6] mW, excluding zero by 0.6 mW, with p = 0.072 and a decile spike of +0.3 W in one condition. Across the three repeats the A/A is −14.1 mW with the sign flipping, so the aggregate is clean. This is the documented pattern — a single run's CI is optimistic — and it is why `analysis.aggregate` over ≥3 repeats is the reporting unit, but the failure is recorded rather than waved away.
+
+**The step at zero is a discontinuity, not a climb over the first few bits.** `experiments/phase1_low_end.json` samples HW 1, 2, 3, 4 and 6 at two bit patterns each, against the same all-zero baseline and at driver settings identical to the sweep, so the points pool with it (`results/20260902-211017-phase1_low_end`, 78/78 gates pass; A/A +8.4 mW, sign flipping, accuracy 0.516; anchor +1.228 W against +1.133 and +1.215 in the two earlier sessions).
+
+The new points land *on* the existing line rather than filling in the gap beneath it. Per-weight means over the two patterns: HW 1 +0.41 W, HW 2 +0.44, HW 3 +0.46, HW 4 +0.52, HW 6 +0.72. Pooling both sessions — 18 operands from HW 1 to 32, one fit per repeat:
+
+**dP = 0.349 + 0.0508·HW watts, R² = 0.967, slope +50.75 mW/bit (SD 1.35), intercept +349 mW (SD 26, 23 SE from zero)**
+
+against dP(0) = 0 by construction and −2.8 mW over six pooled A/A repeats. Setting one bit per 32-bit word — 3.1% of the bits in the buffer — costs +0.41 W, eight times the 51 mW every subsequent bit costs. So **the all-zero operand is anomalously cheap**, and every Δ quoted against an all-zero baseline carries a constant ≈0.35 W belonging to the baseline, not the test operand. Rankings are unaffected (every row carries it); absolute per-byte figures are overestimates by that much.
+
+This resolves the super-linearity question against it: pooled, `hw01 → hw04` is +0.102 W where the line predicts +0.152 and the non-zero chain implied +0.217. **Do not fit a slope to the low end alone** — those points span 0.3 W and give +61.6 mW/bit with SD 18.4 over three repeats, an interval wide enough to contain almost anything. It is the pooled fit that carries the result.
+
+Worth remembering for Phase 3: a disproportionately cheap zero is exactly what makes *sparsity* detectable, which is the property the ML chapter is after. Post-ReLU activations are 50–90% zero. No mechanism is claimed — zero-detection or data-path clock gating would produce this signature, but nothing here identifies which.
 
 ## Earlier findings (2026-08-24)
 

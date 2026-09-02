@@ -26,9 +26,12 @@ The results, in order of how much they constrain the rest of the thesis:
 1. Register-resident operands do not leak; operands that move do (§3).
 2. Leakage per byte scales with how far the operand travels — 68× from L1 to DRAM (§4).
 3. The effect is a genuine operand effect, not a bias of the harness (§5).
-4. Leakage is linear in operand Hamming weight at +50.0 mW per set bit (§6),
-   and that line is not an artifact of contrasting everything against zero (§7).
-5. Bit placement matters slightly and is not explained (§10).
+4. Leakage is linear in operand Hamming weight at +50.75 mW per set bit (§6), and that
+   line is not an artifact of contrasting everything against zero (§7).
+5. The line does not pass through the origin: an all-zero operand is cheap by +349 mW
+   out of proportion to its weight, and the whole of that step sits at the boundary
+   between weight 0 and weight 1 (§8). This is the finding the ML chapter leans on.
+6. Bit placement matters slightly and is not explained (§10).
 
 ## 2. Method common to every experiment
 
@@ -203,6 +206,11 @@ extra parameter. The `hw32` point also reproduces `phase1_polarity`'s `l3_forwar
 sessions (+1.904 against +1.841 W), which is the only cross-session check that session
 had.
 
+Those are this session's numbers. §8 adds five more weights in the region this sweep
+sampled most thinly and refits the two sessions together; the pooled slope is
++50.75 mW/bit at R² 0.967 over eighteen operands, and it is that fit the rest of the
+thesis quotes.
+
 ## 7. The intercept, and the offset it is not
 
 The interesting part of that fit is the constant. The line extrapolates to +362 mW at
@@ -254,12 +262,65 @@ most thinly.
 
 ## 8. The first few bits
 
-<!-- PENDING: experiments/phase1_low_end.json, launched 2026-09-02.
-     HW 1, 2, 3, 4, 6, two patterns each, against the same all-zero baseline and at
-     driver settings identical to the sweep so the points pool with it. Distinguishes a
-     genuine discontinuity at zero (points near the fitted line) from a smooth but
-     super-linear climb over the first few bits (points climbing steeply from HW 1 to
-     HW 4, then rejoining the line). Fill from results/<run_id> when it lands. -->
+The disagreement at the end of §7 is about the shape of the curve in a region the sweep
+sampled at two points. Two shapes fit it. Either the step is a genuine discontinuity at
+HW 0 — all-zero data is anomalously cheap to move and everything from HW 1 upward is one
+straight line — or the curve climbs steeply over the first few bits and then flattens to
+50 mW/bit, in which case there is no discontinuity to explain and the sweep simply missed
+the bend.
+
+Sampling the gap distinguishes them directly. Hamming weights 1, 2, 3, 4 and 6, two bit
+patterns each, contrasted against the same all-zero baseline and at driver settings
+identical to the sweep so that the points pool with it
+(`results/20260902-211017-phase1_low_end`, 12 runs × 3 repeats, 78/78 gates pass; the A/A
+is +8.4 mW with the sign flipping and accuracy 0.516):
+
+| HW | operands | Δ power | between-run SD |
+|---|---|---|---|
+| 0 | *(A/A control)* | +0.008 W | 0.023 |
+| 1 | `0x00000008` / `0x08000000` | +0.465 / +0.350 W | 0.086 / 0.159 |
+| 2 | `0x01000040` / `0x00200080` | +0.489 / +0.387 W | 0.020 / 0.016 |
+| 3 | `0x00042001` / `0x01800800` | +0.465 / +0.456 W | 0.088 / 0.020 |
+| 4 | `0x0090000C` / `0x00004848` | +0.513 / +0.517 W | 0.029 / 0.048 |
+| 6 | `0x84048014` / `0x30200640` | +0.730 / +0.709 W | 0.156 / 0.075 |
+
+The new points land *on* the existing line rather than filling in the gap beneath it. The
+session anchor is +1.228 W against +1.133 W in the sweep and +1.215 W in the non-zero
+session, so the three sessions are on comparable footing; pooling all eighteen operands
+from HW 1 to HW 32 and fitting one line per repeat gives
+
+**dP = 0.349 + 0.0508·HW watts, R² = 0.967, slope +50.75 mW/bit (SD 1.35 over three
+repeats), intercept +349 mW (SD 26, i.e. 23 standard errors from zero)**
+
+against dP(0) = 0 by construction and −2.8 mW measured across six pooled A/A repeats.
+**The step is a discontinuity at zero.** The lowest weight it is possible to measure
+already costs +0.41 W: setting one bit per 32-bit word — 3.1% of the bits in the buffer —
+buys 22% of the full-range effect, and each of the remaining 31 bits costs 51 mW. The
+step is eight times the marginal cost of a bit anywhere else on the curve.
+
+That resolves the §7 disagreement in favour of the sweep. Pooled, `hw01 → hw04` is
++0.102 W where the line predicts +0.152 W and the non-zero session's chain implied
++0.217 W; there is no super-linear bend to find. Fitting the low-end points *alone* gives
++61.6 mW/bit, but with an SD of 18.4 over three repeats and a 95% interval of
+[40.7, 82.4] — a 0.3 W span is too narrow to fit a slope through at this noise level, and
+50.0 sits comfortably inside it. It is the pooled fit that carries the result.
+
+Two consequences follow, and the second matters more than the first.
+
+Every Δ in this chapter quoted against an all-zero baseline — the whole depth table of §4
+included — carries a constant ≈0.35 W that belongs to the *baseline* rather than to the
+test operand. Combined with §7, which found no per-contrast offset between two non-zero
+operands, the entire step sits at the 0 → 1 boundary and nowhere else. The rankings in §4
+are unaffected, since every row carries the same constant, but the absolute per-byte
+figures are overestimates of the marginal cost of a set bit by that amount.
+
+And a zero operand being disproportionately cheap is not a nuisance for this thesis; it
+is the mechanism the application chapter depends on. Post-ReLU activations in a quantized
+network are 50–90% zero and input-dependent, and a channel whose first set bit costs eight
+times its marginal bit makes the *presence* of non-zero data far more visible than a
+linear weight model would predict. Sparsity is exactly the property this leakage is best
+at reporting. No mechanism is claimed here — zero-detection or clock gating on the data
+path would produce this signature, but nothing in these measurements identifies which.
 
 ## 9. Weight, or distance?
 
@@ -301,14 +362,29 @@ never having seen a transition.
 
 ## 10. Bit placement matters a little, and is not explained
 
-At equal Hamming weight, two random bit patterns differ by 0.04–0.16 W. The largest gap
-is at HW 8 (+0.71 against +0.88 W, 2.1× the between-run SD); the gaps at HW 4, 16 and 24
-are within run-to-run noise. Neither a count of cyclic adjacent-bit transitions nor a
-count of non-zero bytes accounts for the residual.
+At equal Hamming weight, two bit patterns differ by 0.01–0.16 W. Pooling both sweep
+sessions gives eight weights with more than one pattern; at two of them the spread between
+patterns exceeds the between-repeat SD:
+
+| HW | patterns | spread | between-run SD | verdict |
+|---|---|---|---|---|
+| 1 | three | 0.115 W | 0.095 | within noise |
+| 2 | two | 0.102 W | 0.018 | **larger than noise** |
+| 3 | two | 0.009 W | 0.054 | within noise |
+| 4 | two | 0.052 W | 0.058 | within noise |
+| 6 | two | 0.021 W | 0.115 | within noise |
+| 8 | two | 0.162 W | 0.077 | **larger than noise** |
+| 16 | two | 0.085 W | 0.071 | within noise |
+| 24 | two | 0.041 W | 0.029 | within noise |
+
+Neither a count of cyclic adjacent-bit transitions nor a count of non-zero bytes accounts
+for the residual, and the two weights that exceed noise have no structure in common — at
+HW 2 the two patterns are `0x01000040` and `0x00200080`, both with their bits in separate
+bytes.
 
 Hamming weight is therefore a good predictor of this leakage but not a complete one. The
-honest statement is that a placement term exists, is roughly an order of magnitude
-smaller than the weight term over the full range, and is not modelled here.
+honest statement is that a placement term exists, is of order 0.1 W against a 1.9 W full
+range, appears at some weights and not others, and is not modelled here.
 
 ## 11. Threats to validity
 
@@ -352,9 +428,11 @@ A quantitative leakage model for operand movement on this platform:
 - Cost per byte moved rises monotonically with the depth the operand is drawn from,
   0.31 pJ/byte at L1 to 21.02 pJ/byte at DRAM. Absolute power difference peaks at L3.
 - Within a fixed victim, the difference is linear in the operand's Hamming weight at
-  +50.0 mW per set bit per 32-bit word (R² = 0.974), on top of a step between weight 0
-  and weight 1 that belongs to the operand rather than to the contrast.
-- A residual placement effect of 0.04–0.16 W exists at fixed weight and is unmodelled.
+  +50.75 mW per set bit per 32-bit word (R² = 0.967 over 18 operands from weight 1 to 32),
+  on top of a **discontinuity of +349 mW between weight 0 and weight 1** that belongs to
+  the operand rather than to the contrast. An all-zero operand is cheap out of proportion
+  to its weight; a single set bit per word costs eight times what the next bit costs.
+- A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled.
 
 For the chapters that follow, the operationally important number is not the largest
 effect but the best-conditioned one. `ws_l3_x8` under Config-A reaches 95% detector
