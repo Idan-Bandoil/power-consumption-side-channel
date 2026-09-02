@@ -1,0 +1,370 @@
+{
+  "run_id": "20260902-230608-phase1_instruction_table",
+  "experiment": {
+    "name": "phase1_instruction_table",
+    "description": [
+      "Does the instruction consuming an operand matter, once the operand has to",
+      "move to reach it?",
+      "",
+      "This is the last experiment Phase 1 needs, and the last item of the plan's",
+      "original Phase 1 that survives. It cannot be run the way that plan wrote",
+      "it. The register-resident instruction victims do not leak at all -- an",
+      "avx2_mul contrast lands at the harness noise floor -- so a per-instruction",
+      "table built on them would be a table of noise. The ws_op_* victims put the",
+      "same instructions behind the ws_l3_x8 load stream instead: 8 x 32-byte",
+      "loads per iteration from a 4M working set, then 8 independent operations on",
+      "what was loaded.",
+      "",
+      "The load stream is byte-for-byte identical across the family and the loop",
+      "is load-bound with margin, so every variant moves operands at the same rate",
+      "and the instruction is the only thing that varies. A pre-flight measured",
+      "134-142 GB/s across all nine variants against 140 GB/s for loads alone --",
+      "within 4%, with no ALU-bound outlier, and full rate for fma and vnni in",
+      "particular, so no microcode assist fires on the NaN operand. The GB/s",
+      "column in the results is the standing check; pJ/byte corrects it if a",
+      "variant ever does fall off.",
+      "",
+      "Both source registers of each operation are the same loaded register, which",
+      "makes the result Hamming weight predictable. For an operand v broadcast",
+      "through the buffer, op(v, v) gives:",
+      "",
+      "    victim      instruction     result        result HW at 0 / 0xFFFFFFFF",
+      "    op_mov      vmovdqa         v             0 / 32",
+      "    op_and      vpand           v             0 / 32",
+      "    op_or       vpor            v             0 / 32",
+      "    op_xor      vpxor           0             0 / 0",
+      "    op_shift    vpsllvd         v << v        0 / 0   (a shift of >= 32)",
+      "    op_add      vpaddd          2v            0 / 31",
+      "    op_mul      vpmuludq        v * v         0 / 32 per 64-bit lane",
+      "    op_fma      vfmadd231ps     accumulated   +0.0f / NaN",
+      "    op_vnni     vpdpbusd        accumulated   0 / dot product of 0xFF bytes",
+      "",
+      "So op_and and op_or against op_xor and op_shift is the input-versus-output",
+      "contrast, and it is nearly free: identical input traffic, same instruction",
+      "cost class, and a result that either tracks the operand or is pinned at",
+      "zero whatever the operand is. If the leakage is entirely input-driven the",
+      "four agree. If the result contributes, the first two sit above the last",
+      "two. This is the cheap form of the plan's operand-HW-versus-result-HW item;",
+      "the expensive form needs a store path and is only worth building if this",
+      "shows something.",
+      "",
+      "Predictions. Section 3 of the chapter found that register-resident operands",
+      "do not leak, but it established that for vpmuludq alone. If that",
+      "generalises, every row here should land on loads_only (+2.05 W in the depth",
+      "sweep) and the table's result is a *bound*: instruction identity contributes",
+      "less than the resolution against a 2 W movement term. That would be a real",
+      "result, and the one most consistent with everything else in this chapter.",
+      "",
+      "The rows that could break it are op_fma and op_vnni. vpmuludq is a modest",
+      "integer unit; an FMA on NaN against +0.0, or an int8 dot product over 0xFF",
+      "bytes against zero bytes, drives far more switching inside the execution",
+      "unit itself. reg_fma and reg_vnni are the controls that would separate 'the",
+      "ALU leaks' from 'the ALU leaks only when its operands also move': they run",
+      "the same two instructions register-resident, where section 3 predicts a",
+      "null.",
+      "",
+      "Four repeats rather than three. The differences of interest here are",
+      "between rows that share a large common term, and at ~2 W the between-run SD",
+      "is ~0.10 W, so three repeats resolve a row-to-row difference of about",
+      "0.16 W and four resolve about 0.14 W.",
+      "",
+      "loads_only is ws_l3_x8 on the same contrast measured in three earlier",
+      "sessions (+2.054 W depth_l3, +1.841 W l3_forward, +1.904 W hw32), so it is",
+      "the baseline row and the session anchor at once."
+    ],
+    "config": "A",
+    "repeats": 4,
+    "shuffle_runs": true,
+    "run_order_seed": 223607,
+    "cooldown_s": 40,
+    "cooldown_target_c": 48,
+    "driver": {
+      "threads": 4,
+      "samples": 120,
+      "blocks": 150,
+      "settle": 8,
+      "warmup_blocks": 4,
+      "mode": "edge",
+      "attacker_core": 0,
+      "seed": 22360
+    },
+    "runs": [
+      {
+        "label": "aa_op",
+        "victim": "ws_op_and",
+        "selectors": [
+          0,
+          0
+        ],
+        "comment": "A/A gate on the new victim family. Predict 0."
+      },
+      {
+        "label": "loads_only",
+        "victim": "ws_l3_x8",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "No ALU work. Baseline row and session anchor; predict ~+2.0 W."
+      },
+      {
+        "label": "op_mov",
+        "victim": "ws_op_mov",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vmovdqa reg-reg. Movement, no compute."
+      },
+      {
+        "label": "op_and",
+        "victim": "ws_op_and",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpand. Result HW tracks the operand."
+      },
+      {
+        "label": "op_or",
+        "victim": "ws_op_or",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpor. Result HW tracks the operand."
+      },
+      {
+        "label": "op_xor",
+        "victim": "ws_op_xor",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpxor. Result pinned at 0 in both conditions."
+      },
+      {
+        "label": "op_shift",
+        "victim": "ws_op_shift",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpsllvd. Result also 0 in both conditions; a second output-pinned row."
+      },
+      {
+        "label": "op_add",
+        "victim": "ws_op_add",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpaddd. Result 2v, HW 31 at the ones operand."
+      },
+      {
+        "label": "op_mul",
+        "victim": "ws_op_mul",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpmuludq. The instruction the whole project started from."
+      },
+      {
+        "label": "op_fma",
+        "victim": "ws_op_fma",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vfmadd231ps. +0.0f against NaN; the widest ALU switching in the set."
+      },
+      {
+        "label": "op_vnni",
+        "victim": "ws_op_vnni",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "vpdpbusd. The int8 dot product quantised ML inference issues."
+      },
+      {
+        "label": "reg_fma",
+        "victim": "avx2_fma",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "Register-resident control for op_fma. Section 3 predicts a null."
+      },
+      {
+        "label": "reg_vnni",
+        "victim": "avx2_vnni",
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "comment": "Register-resident control for op_vnni. Section 3 predicts a null."
+      }
+    ]
+  },
+  "spec_path": "/home/idan/Desktop/power-consumption-side-channel/experiments/phase1_instruction_table.json",
+  "git": {
+    "commit": "31a3ed97528fbe967d432098fc1496b763a8f8cf",
+    "dirty": true
+  },
+  "started": "2026-09-02T23:06:08",
+  "uname": {
+    "sysname": "Linux",
+    "nodename": "idan-VivoBook-ASUSLaptop-K3502ZA-K3502ZA",
+    "release": "6.8.0-138-generic",
+    "version": "#138~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  7 13:43:15 UTC ",
+    "machine": "x86_64"
+  },
+  "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700H",
+  "runs": [
+    {
+      "tag": "op_vnni_r0",
+      "repeat": 0,
+      "label": "op_vnni",
+      "victim": "ws_op_vnni",
+      "selectors": [
+        0,
+        4294967295
+      ],
+      "csv": "op_vnni_r0.csv",
+      "elapsed_s": 39.18531847000122,
+      "driver": {
+        "victim": "ws_op_vnni",
+        "threads": 4,
+        "conditions": 2,
+        "selectors": [
+          0,
+          4294967295
+        ],
+        "blocks_per_condition": 150,
+        "samples_per_block": 120,
+        "settle_samples": 8,
+        "warmup_blocks": 4,
+        "attacker_core": 0,
+        "victim_core_start": 2,
+        "victim_core_stride": 2,
+        "sample_mode": "edge",
+        "order": "shuffled",
+        "seed": 22360,
+        "energy_unit_j": 6.103515625e-05,
+        "max_frequency_khz": 2700000,
+        "tsc_hz": 2687840236.0486755,
+        "rapl_period_tsc": 2684260,
+        "rapl_period_ms": 0.998668,
+        "rapl_overshoots": 20,
+        "samples_written": 36000,
+        "victim_bursts": 40991071,
+        "victim_bytes_per_burst": 131072,
+        "victim_bytes_per_s": 139908000000.0,
+        "out": "/home/idan/Desktop/power-consumption-side-channel/results/20260902-230608-phase1_instruction_table/op_vnni_r0.csv"
+      },
+      "driver_argv": [
+        "/home/idan/Desktop/power-consumption-side-channel/src/bin/driver",
+        "--victim",
+        "ws_op_vnni",
+        "--input",
+        "/home/idan/Desktop/power-consumption-side-channel/results/20260902-230608-phase1_instruction_table/op_vnni_r0.input.txt",
+        "--out",
+        "/home/idan/Desktop/power-consumption-side-channel/results/20260902-230608-phase1_instruction_table/op_vnni_r0.csv",
+        "--threads",
+        "4",
+        "--samples",
+        "120",
+        "--blocks",
+        "150",
+        "--settle",
+        "8",
+        "--warmup-blocks",
+        "4",
+        "--attacker-core",
+        "0",
+        "--victim-core-start",
+        "2",
+        "--victim-core-stride",
+        "2",
+        "--max-victim-core",
+        "11",
+        "--mode",
+        "edge",
+        "--order",
+        "shuffled",
+        "--fixed-cycles",
+        "2500000",
+        "--seed",
+        "22360"
+      ],
+      "state_before": {
+        "no_turbo": "1",
+        "governor": "powersave",
+        "scaling_driver": "intel_pstate",
+        "package_temp_c": 41.0,
+        "pl1_uw": "200000000",
+        "pl2_uw": "80000000",
+        "cur_freq_khz": {
+          "cpu0": "400000",
+          "cpu1": "400000",
+          "cpu10": "400000",
+          "cpu11": "400000",
+          "cpu12": "400000",
+          "cpu13": "400000",
+          "cpu14": "400000",
+          "cpu15": "400000",
+          "cpu16": "400000",
+          "cpu17": "400000",
+          "cpu18": "400000",
+          "cpu19": "1490849",
+          "cpu2": "400000",
+          "cpu3": "400000",
+          "cpu4": "400000",
+          "cpu5": "1096616",
+          "cpu6": "400000",
+          "cpu7": "400000",
+          "cpu8": "400000",
+          "cpu9": "1820971"
+        },
+        "loadavg": "0.45 0.70 1.24 1/1323 9587",
+        "cmdline": "BOOT_IMAGE=/boot/vmlinuz-6.8.0-138-generic root=UUID=021eef2f-3638-42d9-bd78-6b7f9a5d51a9 ro quiet splash isolcpus=0 iomem=relaxed vt.handoff=7",
+        "uptime_s": 10576.52
+      },
+      "state_after": {
+        "no_turbo": "1",
+        "governor": "powersave",
+        "scaling_driver": "intel_pstate",
+        "package_temp_c": 57.0,
+        "pl1_uw": "200000000",
+        "pl2_uw": "80000000",
+        "cur_freq_khz": {
+          "cpu0": "2267325",
+          "cpu1": "400000",
+          "cpu10": "798257",
+          "cpu11": "400000",
+          "cpu12": "400000",
+          "cpu13": "1699935",
+          "cpu14": "400583",
+          "cpu15": "400000",
+          "cpu16": "400000",
+          "cpu17": "400000",
+          "cpu18": "400000",
+          "cpu19": "400000",
+          "cpu2": "400000",
+          "cpu3": "400000",
+          "cpu4": "400000",
+          "cpu5": "2300000",
+          "cpu6": "400000",
+          "cpu7": "400000",
+          "cpu8": "1912276",
+          "cpu9": "400000"
+        },
+        "loadavg": "3.07 1.33 1.43 1/1320 9617",
+        "cmdline": "BOOT_IMAGE=/boot/vmlinuz-6.8.0-138-generic root=UUID=021eef2f-3638-42d9-bd78-6b7f9a5d51a9 ro quiet splash isolcpus=0 iomem=relaxed vt.handoff=7",
+        "uptime_s": 10615.7
+      }
+    }
+  ]
+}

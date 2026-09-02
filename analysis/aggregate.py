@@ -7,6 +7,23 @@ real error bar: repeating an identical configuration on a different thermal
 state moves the answer by more than the within-run CI allows for. Nothing
 should be quoted from a single run, so this reports the per-repeat effects
 side by side and puts the between-run spread next to the within-run CI.
+
+`--against LABEL` adds a paired comparison of every other row against that
+one. An experiment whose rows share a large common term -- a per-instruction
+table, where every victim carries the same 2 W of load traffic and only the
+instruction differs -- cannot be read from the unpaired column, because the
+between-run spread it reports is dominated by run-to-run variation in the
+shared term. Runs from the same repeat share a thermal and frequency state, so
+differencing them repeat by repeat cancels most of that and asks the question
+actually of interest: is this row different from the reference row?
+
+Pairing is not automatically the better read, and the paired SD says which it
+is. It helps when the rows move together, which they do when they share a
+positive common term. It *hurts* when they are anti-correlated: pairing
+phase1_polarity's l3_reverse against l3_forward gives an SD of 0.180 W against
+0.105 and 0.104 unpaired, because the effect scales with a thermal state and
+the two rows carry it with opposite signs. Compare the two columns before
+quoting either.
 """
 import argparse
 from collections import defaultdict
@@ -30,10 +47,64 @@ def effect_of(run, n_boot):
         "half_width": (ci["hi"] - ci["lo"]) / 2.0,
         "baseline": float(run.power_w[run.mask(a)].mean()),
         "best_acc": max(curve.values()) if curve else float("nan"),
-        "repeat": run.meta.get("repeat", 0),
+        "repeat": int(run.meta.get("repeat", 0)),
         "is_aa": run.is_aa_control,
         "bytes_per_s": run.bytes_per_s,
     }
+
+
+# Two-sided 95% critical values of Student's t. At three or four repeats the
+# normal approximation is badly optimistic -- 3.18 against 1.96 at 3 df -- and
+# this venv has no scipy to ask.
+T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
+       7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179,
+       15: 2.131, 20: 2.086, 30: 2.042}
+
+
+def t95(df):
+    if df < 1:
+        return float("nan")
+    for k in sorted(T95):
+        if df <= k:
+            return T95[k]
+    return 1.96
+
+
+def paired_section(groups, reference):
+    """Every row differenced against `reference`, repeat by repeat."""
+    if reference not in groups:
+        print(f"\n--against: no row labelled '{reference}'; "
+              f"have {', '.join(sorted(groups))}")
+        return
+
+    ref = {e["repeat"]: e["diff"] for e in groups[reference]}
+
+    print(f"\npaired against {reference} "
+          f"(per-repeat difference, so the shared term cancels)")
+    print(f"{'label':<20} {'n':>2} {'mean ddW':>9} {'SD':>8} {'SE':>8} "
+          f"{'95% CI':>19}  verdict")
+    print("-" * 88)
+
+    for label in sorted(groups):
+        if label == reference or groups[label][0]["is_aa"]:
+            continue
+        pairs = [e["diff"] - ref[e["repeat"]]
+                 for e in groups[label] if e["repeat"] in ref]
+        if len(pairs) < 2:
+            continue
+        d = np.array(pairs)
+        mean = float(d.mean())
+        sd = float(d.std(ddof=1))
+        se = sd / np.sqrt(len(d))
+        half = t95(len(d) - 1) * se
+        lo, hi = mean - half, mean + half
+        verdict = "differs" if lo > 0 or hi < 0 else "indistinguishable"
+        print(f"{label:<20} {len(d):>2} {mean:>+9.4f} {sd:>8.4f} {se:>8.4f} "
+              f"[{lo:>+7.4f}, {hi:>+7.4f}]  {verdict}")
+
+    print(f"\nmean ddW : mean over repeats of (row - {reference}) within a repeat")
+    print("95% CI   : Student's t, so it widens correctly at three or four repeats")
+    print("verdict  : whether that interval excludes zero")
 
 
 def main():
@@ -41,6 +112,9 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("results_dirs", nargs="+")
     ap.add_argument("--bootstrap", type=int, default=4000)
+    ap.add_argument("--against", metavar="LABEL", default=None,
+                    help="also report every row paired against this one, "
+                         "differenced repeat by repeat")
     args = ap.parse_args()
 
     groups = defaultdict(list)
@@ -85,6 +159,9 @@ def main():
               f"{gbs:>8.2f} {per:>8.1f}")
         print(f"{'':<20}    per-repeat: "
               + "  ".join(f"{d:+.4f}" for d in diffs))
+
+    if args.against:
+        paired_section(groups, args.against)
 
     print("\nmean dW  : mean of the per-repeat condition differences, in watts")
     print("between  : SD of those differences across repeats")
