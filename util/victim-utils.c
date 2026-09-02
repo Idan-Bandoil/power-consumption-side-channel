@@ -562,6 +562,130 @@ DEFINE_WS_AB_VICTIM(ws_l3_x8_ab_victim, 4194304, WS_LD8, 256)
 DEFINE_WS_AB_VICTIM(ws_dram_x8_ab_victim, 33554432, WS_LD8, 256)
 DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
 
+/* ---- Instruction family, on a traffic-bearing victim ------------------ *
+ *
+ * The DEFINE_VEC_VICTIM instruction set above is register-resident, and
+ * register-resident operands do not leak measurably -- so a per-instruction
+ * table built on it would be a table of noise. These victims put the same
+ * instructions behind the ws_l3_x8 load stream: 8 x 32-byte loads per
+ * iteration from a 4M working set, then 8 independent operations on what was
+ * loaded, into a separate bank of destination registers.
+ *
+ * The load stream is byte-for-byte identical across the family, and the loop
+ * is load-bound with plenty of margin -- 256 bytes per iteration from L3 is
+ * ~16 cycles at the measured per-thread bandwidth, against at most 4 cycles
+ * for 8 independent ALU operations -- so every variant moves operands at the
+ * same rate and the instruction is the only thing that varies. Whether that
+ * held is checkable after the fact: the throughput column must come out flat,
+ * and pJ/byte corrects it if it does not.
+ *
+ * Both source registers of each operation are the same loaded register, which
+ * is what makes the result Hamming weight predictable and turns the family
+ * into a contrast rather than a list. For an operand v broadcast through the
+ * buffer, op(v, v) gives:
+ *
+ *   vmovdqa    v            result HW tracks the operand
+ *   vpand      v            same
+ *   vpor       v            same
+ *   vpxor      0            result pinned at 0 whatever the operand
+ *   vpsllvd    v << v       0 for both operands tested (a shift of >= 32)
+ *   vpaddd     2v           HW 31 at 0xFFFFFFFF, 0 at 0
+ *   vpmuludq   v * v        HW 32 per 64-bit lane at 0xFFFFFFFF, 0 at 0
+ *
+ * So vpand and vpor against vpxor and vpsllvd is the input-versus-output
+ * contrast: identical input traffic, identical instruction cost class, and a
+ * result that either tracks the operand or is pinned at zero. If the leakage
+ * is entirely input-driven the four agree; if the result contributes, the
+ * first two sit above the last two.
+ *
+ * vfmadd231ps and vpdpbusd accumulate into their destination, so the
+ * destination bank is re-zeroed once per burst -- as scalar_imul does, and
+ * for the same reason: an accumulator left to drift decouples from the
+ * selector. Their operands are bit patterns rather than numbers; 0x00000000
+ * is +0.0f and 0xFFFFFFFF is a NaN, neither of which is a denormal, so no
+ * microcode assist should fire. The throughput column is the check.
+ */
+#define ZERO_HI8 \
+	"vpxor %%ymm8, %%ymm8, %%ymm8\n\t" \
+	"vpxor %%ymm9, %%ymm9, %%ymm9\n\t" \
+	"vpxor %%ymm10, %%ymm10, %%ymm10\n\t" \
+	"vpxor %%ymm11, %%ymm11, %%ymm11\n\t" \
+	"vpxor %%ymm12, %%ymm12, %%ymm12\n\t" \
+	"vpxor %%ymm13, %%ymm13, %%ymm13\n\t" \
+	"vpxor %%ymm14, %%ymm14, %%ymm14\n\t" \
+	"vpxor %%ymm15, %%ymm15, %%ymm15\n\t"
+
+#define WS_OP8_3(insn) \
+	insn " %%ymm0, %%ymm0, %%ymm8\n\t" \
+	insn " %%ymm1, %%ymm1, %%ymm9\n\t" \
+	insn " %%ymm2, %%ymm2, %%ymm10\n\t" \
+	insn " %%ymm3, %%ymm3, %%ymm11\n\t" \
+	insn " %%ymm4, %%ymm4, %%ymm12\n\t" \
+	insn " %%ymm5, %%ymm5, %%ymm13\n\t" \
+	insn " %%ymm6, %%ymm6, %%ymm14\n\t" \
+	insn " %%ymm7, %%ymm7, %%ymm15\n\t"
+
+#define WS_OP8_2(insn) \
+	insn " %%ymm0, %%ymm8\n\t" \
+	insn " %%ymm1, %%ymm9\n\t" \
+	insn " %%ymm2, %%ymm10\n\t" \
+	insn " %%ymm3, %%ymm11\n\t" \
+	insn " %%ymm4, %%ymm12\n\t" \
+	insn " %%ymm5, %%ymm13\n\t" \
+	insn " %%ymm6, %%ymm14\n\t" \
+	insn " %%ymm7, %%ymm15\n\t"
+
+#define DEFINE_WS_OP_VICTIM(fname, bytes, unroll, insn, step, zero)           \
+	static __attribute__((noinline)) int fname(void *varg)                \
+	{                                                                     \
+		struct victim_args_t *a = varg;                               \
+		struct ctl_t *ctl = a->ctl;                                   \
+		struct ws_cache cache;                                        \
+		uint64_t off = 0, mask = (uint64_t)(bytes) - (step);          \
+                                                                              \
+		victim_pin(a->core_id);                                       \
+		sched_yield();                                                \
+		ws_init(&cache, (bytes), 0);                                  \
+		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
+                                                                              \
+		while (ctl->run) {                                            \
+			a->bursts++;                                          \
+			unsigned char *buf = ws_get(&cache, ctl->selector);   \
+			asm volatile(                                         \
+				zero                                          \
+				"mov $" STR(AVX_BURST) ", %%rcx\n\t"          \
+				"1:\n\t"                                      \
+				WS_LD8                                        \
+				unroll(insn)                                  \
+				"add $" STR(step) ", %[o]\n\t"                \
+				"and %[m], %[o]\n\t"                          \
+				"sub $1, %%rcx\n\t"                           \
+				"jnz 1b\n\t"                                  \
+				"vzeroupper\n\t"                              \
+				: [o] "+r" (off)                              \
+				: [p] "r" (buf), [m] "r" (mask)               \
+				: "rcx", "memory", ALL_YMM_CLOBBERS);         \
+		}                                                             \
+		_exit(0);                                                     \
+		return 0;                                                     \
+	}
+
+#define WS_OP_L3 4194304
+
+DEFINE_WS_OP_VICTIM(ws_op_mov_victim,   WS_OP_L3, WS_OP8_2, "vmovdqa",      256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_and_victim,   WS_OP_L3, WS_OP8_3, "vpand",        256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_or_victim,    WS_OP_L3, WS_OP8_3, "vpor",         256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_xor_victim,   WS_OP_L3, WS_OP8_3, "vpxor",        256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_add_victim,   WS_OP_L3, WS_OP8_3, "vpaddd",       256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_mul_victim,   WS_OP_L3, WS_OP8_3, "vpmuludq",     256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_shift_victim, WS_OP_L3, WS_OP8_3, "vpsllvd",      256, NO_ZERO)
+DEFINE_WS_OP_VICTIM(ws_op_fma_victim,   WS_OP_L3, WS_OP8_3, "vfmadd231ps",  256, ZERO_HI8)
+
+#ifdef __AVXVNNI__
+/* See the AVX-VNNI note on avx2_vnni above: %{vex%} is mandatory here too. */
+DEFINE_WS_OP_VICTIM(ws_op_vnni_victim,  WS_OP_L3, WS_OP8_3, "%{vex%} vpdpbusd", 256, ZERO_HI8)
+#endif
+
 /* ---- Lookup table ----------------------------------------------------- */
 
 struct victim_entry {
@@ -603,6 +727,17 @@ static const struct victim_entry victims[] = {
 	{ "ws_l3_x8_ab",   ws_l3_x8_ab_victim,   "as ws_l3_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_dram_x8_ab", ws_dram_x8_ab_victim, "as ws_dram_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_l3_x8_ab64", ws_l3_x8_ab64_victim, "as ws_l3_x8_ab, but alternating every 64 bytes (one cache line)" },
+	{ "ws_op_mov",   ws_op_mov_victim,   "ws_l3_x8 loads + 8 vmovdqa reg-reg (movement, no compute)" },
+	{ "ws_op_and",   ws_op_and_victim,   "ws_l3_x8 loads + 8 vpand (result HW tracks operand)" },
+	{ "ws_op_or",    ws_op_or_victim,    "ws_l3_x8 loads + 8 vpor (result HW tracks operand)" },
+	{ "ws_op_xor",   ws_op_xor_victim,   "ws_l3_x8 loads + 8 vpxor (result always zero)" },
+	{ "ws_op_add",   ws_op_add_victim,   "ws_l3_x8 loads + 8 vpaddd" },
+	{ "ws_op_mul",   ws_op_mul_victim,   "ws_l3_x8 loads + 8 vpmuludq" },
+	{ "ws_op_shift", ws_op_shift_victim, "ws_l3_x8 loads + 8 vpsllvd (variable shift)" },
+	{ "ws_op_fma",   ws_op_fma_victim,   "ws_l3_x8 loads + 8 vfmadd231ps" },
+#ifdef __AVXVNNI__
+	{ "ws_op_vnni",  ws_op_vnni_victim,  "ws_l3_x8 loads + 8 vpdpbusd (AVX-VNNI int8 dot product)" },
+#endif
 };
 
 #define NUM_VICTIMS (sizeof(victims) / sizeof(victims[0]))
