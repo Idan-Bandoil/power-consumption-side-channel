@@ -398,7 +398,12 @@ struct ws_cache {
 	int filled[WS_SLOTS];
 	int next;
 	size_t bytes;
-	int dual;	/* 1 = alternate the selector's two halves */
+	/*
+	 * 0 = fill with one repeated word. Otherwise the word index is masked
+	 * with this to choose between the selector's two halves, so the value
+	 * is the alternation period in words: 8 for 32 bytes, 16 for 64.
+	 */
+	int ab_mask;
 };
 
 static void ws_fill(void *p, size_t bytes, uint32_t v)
@@ -409,22 +414,22 @@ static void ws_fill(void *p, size_t bytes, uint32_t v)
 }
 
 /*
- * Alternate two words every 32 bytes -- one ymm register width -- so that
- * consecutive 256-bit loads carry alternating bit patterns. i & 8 is bit 3 of
- * the word index, which flips every 8 words.
+ * Alternate two words with a period of `mask` words, so consecutive transfers
+ * of that size carry different bit patterns. mask is a single bit of the word
+ * index, so it flips every `mask` words: 8 for a 32-byte period, 16 for 64.
  */
-static void ws_fill_ab(void *p, size_t bytes, uint32_t a, uint32_t b)
+static void ws_fill_ab(void *p, size_t bytes, uint32_t a, uint32_t b, int mask)
 {
 	uint32_t *q = p;
 	for (size_t i = 0; i < bytes / sizeof(*q); i++)
-		q[i] = (i & 8) ? b : a;
+		q[i] = (i & (size_t)mask) ? b : a;
 }
 
-static void ws_init(struct ws_cache *c, size_t bytes, int dual)
+static void ws_init(struct ws_cache *c, size_t bytes, int ab_mask)
 {
 	c->bytes = bytes;
 	c->next = 0;
-	c->dual = dual;
+	c->ab_mask = ab_mask;
 	for (int i = 0; i < WS_SLOTS; i++) {
 		c->filled[i] = 0;
 		c->slot[i] = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
@@ -444,9 +449,9 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 
 	int i = c->next;
 	c->next = (c->next + 1) % WS_SLOTS;
-	if (c->dual)
-		ws_fill_ab(c->slot[i], c->bytes,
-			   (uint32_t)sel, (uint32_t)(sel >> 32));
+	if (c->ab_mask)
+		ws_fill_ab(c->slot[i], c->bytes, (uint32_t)sel,
+			   (uint32_t)(sel >> 32), c->ab_mask);
 	else
 		ws_fill(c->slot[i], c->bytes, (uint32_t)sel);
 	c->val[i] = sel;
@@ -467,7 +472,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 	"vmovdqa  224(%[p],%[o]), %%ymm7\n\t"
 
 /* Sizes are powers of two so the cursor wraps with a mask. */
-#define DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, dual)                \
+#define DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, ab_mask)             \
 	static __attribute__((noinline)) int fname(void *varg)                \
 	{                                                                     \
 		struct victim_args_t *a = varg;                               \
@@ -477,7 +482,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
                                                                               \
 		victim_pin(a->core_id);                                          \
 		sched_yield();                                                \
-		ws_init(&cache, (bytes), (dual));                             \
+		ws_init(&cache, (bytes), (ab_mask));                          \
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
@@ -503,8 +508,13 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 #define DEFINE_WS_VICTIM(fname, bytes, loads, step)                           \
 	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0)
 
+/* Alternate every 32 bytes: every ymm load differs from the one before it. */
 #define DEFINE_WS_AB_VICTIM(fname, bytes, loads, step)                        \
-	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 1)
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 8)
+
+/* Alternate every 64 bytes: every cache line differs from the one before it. */
+#define DEFINE_WS_AB64_VICTIM(fname, bytes, loads, step)                      \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 16)
 
 /* Axis 1: loads per iteration, working set pinned in L1. */
 DEFINE_WS_VICTIM(ws_l1_x1_victim, 16384, WS_LD1, 32)
@@ -528,18 +538,29 @@ DEFINE_WS_VICTIM(ws_dram_x8_victim, 33554432, WS_LD8, 256)
  * the two apart, because HD has been pinned at 0 throughout.
  *
  * These variants split the 64-bit selector -- low half is word A, high half
- * is word B -- and alternate them every 32 bytes. Pick A and B with equal
- * Hamming weight and the mean weight of the stream is unchanged while the
- * number of bits flipping per transfer is 8 * HD(A, B); HW is common-mode
- * and HD is the only thing that moves.
+ * is word B -- and alternate them. Pick A and B with equal Hamming weight and
+ * the mean weight of the stream is unchanged while the number of bits flipping
+ * per transfer is 8 * HD(A, B); HW is common-mode and HD is the only thing
+ * that moves.
  *
  * With B == A the fill is bit-identical to the single-word one, so
  * ws_l3_x8_ab with both halves equal *is* ws_l3_x8, which is what the HD
  * sweep uses as its baseline condition and what ties it to earlier sessions.
+ *
+ * The alternation period decides *which* path sees the switching, and one
+ * period cannot cover both. At 32 bytes every ymm load differs from the one
+ * before it, which is the toggling the load ports and the L1 read path see --
+ * but a 64-byte line is then a fixed A-then-B composite, so consecutive line
+ * fills from L2 or L3 are identical and that path sees no switching at all.
+ * ws_l3_x8_ab64 alternates every 64 bytes instead: consecutive lines differ,
+ * at the cost of halving the load-to-load toggle rate. A null at one
+ * granularity alone would be open to the objection that the bus in question
+ * never saw a transition; running both closes it.
  */
 DEFINE_WS_AB_VICTIM(ws_l1_x8_ab_victim,   16384, WS_LD8, 256)
 DEFINE_WS_AB_VICTIM(ws_l3_x8_ab_victim, 4194304, WS_LD8, 256)
 DEFINE_WS_AB_VICTIM(ws_dram_x8_ab_victim, 33554432, WS_LD8, 256)
+DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
 
 /* ---- Lookup table ----------------------------------------------------- */
 
@@ -581,6 +602,7 @@ static const struct victim_entry victims[] = {
 	{ "ws_l1_x8_ab",   ws_l1_x8_ab_victim,   "as ws_l1_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_l3_x8_ab",   ws_l3_x8_ab_victim,   "as ws_l3_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_dram_x8_ab", ws_dram_x8_ab_victim, "as ws_dram_x8, alternating the selector's two 32-bit halves" },
+	{ "ws_l3_x8_ab64", ws_l3_x8_ab64_victim, "as ws_l3_x8_ab, but alternating every 64 bytes (one cache line)" },
 };
 
 #define NUM_VICTIMS (sizeof(victims) / sizeof(victims[0]))

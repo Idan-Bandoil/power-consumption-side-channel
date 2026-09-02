@@ -280,13 +280,23 @@ at 16 in every condition, identical to the constant-word baseline: weight is com
 and distance is the only thing that moves. With the two halves equal the fill is
 bit-identical to the single-word one, so the baseline condition is exactly `ws_l3_x8`.
 
+The alternation period decides which path sees the switching, and one period cannot
+cover both. At 32 bytes every `ymm` load differs from the one before it, which is the
+toggling the load ports and the L1 read path see — but a 64-byte line is then a fixed
+A-then-B composite, so consecutive line fills from L2 or L3 are identical and that path
+sees no switching at all. `ws_l3_x8_ab64` alternates every 64 bytes instead: consecutive
+lines differ, at the cost of halving the load-to-load toggle rate. The largest contrast
+is run at both granularities, so that a null cannot be explained by the bus in question
+never having seen a transition.
+
 <!-- PENDING: experiments/phase1_hamming_distance.json.
-     HD 2, 4, 8, 16, 32 at fixed HW 16, plus three controls: an A/A on the dual victim,
-     an equivalence run (0 -> A|A on the dual victim must reproduce the sweep's hw16_a
-     through the new code path), and a placement control (A -> ~A, both homogeneous,
-     both HW 16, bounding how much of the HD-32 condition is composition rather than
-     switching). Pricing a flipped bit at the 50.0 mW a set bit costs predicts +1.60 W
-     at HD 32 under a pure switching model, against 0 under a pure weight model.
+     HD 2, 4, 8, 16 (two patterns), 32 at fixed HW 16 on ws_l3_x8_ab, the same HD 32 on
+     ws_l3_x8_ab64, plus three controls: an A/A on the dual victim, an equivalence run
+     (0 -> A|A on the dual victim must reproduce the sweep's hw16_a through the new
+     code path), and a placement control (A -> ~A, both homogeneous, both HW 16,
+     bounding how much of the HD-32 condition is composition rather than switching).
+     Pricing a flipped bit at the 50.0 mW a set bit costs predicts +1.60 W at HD 32
+     under a pure switching model, against 0 under a pure weight model.
      Fill from results/<run_id> when it lands. -->
 
 ## 10. Bit placement matters a little, and is not explained
