@@ -54,9 +54,13 @@ with the same operand in both conditions; it has no effect by construction, so a
 it reports is the measurement path manufacturing signal. Gate counts are quoted per
 session below.
 
-From §6 onward every session also includes an **anchor** run — a contrast already
+From §7 onward every session also includes an **anchor** run — a contrast already
 measured in an earlier session, repeated unchanged — because nothing else in the design
 can detect a session-level shift, and cross-session comparison is otherwise unverifiable.
+The practice was adopted after the fact: the sweep of §6 happened to include an operand
+that an earlier session had also measured, which is the only reason its session could be
+placed at all. The three sessions holding the same weight-16 operand read +1.133, +1.215
+and +1.228 W, which is the size of session-level shift an anchor exists to expose.
 
 ## 3. Register-resident operands do not leak
 
