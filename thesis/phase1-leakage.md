@@ -31,7 +31,10 @@ The results, in order of how much they constrain the rest of the thesis:
 5. The line does not pass through the origin: an all-zero operand is cheap by +349 mW
    out of proportion to its weight, and the whole of that step sits at the boundary
    between weight 0 and weight 1 (§8). This is the finding the ML chapter leans on.
-6. Bit placement matters slightly and is not explained (§10).
+6. Hamming *distance* leaks too, at +34.14 mW per flipped bit with weight held fixed
+   (§9). The two classical models of data-dependent power are usually presented as
+   competitors; on this platform both terms are present and of comparable size.
+7. Bit placement matters slightly and is not explained (§10).
 
 ## 2. Method common to every experiment
 
@@ -354,15 +357,94 @@ lines differ, at the cost of halving the load-to-load toggle rate. The largest c
 is run at both granularities, so that a null cannot be explained by the bus in question
 never having seen a transition.
 
-<!-- PENDING: experiments/phase1_hamming_distance.json.
-     HD 2, 4, 8, 16 (two patterns), 32 at fixed HW 16 on ws_l3_x8_ab, the same HD 32 on
-     ws_l3_x8_ab64, plus three controls: an A/A on the dual victim, an equivalence run
-     (0 -> A|A on the dual victim must reproduce the sweep's hw16_a through the new
-     code path), and a placement control (A -> ~A, both homogeneous, both HW 16,
-     bounding how much of the HD-32 condition is composition rather than switching).
-     Pricing a flipped bit at the 50.0 mW a set bit costs predicts +1.60 W at HD 32
-     under a pure switching model, against 0 under a pure weight model.
-     Fill from results/<run_id> when it lands. -->
+Both words are `0x05A5E34F` and a partner of equal weight, so every condition — baseline
+included — carries a mean weight of 16 bits per word, and at 32-byte alternation every
+`ymm` register is homogeneous, so the mean *register* weight is 128 bits in both
+conditions too. Only the number of bits flipping between consecutive transfers moves
+(`results/20260902-220517-phase1_hamming_distance`, 11 runs × 3 repeats, 72/72 gates
+pass):
+
+| HD | second word | Δ power | between-run SD | detector |
+|---|---|---|---|---|
+| 0 | *(A/A control)* | +0.019 W | 0.014 | 0.51 |
+| 2 | `0x45A5634F` | +0.086 W | 0.141 | 0.77 |
+| 4 | `0x25A5A3CD` | +0.203 W | 0.023 | 0.85 |
+| 8 | `0x95A3C15B` | +0.343 W | 0.030 | 0.99 |
+| 16 | `0xCDF62C0C` | +0.550 W | 0.071 | 0.97 |
+| 16 | `0x39B065F4` | +0.632 W | 0.049 | 1.00 |
+| 32 | `0xFA5A1CB0` (= ~A) | +1.139 W | 0.048 | 0.99 |
+
+**Distance leaks, and nearly as much per bit as weight does:**
+
+**dP = 0.048 + 0.0341·HD watts, R² = 0.974, slope +34.14 mW/bit (SD 2.96 over three
+repeats, 95% CI [30.8, 37.5]).**
+
+The prediction that priced a flipped bit at the 50.75 mW a set bit costs was too high by a
+third, but only by a third: +1.14 W measured at HD 32 against +1.60 W predicted, and
+nothing like the zero a pure static-weight model requires.
+
+Three controls carry this result, and all three behave:
+
+- **Composition is not the explanation.** The HD-32 condition is half `~A` by volume, so
+  if `~A` were intrinsically dearer than `A` the contrast would inherit about half that
+  difference. Measured directly on homogeneous buffers, `A → ~A` is +0.024 W with the
+  sign flipping across repeats and detector accuracy 0.591 — bounding the composition
+  contribution at roughly 12 mW, 2% of the effect at HD 32.
+- **The new fill is the old one.** `0 → A|A` through the dual victim gives +1.198 W
+  against +1.254 W for the identical contrast on `ws_l3_x8` in the same session, a
+  difference of 0.056 W against between-run SDs of 0.071 and 0.116. The two code paths
+  are not distinguishable, as they should not be, since with equal halves they write the
+  same bytes.
+- **The A/A is clean** at +19.1 mW with detector accuracy 0.509.
+
+Note also what the intercept does *not* do. The weight line of §8 misses the origin by
++349 mW, 23 standard errors; the distance line's intercept is +48 ± 28 mW, 1.75 standard
+errors, consistent with passing through zero. Whatever makes an all-zero operand cheap is
+a property of the zero *value*, not a generic "this buffer holds two different things"
+artifact — a generic artifact would have shown up here as a step at HD 1 and did not.
+
+### 9.1 Which path does the switching happen on?
+
+Running the largest contrast at both alternation periods separates them, under an
+assumption of additive superposition. At 32 bytes all eight load-to-load transitions per
+iteration toggle and no line-to-line transition does; at 64 bytes four of eight load
+transitions toggle and every line transition does. Writing *L* for the load-path term at
+full rate and *C* for the line-path term:
+
+| | measured | composition |
+|---|---|---|
+| `ws_l3_x8_ab` (32 B) | +1.139 W | 1.0·*L* + 0.0·*C* |
+| `ws_l3_x8_ab64` (64 B) | +0.781 W | 0.5·*L* + 1.0·*C* |
+
+giving *L* = 1.139 W and *C* = 0.211 W. If only load-to-load switching mattered the
+64-byte variant would have read +0.569 W; it reads +0.211 W above that. So the effect is
+dominated by toggling on the narrow, fast path — every 32-byte load — with the line-fill
+path contributing about 16% of the total. That ordering is what the rates suggest, since
+the load path runs at roughly three times the line rate. Two points and a superposition
+assumption are not a decomposition to lean on hard, and it is quoted as an estimate.
+
+### 9.2 Both models are true
+
+This is the result that most constrains how the rest of the thesis models leakage. The
+two classical accounts of data-dependent power are usually presented as competitors, and
+on this platform both terms are present and of comparable size:
+
+| term | coefficient | intercept |
+|---|---|---|
+| static Hamming weight, on a constant stream | +50.75 mW per set bit | **+349 mW step at zero** |
+| Hamming distance, at fixed weight | +34.14 mW per flipped bit | +48 ± 28 mW (through origin) |
+
+Neither can be reduced to the other. The weight slope was measured on a stream whose
+distance is pinned at zero, where a pure switching model predicts no effect at all; the
+distance slope was measured at a weight that is identical in both conditions, where a
+pure weight model predicts no effect at all. Both were measured, on the same victim, in
+sessions whose anchors agree.
+
+The practical reading for the chapters that follow is that a victim processing real data
+modulates both terms at once, and the two will generally move together — data that
+becomes heavier also tends to change more between words. Attributing an observed power
+difference to weight alone would overstate what the weight model can do, and any attempt
+to *invert* the channel to recover operand values has to carry both terms.
 
 ## 10. Bit placement matters a little, and is not explained
 
@@ -419,6 +501,18 @@ live in variance rather than mean.
 **Cache residency is inferred, not measured** (§4), and the DRAM figure excludes DIMM
 energy.
 
+**The lowest distance point is at the noise floor.** At HD 2 the effect is +0.086 W with
+a between-run SD of 0.141 and the sign flipping across repeats — the fitted line predicts
++0.068 W there, which this design cannot resolve from zero in three repeats. It is
+included in the fit and reported as measured, but nothing rests on it; dropping it moves
+the slope by less than its own standard error.
+
+**The load-path/line-path split of §9.1 is an estimate, not a measurement.** It rests on
+two points and an assumption that the two contributions add linearly, which nothing here
+tests. The ordering it implies — the fast narrow path dominating — is consistent with the
+relative rates, but a third alternation period would be needed to check the model rather
+than assume it.
+
 **One machine, one microarchitecture.** Everything here is an i7-12700H at 2.3 GHz with
 no AVX-512. Nothing in this chapter establishes that the coefficients transfer.
 
@@ -436,6 +530,10 @@ A quantitative leakage model for operand movement on this platform:
   on top of a **discontinuity of +349 mW between weight 0 and weight 1** that belongs to
   the operand rather than to the contrast. An all-zero operand is cheap out of proportion
   to its weight; a single set bit per word costs eight times what the next bit costs.
+- With weight held fixed, the difference is also linear in the Hamming *distance* between
+  consecutive transfers, at +34.14 mW per flipped bit (R² = 0.974) — and this line does
+  pass through the origin. Neither term reduces to the other: each was measured in a
+  design where the other predicts exactly zero.
 - A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled.
 
 For the chapters that follow, the operationally important number is not the largest

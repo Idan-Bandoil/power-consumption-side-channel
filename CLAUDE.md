@@ -20,12 +20,11 @@ Done so far in Phase 1: the load/store 2×2 (`experiments/phase1_memory_traffic.
 
 The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 3 repeats), `phase1_nonzero_baseline.json` which ruled out a per-contrast offset, and `phase1_low_end.json` which settled the shape of the curve near zero. Read a sweep with `analysis.hwfit`, which fits the slope per repeat and takes the between-repeat spread as the error bar; `--axis hd` reads a `ws_*_ab` sweep as a Hamming *distance* instead. **Leakage is linear in Hamming weight above a discontinuity at zero** — see *Findings so far*.
 
-`experiments/phase1_hamming_distance.json` (11 runs × 3 repeats, `ws_l3_x8_ab`) was launched on 2026-09-02 to separate the weight and switching models, which every measurement so far confounds. Read it with `analysis.aggregate` and `analysis.hwfit --axis hd --labels 'hd*'`.
+`experiments/phase1_hamming_distance.json` separated the weight and switching models, which every earlier measurement confounds: **both are real** — see *Findings so far*. Read that kind of sweep with `analysis.hwfit --axis hd --labels 'hd*'`.
 
 Next, roughly in order:
-1. Hamming distance — in flight; see above. If it comes back null, that *is* the result, and a strong one: this would be a static-weight channel rather than the switching channel classical DPA predicts.
-2. Per-instruction table, on a traffic-bearing victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one.
-3. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
+1. Per-instruction table, on a traffic-bearing victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one. This is the last item Phase 1 needs; items 5–7 of the plan (width, core type, thread scaling) are optional against the time budget, and core type is the cheapest novelty of the three.
+2. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
 
 Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` is a full first draft of the Phase 0 chapter, and `thesis/phase1-leakage.md` a draft of the Phase 1 one — complete except §9, which is stubbed against the Hamming-distance run in flight.
 
@@ -148,6 +147,25 @@ against dP(0) = 0 by construction and −2.8 mW over six pooled A/A repeats. Set
 This resolves the super-linearity question against it: pooled, `hw01 → hw04` is +0.102 W where the line predicts +0.152 and the non-zero chain implied +0.217. **Do not fit a slope to the low end alone** — those points span 0.3 W and give +61.6 mW/bit with SD 18.4 over three repeats, an interval wide enough to contain almost anything. It is the pooled fit that carries the result.
 
 Worth remembering for Phase 3: a disproportionately cheap zero is exactly what makes *sparsity* detectable, which is the property the ML chapter is after. Post-ReLU activations are 50–90% zero. No mechanism is claimed — zero-detection or data-path clock gating would produce this signature, but nothing here identifies which.
+
+**Hamming distance leaks too, at two-thirds the cost of a set bit.** Every working-set victim fills its buffer with one repeated word, so HD was pinned at 0 throughout and the static-weight and switching models were indistinguishable. `experiments/phase1_hamming_distance.json` on `ws_l3_x8_ab`, which alternates two equal-weight words every 32 bytes so mean weight per word (16) *and* per ymm register (128) are identical in both conditions (`results/20260902-220517-phase1_hamming_distance`, 11 runs × 3 repeats, 72/72 gates pass):
+
+| HD | Δ power | between-run SD | detector |
+|---|---|---|---|
+| 0 *(A/A)* | +0.019 W | 0.014 | 0.51 |
+| 2 | +0.086 W | 0.141 | 0.77 |
+| 4 | +0.203 W | 0.023 | 0.85 |
+| 8 | +0.343 W | 0.030 | 0.99 |
+| 16 | +0.550 / +0.632 W | 0.071 / 0.049 | 0.97 / 1.00 |
+| 32 | +1.139 W | 0.048 | 0.99 |
+
+**dP = 0.048 + 0.0341·HD watts, R² = 0.974, slope +34.14 mW/bit (SD 2.96), intercept +48 ± 28 mW.** So **both models are true**: weight leaks at +50.75 mW/set bit on a stream whose distance is 0 (where switching predicts nothing), and distance leaks at +34.14 mW/flipped bit at fixed weight (where a weight model predicts nothing). Note the intercepts differ in kind — the weight line misses the origin by 23 SE, the distance line by 1.75 SE — so the zero-operand step belongs to the zero *value*, not to some generic "buffer holds two things" artifact, which would have shown as a step at HD 1.
+
+Three controls carry it: the `placement` run (`A → ~A`, both homogeneous, both HW 16) is +0.024 W with the sign flipping, bounding the composition confound at ~12 mW or 2% of the HD-32 effect; `ab_equiv` (`0 → A|A` through the dual fill) reads +1.198 W against +1.254 W for the same contrast on plain `ws_l3_x8` in the same session, so the new code path is the old one; and the A/A is +19.1 mW at accuracy 0.509.
+
+**Switching on the load path dominates the line-fill path.** `ws_l3_x8_ab64` alternates every 64 bytes: half the load-to-load transitions toggle but every line-to-line one does. It reads +0.781 W against `ab`'s +1.139 W, where 0.5 × 1.139 = 0.569 W would be expected if only load-to-load mattered. Solving the two gives a load-path term of 1.139 W and a line-path term of 0.211 W, ~16% of the total. Two points plus an additivity assumption — an estimate, not a decomposition to lean on.
+
+Caveat: HD 2 is at the noise floor (SD 0.141, sign flips, predicted +0.068 W). It is in the fit but nothing rests on it; dropping it moves the slope by less than its own SE.
 
 ## Earlier findings (2026-08-24)
 

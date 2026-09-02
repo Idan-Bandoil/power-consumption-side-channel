@@ -7,7 +7,7 @@ completes rather than at the end.
 | File | Phase | State |
 |---|---|---|
 | `phase0-measurement.md` | 0 — measurement infrastructure and validity | first full draft |
-| `phase1-leakage.md` | 1 — leakage characterisation: operand movement | draft; §8 and §9 awaiting runs |
+| `phase1-leakage.md` | 1 — leakage characterisation: operand movement | first full draft |
 | *(pending)* | 2 — covert channel | not started |
 | *(pending)* | 3 — ML inference leakage | not started |
 | *(pending)* | 4 — mitigations | not started |
