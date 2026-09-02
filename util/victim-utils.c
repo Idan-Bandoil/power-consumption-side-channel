@@ -398,6 +398,7 @@ struct ws_cache {
 	int filled[WS_SLOTS];
 	int next;
 	size_t bytes;
+	int dual;	/* 1 = alternate the selector's two halves */
 };
 
 static void ws_fill(void *p, size_t bytes, uint32_t v)
@@ -407,10 +408,23 @@ static void ws_fill(void *p, size_t bytes, uint32_t v)
 		q[i] = v;
 }
 
-static void ws_init(struct ws_cache *c, size_t bytes)
+/*
+ * Alternate two words every 32 bytes -- one ymm register width -- so that
+ * consecutive 256-bit loads carry alternating bit patterns. i & 8 is bit 3 of
+ * the word index, which flips every 8 words.
+ */
+static void ws_fill_ab(void *p, size_t bytes, uint32_t a, uint32_t b)
+{
+	uint32_t *q = p;
+	for (size_t i = 0; i < bytes / sizeof(*q); i++)
+		q[i] = (i & 8) ? b : a;
+}
+
+static void ws_init(struct ws_cache *c, size_t bytes, int dual)
 {
 	c->bytes = bytes;
 	c->next = 0;
+	c->dual = dual;
 	for (int i = 0; i < WS_SLOTS; i++) {
 		c->filled[i] = 0;
 		c->slot[i] = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
@@ -430,7 +444,11 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 
 	int i = c->next;
 	c->next = (c->next + 1) % WS_SLOTS;
-	ws_fill(c->slot[i], c->bytes, (uint32_t)sel);
+	if (c->dual)
+		ws_fill_ab(c->slot[i], c->bytes,
+			   (uint32_t)sel, (uint32_t)(sel >> 32));
+	else
+		ws_fill(c->slot[i], c->bytes, (uint32_t)sel);
 	c->val[i] = sel;
 	c->filled[i] = 1;
 	return c->slot[i];
@@ -449,7 +467,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 	"vmovdqa  224(%[p],%[o]), %%ymm7\n\t"
 
 /* Sizes are powers of two so the cursor wraps with a mask. */
-#define DEFINE_WS_VICTIM(fname, bytes, loads, step)                           \
+#define DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, dual)                \
 	static __attribute__((noinline)) int fname(void *varg)                \
 	{                                                                     \
 		struct victim_args_t *a = varg;                               \
@@ -459,7 +477,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
                                                                               \
 		victim_pin(a->core_id);                                          \
 		sched_yield();                                                \
-		ws_init(&cache, (bytes));                                     \
+		ws_init(&cache, (bytes), (dual));                             \
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
@@ -482,6 +500,12 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 		return 0;                                                     \
 	}
 
+#define DEFINE_WS_VICTIM(fname, bytes, loads, step)                           \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0)
+
+#define DEFINE_WS_AB_VICTIM(fname, bytes, loads, step)                        \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 1)
+
 /* Axis 1: loads per iteration, working set pinned in L1. */
 DEFINE_WS_VICTIM(ws_l1_x1_victim, 16384, WS_LD1, 32)
 DEFINE_WS_VICTIM(ws_l1_x2_victim, 16384, WS_LD2, 64)
@@ -492,6 +516,30 @@ DEFINE_WS_VICTIM(ws_l1_x8_victim, 16384, WS_LD8, 256)
 DEFINE_WS_VICTIM(ws_l2_x8_victim,   524288, WS_LD8, 256)
 DEFINE_WS_VICTIM(ws_l3_x8_victim,  4194304, WS_LD8, 256)
 DEFINE_WS_VICTIM(ws_dram_x8_victim, 33554432, WS_LD8, 256)
+
+/* ---- Hamming distance ------------------------------------------------- *
+ *
+ * Every victim above fills its working set with one repeated word, so the
+ * data stream is constant and the Hamming distance between consecutive
+ * transfers is zero by construction. That is a confound, not a detail:
+ * classical DPA models leakage as switching activity -- bits that flip
+ * between successive values on a bus -- while the Hamming-weight sweep can
+ * only see the static weight of the value. Nothing measured so far can tell
+ * the two apart, because HD has been pinned at 0 throughout.
+ *
+ * These variants split the 64-bit selector -- low half is word A, high half
+ * is word B -- and alternate them every 32 bytes. Pick A and B with equal
+ * Hamming weight and the mean weight of the stream is unchanged while the
+ * number of bits flipping per transfer is 8 * HD(A, B); HW is common-mode
+ * and HD is the only thing that moves.
+ *
+ * With B == A the fill is bit-identical to the single-word one, so
+ * ws_l3_x8_ab with both halves equal *is* ws_l3_x8, which is what the HD
+ * sweep uses as its baseline condition and what ties it to earlier sessions.
+ */
+DEFINE_WS_AB_VICTIM(ws_l1_x8_ab_victim,   16384, WS_LD8, 256)
+DEFINE_WS_AB_VICTIM(ws_l3_x8_ab_victim, 4194304, WS_LD8, 256)
+DEFINE_WS_AB_VICTIM(ws_dram_x8_ab_victim, 33554432, WS_LD8, 256)
 
 /* ---- Lookup table ----------------------------------------------------- */
 
@@ -530,6 +578,9 @@ static const struct victim_entry victims[] = {
 	{ "ws_l2_x8",   ws_l2_x8_victim,   "8 loads/iter, 512K working set (L2)" },
 	{ "ws_l3_x8",   ws_l3_x8_victim,   "8 loads/iter, 4M working set (L3)" },
 	{ "ws_dram_x8", ws_dram_x8_victim, "8 loads/iter, 32M working set (DRAM)" },
+	{ "ws_l1_x8_ab",   ws_l1_x8_ab_victim,   "as ws_l1_x8, alternating the selector's two 32-bit halves" },
+	{ "ws_l3_x8_ab",   ws_l3_x8_ab_victim,   "as ws_l3_x8, alternating the selector's two 32-bit halves" },
+	{ "ws_dram_x8_ab", ws_dram_x8_ab_victim, "as ws_dram_x8, alternating the selector's two 32-bit halves" },
 };
 
 #define NUM_VICTIMS (sizeof(victims) / sizeof(victims[0]))
