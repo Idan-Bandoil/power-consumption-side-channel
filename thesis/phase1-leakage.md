@@ -34,7 +34,9 @@ The results, in order of how much they constrain the rest of the thesis:
 6. Hamming *distance* leaks too, at +34.14 mW per flipped bit with weight held fixed
    (§9). The two classical models of data-dependent power are usually presented as
    competitors; on this platform both terms are present and of comparable size.
-7. Bit placement matters slightly and is not explained (§10).
+7. The instruction consuming the operand matters, but only by 10–24% on top of the
+   movement term, and not because of its result (§10).
+8. Bit placement matters slightly and is not explained (§11).
 
 ## 2. Method common to every experiment
 
@@ -99,6 +101,12 @@ the tightest between-run spread of any victim in the set. And loads and stores a
 roughly additive: 0.21 (loads) + 0.32 (stores, with the multiply) ≈ 0.51 (both). The
 vector ALU is not necessary for the effect, and nothing in the data requires it to
 contribute at all.
+
+One qualification, established later and flagged here so this section is not read too
+broadly: the null in the first row is `vpmuludq`'s. It does **not** hold for every
+instruction. `vpdpbusd` leaks +0.20 W with its operand never leaving a register (§10.1).
+What this table shows is that the ALU is not *necessary* for the leak, not that no
+instruction can produce one on its own.
 
 This is a more specific claim than the one it replaces, and it explains an inconsistency
 in the preliminary work: the Eigen and TensorFlow sparsity results, which stream large
@@ -189,7 +197,7 @@ be swept. `ws_l3_x8` is the instrument of choice: best-conditioned in the depth 
 detector 0.996, and 2 W of headroom. Eleven runs × 3 repeats, each contrasting a test
 operand against an all-zero working set
 (`results/20260901-213211-phase1_hamming_weight`, 70/71 gates pass — the exception is
-discussed in §11):
+discussed in §12):
 
 | HW | operand(s) | Δ power | between-run SD | detector |
 |---|---|---|---|---|
@@ -446,7 +454,101 @@ becomes heavier also tends to change more between words. Attributing an observed
 difference to weight alone would overstate what the weight model can do, and any attempt
 to *invert* the channel to recover operand values has to carry both terms.
 
-## 10. Bit placement matters a little, and is not explained
+## 10. Does the instruction matter?
+
+The original plan for this chapter allocated most of its space to a per-instruction
+leakage table. §3 is why that table cannot be built the way it was specified: the
+register-resident instruction victims do not leak, so a table of their contrasts would
+be a table of noise. The `ws_op_*` victims put the same instructions behind the
+`ws_l3_x8` load stream instead — eight 32-byte loads per iteration from a 4 MB working
+set, then eight independent operations on what was loaded, into a separate bank of
+destination registers.
+
+The load stream is byte-for-byte identical across the family, and both source registers
+of each operation are the same loaded register, which makes the result Hamming weight
+predictable and turns the family into a contrast rather than a list. `vpand` and `vpor`
+carry a result that tracks the operand; `vpxor` and `vpsllvd` pin theirs at zero whatever
+the operand is. Same input traffic, same instruction cost class, opposite result
+behaviour.
+
+The loop is meant to be load-bound so that every variant moves operands at the same rate.
+That mostly held — a pre-flight put all nine variants within 4% of the load-only
+baseline — but not exactly: over four repeats `vpand`, `vpor` and `vpaddd` settle at
+140 GB/s against 147 for loads alone, a systematic 5% (within-victim SD ≈ 1 GB/s). So the
+table is read in pJ/byte, the same normalisation §4 uses, and rows are compared *paired*
+— differenced against the reference row within each repeat — because every row carries
+the same ~2 W of load traffic and the unpaired spread is dominated by run-to-run
+variation in that shared term rather than by anything about the instruction
+(`results/20260902-230608-phase1_instruction_table`, 13 runs × 4 repeats, 112/112 gates
+pass; A/A −8.5 mW, sign flipping, accuracy 0.521).
+
+| victim | instruction | Δ power | pJ/byte | vs loads-only, paired | |
+|---|---|---|---|---|---|
+| `loads_only` | *(none)* | +1.943 W | 13.2 | — | reference |
+| `op_shift` | `vpsllvd` | +1.849 W | 13.0 | −0.21 [−0.76, +0.34] | indistinguishable |
+| `op_mov` | `vmovdqa` reg–reg | +2.036 W | 13.8 | +0.65 [−0.12, +1.41] | indistinguishable |
+| `op_vnni` | `vpdpbusd` | +2.109 W | 14.6 | +1.37 [+0.09, +2.65] | differs |
+| `op_mul` | `vpmuludq` | +2.195 W | 15.1 | +1.88 [+0.06, +3.70] | differs |
+| `op_fma` | `vfmadd231ps` | +2.225 W | 15.2 | +2.03 [+1.43, +2.63] | differs |
+| `op_add` | `vpaddd` | +2.176 W | 15.5 | +2.36 [+1.39, +3.34] | differs |
+| `op_xor` | `vpxor` | +2.259 W | 15.6 | +2.45 [+1.36, +3.55] | differs |
+| `op_or` | `vpor` | +2.290 W | 16.2 | +3.07 [+2.27, +3.87] | differs |
+| `op_and` | `vpand` | +2.284 W | 16.3 | +3.16 [+1.18, +5.13] | differs |
+
+Intervals are Student's *t* at three degrees of freedom, not the normal approximation,
+which at four repeats would be optimistic by a third.
+
+**The instruction matters, and by much less than the movement does.** Seven of the nine
+rows sit above loads-only, but the whole spread of the table is 3.4 pJ/byte against the
+13.2 the loads alone already cost — so the choice of instruction moves the leak by 10–24%
+where the choice of *where the operand comes from* moved it by 68× (§4). A leakage model
+for this platform that captures operand movement and ignores the instruction is wrong by
+about a fifth; one that captures the instruction and ignores the movement is wrong by
+almost everything.
+
+**The result Hamming weight explains none of it.** This was the contrast the family was
+built for, and it comes back negative twice over. `vpand` and `vpor`, whose results track
+the operand, sit +0.70 and +0.62 pJ/byte above `vpxor`, whose result is pinned at zero —
+intervals [−2.35, +3.75] and [−1.26, +2.49], both comfortably containing zero. And
+`vpsllvd`, whose result is *also* pinned at zero, sits 2.66 pJ/byte **below** `vpxor`
+[−3.87, −1.45]. A result-driven account would have to put those two together, and the
+data separates them by more than it separates either from the operand-tracking pair. The
+ordering is a property of the instruction, not of what it produces — which is what §3
+predicts, since the results never leave the register file.
+
+### 10.1 Register-resident leakage is instruction-dependent
+
+§3 established that register-resident operands do not leak, and it established that for
+`vpmuludq`. That does not generalise, and this experiment is what shows it. Two
+register-resident controls, paired against the session's A/A:
+
+| victim | instruction | Δ power vs A/A | detector |
+|---|---|---|---|
+| `avx2_mul` (§3) | `vpmuludq` | ≈0 (−0.06 W against an A/A of −0.06 W) | 0.57 |
+| `reg_fma` | `vfmadd231ps` | **+0.045 W** [+0.021, +0.069] | 0.66 |
+| `reg_vnni` | `vpdpbusd` | **+0.200 W** [+0.151, +0.249] | 0.94 |
+
+`vpdpbusd` leaks a fifth of a watt with the operand never leaving a register, at a
+detector accuracy of 0.94. So the correct statement is not that register-resident
+operands never leak, but that **whether they leak depends on how much the execution unit
+does with them**: `vpmuludq` performs four 32×32 multiplies per 256-bit vector and is
+null, `vfmadd231ps` is marginal, and `vpdpbusd` — thirty-two 8-bit multiplies and an
+accumulation per vector — is unmistakable. §3's conclusion stands for the victim it was
+measured on and needs this qualification to be stated generally.
+
+That matters beyond bookkeeping. `vpdpbusd` is the instruction quantized int8 inference
+actually issues on this part, and it is the one instruction in the set that leaks without
+any memory traffic at all. The application chapter therefore has two independent channels
+into the same victim rather than one.
+
+Two smaller observations, both worth recording and neither worth leaning on at four
+repeats. VNNI's ALU term looks additive — +0.200 W register-resident against a +0.166 W
+raw increment over loads-only when traffic is present — while FMA's does not, at +0.045 W
+against +0.282 W. And `op_mov`, a register-to-register move, is the one traffic-bearing
+row that adds nothing measurable, which is consistent with the rest of the chapter: a
+move that stays inside the register file is not movement in the sense that leaks.
+
+## 11. Bit placement matters a little, and is not explained
 
 At equal Hamming weight, two bit patterns differ by 0.01–0.16 W. Pooling both sweep
 sessions gives eight weights with more than one pattern; at two of them the spread between
@@ -472,7 +574,7 @@ Hamming weight is therefore a good predictor of this leakage but not a complete 
 honest statement is that a placement term exists, is of order 0.1 W against a 1.9 W full
 range, appears at some weights and not others, and is not modelled here.
 
-## 11. Threats to validity
+## 12. Threats to validity
 
 **A single run's confidence interval is optimistic, and worst for large effects.** The
 ratio of between-run spread to within-run bootstrap half-width runs from 0.19 to 6.8
@@ -507,6 +609,15 @@ a between-run SD of 0.141 and the sign flipping across repeats — the fitted li
 included in the fit and reported as measured, but nothing rests on it; dropping it moves
 the slope by less than its own standard error.
 
+**The instruction table's rows are not perfectly traffic-matched.** The design intends
+the loop to be load-bound so that only the instruction varies, and it is within 5% — but
+`vpand`, `vpor` and `vpaddd` settle systematically at 140 GB/s against 147 for loads
+alone. §10 therefore reports pJ/byte rather than watts. The correction works against the
+finding rather than for it: those three rows move *less* data and still leak more, so
+normalising enlarges their excess. The one row the normalisation changes qualitatively is
+`vpsllvd`, which is 0.094 W below loads-only in raw watts and indistinguishable from it
+per byte.
+
 **The load-path/line-path split of §9.1 is an estimate, not a measurement.** It rests on
 two points and an assumption that the two contributions add linearly, which nothing here
 tests. The ordering it implies — the fast narrow path dominating — is consistent with the
@@ -516,13 +627,15 @@ than assume it.
 **One machine, one microarchitecture.** Everything here is an i7-12700H at 2.3 GHz with
 no AVX-512. Nothing in this chapter establishes that the coefficients transfer.
 
-## 12. What this chapter establishes
+## 13. What this chapter establishes
 
 A quantitative leakage model for operand movement on this platform:
 
-- The leaking element is the movement of the operand, not the arithmetic performed on
-  it. A victim doing only loads leaks; a victim doing only register-resident multiplies
-  does not.
+- The leaking element is primarily the movement of the operand, not the arithmetic
+  performed on it. A victim doing only loads leaks; a victim doing only register-resident
+  multiplies does not. Which instruction consumes the operand shifts the leak by 10–24%,
+  against the 68× that the operand's *depth* shifts it — but the instruction term is not
+  zero, and for `vpdpbusd` it survives with no memory traffic at all.
 - Cost per byte moved rises monotonically with the depth the operand is drawn from,
   0.31 pJ/byte at L1 to 21.02 pJ/byte at DRAM. Absolute power difference peaks at L3.
 - Within a fixed victim, the difference is linear in the operand's Hamming weight at
@@ -534,6 +647,14 @@ A quantitative leakage model for operand movement on this platform:
   consecutive transfers, at +34.14 mW per flipped bit (R² = 0.974) — and this line does
   pass through the origin. Neither term reduces to the other: each was measured in a
   design where the other predicts exactly zero.
+- The result the instruction computes contributes nothing measurable. Operations whose
+  result tracks the operand and operations whose result is pinned at zero are
+  indistinguishable, and two operations that both pin their result at zero are among the
+  furthest apart in the table. Results stay in the register file, and the register file
+  does not leak.
+- Register-resident leakage is instruction-dependent: null for `vpmuludq`, +0.045 W for
+  `vfmadd231ps`, +0.200 W for `vpdpbusd` at detector accuracy 0.94. The more the
+  execution unit does per operand bit, the more it leaks with no traffic at all.
 - A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled.
 
 For the chapters that follow, the operationally important number is not the largest

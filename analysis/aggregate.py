@@ -70,26 +70,39 @@ def t95(df):
     return 1.96
 
 
-def paired_section(groups, reference):
+def _value(e, per_byte):
+    """A run's effect, in watts or in pJ/byte. NaN if it cannot be normalised."""
+    if not per_byte:
+        return e["diff"]
+    gbs = e["bytes_per_s"] / 1e9
+    if not np.isfinite(gbs) or gbs <= 0:
+        return float("nan")
+    return 1000.0 * e["diff"] / gbs
+
+
+def paired_section(groups, reference, per_byte=False):
     """Every row differenced against `reference`, repeat by repeat."""
     if reference not in groups:
         print(f"\n--against: no row labelled '{reference}'; "
               f"have {', '.join(sorted(groups))}")
         return
 
-    ref = {e["repeat"]: e["diff"] for e in groups[reference]}
+    ref = {e["repeat"]: _value(e, per_byte) for e in groups[reference]}
+    unit = "pJ/B" if per_byte else "dW"
 
     print(f"\npaired against {reference} "
-          f"(per-repeat difference, so the shared term cancels)")
-    print(f"{'label':<20} {'n':>2} {'mean ddW':>9} {'SD':>8} {'SE':>8} "
+          f"(per-repeat difference, so the shared term cancels)"
+          + ("  [pJ/byte]" if per_byte else ""))
+    print(f"{'label':<20} {'n':>2} {'mean d' + unit:>9} {'SD':>8} {'SE':>8} "
           f"{'95% CI':>19}  verdict")
     print("-" * 88)
 
     for label in sorted(groups):
         if label == reference or groups[label][0]["is_aa"]:
             continue
-        pairs = [e["diff"] - ref[e["repeat"]]
-                 for e in groups[label] if e["repeat"] in ref]
+        pairs = [v for v in (_value(e, per_byte) - ref[e["repeat"]]
+                             for e in groups[label] if e["repeat"] in ref)
+                 if np.isfinite(v)]
         if len(pairs) < 2:
             continue
         d = np.array(pairs)
@@ -102,7 +115,10 @@ def paired_section(groups, reference):
         print(f"{label:<20} {len(d):>2} {mean:>+9.4f} {sd:>8.4f} {se:>8.4f} "
               f"[{lo:>+7.4f}, {hi:>+7.4f}]  {verdict}")
 
-    print(f"\nmean ddW : mean over repeats of (row - {reference}) within a repeat")
+    if per_byte:
+        print("\nRows with no operand traffic to normalise by -- register-resident")
+        print("victims -- are omitted from this view rather than divided by zero.")
+    print(f"\nmean d{unit} : mean over repeats of (row - {reference}) within a repeat")
     print("95% CI   : Student's t, so it widens correctly at three or four repeats")
     print("verdict  : whether that interval excludes zero")
 
@@ -115,6 +131,9 @@ def main():
     ap.add_argument("--against", metavar="LABEL", default=None,
                     help="also report every row paired against this one, "
                          "differenced repeat by repeat")
+    ap.add_argument("--per-byte", action="store_true",
+                    help="pair in pJ/byte rather than watts, so a row that "
+                         "moves operands at a different rate is comparable")
     args = ap.parse_args()
 
     groups = defaultdict(list)
@@ -161,7 +180,7 @@ def main():
               + "  ".join(f"{d:+.4f}" for d in diffs))
 
     if args.against:
-        paired_section(groups, args.against)
+        paired_section(groups, args.against, args.per_byte)
 
     print("\nmean dW  : mean of the per-repeat condition differences, in watts")
     print("between  : SD of those differences across repeats")

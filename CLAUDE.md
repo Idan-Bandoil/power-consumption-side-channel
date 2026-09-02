@@ -22,11 +22,14 @@ The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 
 
 `experiments/phase1_hamming_distance.json` separated the weight and switching models, which every earlier measurement confounds: **both are real** — see *Findings so far*. Read that kind of sweep with `analysis.hwfit --axis hd --labels 'hd*'`.
 
-Next, roughly in order:
-1. Per-instruction table, on a traffic-bearing victim (`ws_l3_x8` is the best-conditioned: +1.85 W, detector 1.000), not a register-resident one. This is the last item Phase 1 needs; items 5–7 of the plan (width, core type, thread scaling) are optional against the time budget, and core type is the cheapest novelty of the three.
-2. Then Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
+`experiments/phase1_instruction_table.json` closed the last item: **the instruction matters, but far less than movement does**, and register-resident leakage turns out to be instruction-dependent — see *Findings so far*. Read a table whose rows share a large common term with `analysis.aggregate --against LABEL [--per-byte]`.
 
-Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` is a full first draft of the Phase 0 chapter, and `thesis/phase1-leakage.md` a draft of the Phase 1 one — complete except §9, which is stubbed against the Hamming-distance run in flight.
+**Phase 1's experiments are done.** Items 5–7 of the plan (width, core type, thread scaling) remain optional against the time budget; core type is the cheapest novelty of the three. `thesis/phase1-leakage.md` is a full first draft, 13 sections, no stubs.
+
+Next:
+1. Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
+
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts of the Phase 0 and Phase 1 chapters.
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
@@ -82,6 +85,8 @@ sudo ./bin/driver --victim avx2_mul --threads 4 --blocks 100 --samples 100
 
 The `ws_*` working-set victims fill their buffer with one repeated 32-bit word, so the Hamming *distance* between consecutive transfers is zero by construction — which confounds the weight and switching models of leakage. The `ws_*_ab` variants split the 64-bit selector into two words and alternate them, so two words of equal weight hold the mean weight of the stream fixed while varying how many bits flip per transfer. `ws_l3_x8_ab` alternates every 32 bytes (every `ymm` load differs from the last); `ws_l3_x8_ab64` every 64 (every cache line differs, at half the load-to-load toggle rate). With both halves equal the fill is bit-identical to the single-word one, so `ws_l3_x8_ab` holding `A|A` *is* `ws_l3_x8` holding `A`.
 
+The `ws_op_*` victims are the per-instruction table's: the `ws_l3_x8` load stream followed by 8 independent operations on the loaded registers, into a separate destination bank (ymm8–15, re-zeroed once per burst for the accumulating instructions). Both sources of each op are the same loaded register, which makes the result Hamming weight predictable — `vpand`/`vpor` track the operand, `vpxor`/`vpsllvd` pin the result at 0 — and turns the family into an input-vs-output contrast. The loop must stay load-bound for the traffic to be matched; check the GB/s column, and read the table in pJ/byte.
+
 Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inputs (result Hamming weight tracks the operand) while `vpxor` always yields zero (result HW pinned at 0) — comparing them separates input- from output-driven leakage. `scalar_rol` preserves Hamming weight indefinitely, varying only bit position.
 
 **`util/freq-utils.c`** — APERF/MPERF ratio scaled by `MSR_PLATFORM_INFO`; `set_frequency_units()` must run before any frequency read. `frequency_cpufreq()` reads world-readable sysfs and is the basis of the Phase 2 unprivileged receiver.
@@ -97,7 +102,7 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 
 **Output schema** — `block,cond,ticks,dtsc,daperf,dmperf`, one row per sample. `ticks` is raw RAPL energy units (`uint32` subtraction, so counter wraparound is handled); power is `ticks * energy_unit / (dtsc / tsc_hz)`.
 
-**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·x` once per repeat and takes the spread across repeats as the error bar, and reports whether operands at the same point on the axis but with different bit placement differ). `hwfit` takes `--axis hw` (default, popcount of the selector) or `--axis hd` (popcount of the XOR of the selector's two halves — the bits a `ws_*_ab` victim flips per transfer), and `--labels GLOB` to restrict which runs are fitted, which a mixed session needs so that an anchor run sitting at distance 0 is not fitted as a point on the distance axis. It accepts several result directories and pools them, which is how the two Hamming-weight sessions are read together.
+**`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything; `--against LABEL` additionally differences every row against a reference row *within* each repeat, which is the only way to read a table whose rows share a large common term, and `--per-byte` does that in pJ/byte so rows at different throughputs are comparable — check the paired SD against the unpaired one, since pairing hurts when rows are anti-correlated), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·x` once per repeat and takes the spread across repeats as the error bar, and reports whether operands at the same point on the axis but with different bit placement differ). `hwfit` takes `--axis hw` (default, popcount of the selector) or `--axis hd` (popcount of the XOR of the selector's two halves — the bits a `ws_*_ab` victim flips per transfer), and `--labels GLOB` to restrict which runs are fitted, which a mixed session needs so that an anchor run sitting at distance 0 is not fitted as a point on the distance axis. It accepts several result directories and pools them, which is how the two Hamming-weight sessions are read together.
 
 ## Findings so far (2026-09-02)
 
@@ -167,6 +172,29 @@ Three controls carry it: the `placement` run (`A → ~A`, both homogeneous, both
 
 Caveat: HD 2 is at the noise floor (SD 0.141, sign flips, predicted +0.068 W). It is in the fit but nothing rests on it; dropping it moves the slope by less than its own SE.
 
+**The instruction matters, but movement matters far more.** `experiments/phase1_instruction_table.json` puts nine instructions behind the identical `ws_l3_x8` load stream — same 8 × 32-byte loads per iteration, 8 independent ops on what was loaded — so traffic is matched and only the instruction varies (`results/20260902-230608-phase1_instruction_table`, 13 runs × 4 repeats, 112/112 gates pass; A/A −8.5 mW, accuracy 0.521; anchor `loads_only` +1.943 W against +2.054, +1.841, +1.904 in three earlier sessions).
+
+Rows are read **paired** (`--against loads_only`) because they share ~2 W of load traffic and the unpaired spread is dominated by run-to-run variation in that shared term. They are read **per byte** because the match is only within 5%: `vpand`, `vpor` and `vpaddd` settle at 140 GB/s against 147 for loads alone (within-victim SD ≈ 1 GB/s, so systematic).
+
+| instruction | Δ power | pJ/byte | vs loads-only, paired | |
+|---|---|---|---|---|
+| *(none)* | +1.943 W | 13.2 | — | reference |
+| `vpsllvd` | +1.849 W | 13.0 | −0.21 [−0.76, +0.34] | indistinguishable |
+| `vmovdqa` r–r | +2.036 W | 13.8 | +0.65 [−0.12, +1.41] | indistinguishable |
+| `vpdpbusd` | +2.109 W | 14.6 | +1.37 [+0.09, +2.65] | differs |
+| `vpmuludq` | +2.195 W | 15.1 | +1.88 [+0.06, +3.70] | differs |
+| `vfmadd231ps` | +2.225 W | 15.2 | +2.03 [+1.43, +2.63] | differs |
+| `vpaddd` | +2.176 W | 15.5 | +2.36 [+1.39, +3.34] | differs |
+| `vpxor` | +2.259 W | 15.6 | +2.45 [+1.36, +3.55] | differs |
+| `vpor` | +2.290 W | 16.2 | +3.07 [+2.27, +3.87] | differs |
+| `vpand` | +2.284 W | 16.3 | +3.16 [+1.18, +5.13] | differs |
+
+The whole spread is 3.4 pJ/byte against the 13.2 the loads alone cost — so instruction choice moves the leak 10–24%, where operand *depth* moved it 68×. Note the traffic correction works against the finding: the slow rows move less data and still leak more.
+
+**Result Hamming weight explains none of the ordering.** `vpand`/`vpor` (result tracks operand) sit +0.70 and +0.62 pJ/byte above `vpxor` (result pinned at 0), both intervals containing zero — while `vpsllvd`, whose result is *also* pinned at 0, sits 2.66 pJ/byte **below** `vpxor` [−3.87, −1.45]. Results never leave the register file, so they do not leak; this is the cheap form of the plan's operand-HW-vs-result-HW item and it comes back negative.
+
+**Register-resident leakage is instruction-dependent** — the one place this table corrects an earlier finding. Paired against the session A/A: `vpmuludq` null (from the 2×2 below), `vfmadd231ps` **+0.045 W** [+0.021, +0.069], `vpdpbusd` **+0.200 W** [+0.151, +0.249] at detector 0.94. The more the execution unit does per operand bit, the more it leaks with no traffic at all. `vpdpbusd` is what quantised int8 inference issues, so Phase 3 has two independent channels into the same victim, not one.
+
 ## Earlier findings (2026-08-24)
 
 **The leakage is in operand movement, not the vector ALU.** Same instruction (`vpmuludq`), same operands (0 vs 0xFFFFFFFF), same interleaved methodology — only the surrounding memory traffic differs. Replicated over 3 repeats with victim order reshuffled each repeat (`results/20260822-215306-phase1_memory_replication`, all 39 gates pass):
@@ -180,7 +208,7 @@ Caveat: HD 2 is at the noise floor (SD 0.141, sign flips, predicted +0.068 W). I
 | `avx2_mul_ld` | loads + multiply | +0.34 W | 0.025 | all + | 0.94 |
 | `avx2_mul_ldst` | loads + multiply + stores | **+0.51 W** | 0.049 | all + | **0.98** |
 
-Read `avx2_mul` against the A/A row, not against zero: the A/A control has no effect by construction and still lands at −0.06 W, so the register-only victim is at the harness noise floor. **Register-resident operands do not measurably leak.**
+Read `avx2_mul` against the A/A row, not against zero: the A/A control has no effect by construction and still lands at −0.06 W, so the register-only victim is at the harness noise floor. **Register-resident `vpmuludq` operands do not measurably leak.** That is instruction-specific and does not generalise — `vpdpbusd` leaks +0.20 W register-resident; see the instruction table above. What this 2×2 shows is that the ALU is not *necessary* for the leak, not that no instruction produces one on its own.
 
 `avx2_load` does no arithmetic whatsoever and still leaks +0.21 W with the tightest between-run spread of any victim. Loads and stores are roughly additive: 0.21 (loads) + 0.32 (stores+mul) ≈ 0.51 (both).
 
@@ -236,6 +264,7 @@ An A/A control is just an experiment with the same selector in both conditions �
 - **`isolcpus=0` only isolates the attacker core.** Victim cores 2,4,6,8,10 still take stray work. Extending to `isolcpus=0,2,4,6,8,10` needs a GRUB edit and reboot.
 - **`-O2` is safe only because every victim hot loop is inline asm.** Do not add a plain-C victim without making its result `volatile`, or the compiler will delete the work being measured.
 - **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while a `driver` is still running.
+- **Do not `git add -A` while an experiment is in flight.** The runner appends to `manifest.json` as each run finishes, so a commit made mid-run captures a partial manifest and the next commit shows a spurious several-thousand-line diff. Commit before launching, or stage explicit paths.
 - **`settle` is samples-per-block, not blocks-per-run.** It does not protect against a run-level startup transient, which large working sets do produce. Use `--warmup-blocks N` (`warmup_blocks` in an experiment spec) for that: it runs N whole blocks before recording starts, cycling every condition so each one's buffers are faulted in and filled first, and it excludes them from the throughput figure too. Cheap enough to set by default on any working-set victim.
 - **Config-A and Config-B are not interchangeable.** Pinning frequency removes the DVFS response that the Phase 2 tier-2/tier-3 receivers depend on entirely.
 - **AVX-VNNI must be assembled as VEX, not EVEX.** `vpdpbusd` exists in both AVX-VNNI (VEX) and AVX512-VNNI (EVEX); gas defaults to EVEX, which SIGILLs here. Hence the `%{vex%}` prefix in `util/victim-utils.c` — spelled with `%` escapes because bare braces mean dialect alternatives to GCC. Any new dual-encoded instruction needs the same treatment; verify with `objdump -d util/victim-utils.o` (VEX starts `c4`, EVEX `62`).
