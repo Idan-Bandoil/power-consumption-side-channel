@@ -1,0 +1,49 @@
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER    pre   vote    dkTSC  sd kTSC  d-marg  d-pair  Q(pair)  ovr%    sync  late
+            aa_0256ms_r0  256000     3.9  0.5000  0.442  0.500   -1.389  425.649    0.00    0.05   0.4809  0.00   -8.06     0
+            aa_0256ms_r1  256000     3.9  0.5469  0.308  0.625   -0.404  391.780    0.00    0.02   0.4933  0.00   -6.56     0
+            aa_0256ms_r2  256000     3.9  0.4531  0.404  0.406   -1.600  426.729    0.00    0.04   0.4834  0.00  -11.31     0
+            aa_1000ms_r0 1000000     1.0  0.5156  0.308  0.500    1.652  283.348    0.01    0.06   0.4750  0.00   -3.16     0
+            aa_1000ms_r1 1000000     1.0  0.4844  0.288  0.562   -4.036  264.858    0.02    0.08   0.4667  0.00   +2.10     0
+            aa_1000ms_r2 1000000     1.0  0.5469  0.288  0.562   -3.165  258.684    0.01    0.16   0.4364  0.00   +0.84     0
+           sym_0256ms_r0  256000     3.9  0.3359  0.231  0.219   15.288  431.899    0.04    0.36   0.3593  0.00   -0.94     0
+           sym_0256ms_r1  256000     3.9  0.1094  0.058  0.031   32.411  411.356    0.08    0.77   0.2206  0.00   +0.44     0
+           sym_0256ms_r2  256000     3.9  0.2656  0.135  0.094   30.014  413.530    0.07    0.76   0.2240  0.00   +0.44     0
+           sym_0512ms_r0  512000     2.0  0.0703  0.077  0.000   62.470  462.409    0.14    0.88   0.1890  0.00   +0.15     0
+           sym_0512ms_r1  512000     2.0  0.0859  0.115  0.000   50.899  307.914    0.17    0.99   0.1611  0.00   +0.28     0
+           sym_0512ms_r2  512000     2.0  0.1719  0.173  0.000   35.312  310.522    0.11    0.71   0.2385  0.00   +0.28     0
+           sym_1000ms_r0 1000000     1.0  0.0000  0.115  0.000   75.276  310.072    0.24    2.11   0.0174  0.00   +0.09     0
+           sym_1000ms_r1 1000000     1.0  0.0000  0.058  0.000   70.136  272.684    0.26    2.28   0.0112  0.00   +0.21     0
+           sym_1000ms_r2 1000000     1.0  0.0000  0.038  0.000   65.756  281.462    0.23    1.42   0.0773  0.00   +0.09     0
+
+  BER over payload bits; pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dkTSC and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
+  Tier 3: the level is the receiver's own workload duration, so a
+  POSITIVE separation is the expected direction -- throttling makes
+  it slower. Polarity is recovered from the preamble either way.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+               label   n   bit/s      BER       sd  capacity b/s  vote BER   p<chance  settled-only
+           aa_0256ms   3     3.9   0.5000   0.0469           0.0    0.5104   5.20e-01  0.5000 (n=3)
+           aa_1000ms   3     1.0   0.5156   0.0312           0.0    0.5417   6.93e-01  0.5156 (n=3)
+          sym_0256ms   3     3.9   0.2370   0.1160           1.0    0.1146   3.65e-26  0.2370 (n=3)
+          sym_0512ms   3     2.0   0.1094   0.0547           1.0    0.0000   6.99e-60  0.1094 (n=3)
+          sym_1000ms   3     1.0   0.0000   0.0000           1.0    0.0000   1.59e-58  0.0000 (n=3)
+
+==============================================================================
+gates
+==============================================================================
+  A/A aa_0256ms: pooled BER 0.500 over 384 bits, p = 0.52
+  A/A aa_1000ms: pooled BER 0.516 over 192 bits, p = 0.693
+  all gates pass
