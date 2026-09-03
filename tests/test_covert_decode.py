@@ -197,6 +197,11 @@ def main():
               1.0 < d["d_prime"] < 5.0, f"d' {d['d_prime']:.2f}, Q {q:.4f}")
         check("BER is within a factor of 3 of Q(d'/sqrt2)",
               d["ber"] <= max(3 * q, 0.01), f"BER {d['ber']:.4f} vs Q {q:.4f}")
+        # With white chip noise the paired statistic is the marginal one over
+        # sqrt(2), which is why Q(d'/sqrt2) fitted tier 1 at all.
+        check("paired d-prime is marginal/sqrt2 under white noise",
+              abs(d["d_prime_paired"] - d["d_prime"] / math.sqrt(2)) < 0.25,
+              f"{d['d_prime_paired']:.2f} vs {d['d_prime']/math.sqrt(2):.2f}")
         check("delta and noise are reported separately",
               d["delta_w"] > 0 and d["noise_sd_w"] > 0,
               f"dW {d['delta_w']:.3f}, sd {d['noise_sd_w']:.3f}")
@@ -210,6 +215,29 @@ def main():
               f"{d['d_prime']:.2f} -> {d2['d_prime']:.2f}")
         check("and raises the error rate",
               d2["ber"] > d["ber"], f"{d['ber']:.4f} -> {d2['ber']:.4f}")
+
+        print("\ndrifting baseline: the case the marginal d-prime misreads")
+        # A slow wander added to the level, larger than the signal. Manchester
+        # differences two adjacent chips and cancels it, so the channel still
+        # decodes -- but the marginal per-chip spread is dominated by the
+        # drift and reports a dead channel. This is what tier 2 actually
+        # looks like, and it is why the paired statistic is the primary one.
+        e, r = synth_freq_run(payload, symbol_us=8000, delta_khz=-60.0,
+                              base_khz=3600.0, noise_khz=15.0, frames=8, seed=11)
+        rows = []
+        for i, (tsc, khz, dt) in enumerate(r):
+            drift = 900.0 * math.sin(2 * math.pi * i / (len(r) / 3.0))
+            rows.append((tsc, int(khz + drift), dt))
+        d = write_and_decode(e, rows, tmp)
+        check("still decodes through a drift bigger than the signal",
+              d["ber"] < 0.10, f"BER {d['ber']:.4f}")
+        check("marginal d-prime is fooled by the drift", d["d_prime"] < 0.5,
+              f"d-marg {d['d_prime']:.2f}")
+        check("paired d-prime is not", d["d_prime_paired"] > 2.0,
+              f"d-pair {d['d_prime_paired']:.2f}")
+        check("and it is the paired one that predicts the BER",
+              abs(d["ber"] - d["ber_predicted"]) < 0.10,
+              f"BER {d['ber']:.4f} vs predicted {d['ber_predicted']:.4f}")
 
         print("\novershoot bookkeeping")
         e, r = synth_run(payload, symbol_us=8000, delta_w=2.0)

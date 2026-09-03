@@ -284,6 +284,24 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     delta_w = float(on.mean() - off.mean())
     d_prime = abs(delta_w) / noise_sd if noise_sd > 0 else float("nan")
 
+    # The statistic the decision is actually made on. A Manchester bit is
+    # decided by differencing two adjacent chips, so what matters is the
+    # spread of that difference, not the marginal spread of a chip. When chip
+    # noise is white the two agree up to sqrt(2) -- which is why Q(d'/sqrt2)
+    # fitted tier 1. They part company when the noise is dominated by drift
+    # slower than a symbol: differencing cancels it, and the marginal figure
+    # then understates the channel badly. Tier 2 is that case, reading a
+    # marginal d' of 0.08 on a run that decodes at BER 0.09.
+    if code == "manchester":
+        signed = true_power[0::2] - true_power[1::2]
+        # +1 where the transmitted bit was 1, so the statistic is positive
+        # when the channel is working, whatever its polarity.
+        signed = signed * truth_chips[0::2]
+        pair_sd = float(signed.std())
+        d_prime_paired = abs(float(signed.mean())) / pair_sd if pair_sd > 0 else float("nan")
+    else:
+        d_prime_paired = d_prime / math.sqrt(2)
+
     # Majority vote across the repeated frames: the cheapest possible ECC,
     # and the honest way to show what repetition buys against the raw BER.
     stacked = np.stack(decoded_frames)
@@ -324,6 +342,8 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "delta_w": delta_w,
         "noise_sd_w": noise_sd,
         "d_prime": d_prime,
+        "d_prime_paired": d_prime_paired,
+        "ber_predicted": 0.5 * math.erfc(d_prime_paired / math.sqrt(2)),
         # Tier 2 polls a level on a fixed grid, so it has neither an
         # overshoot regime nor a zero-tick failure mode; its analogue is
         # late_polls, which the runner records in the manifest. Reporting 0
@@ -434,21 +454,25 @@ def main():
 
     print(hr("per-run decode"))
     print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'pre':>6} "
-          f"{'vote':>6} {'d' + unit:>8} {'sd ' + unit:>8} {'d-prime':>8} "
-          f"{'ovr%':>5} {'sync':>7} {'late':>5}")
+          f"{'vote':>6} {'d' + unit:>8} {'sd ' + unit:>8} {'d-marg':>7} "
+          f"{'d-pair':>7} {'Q(pair)':>8} {'ovr%':>5} {'sync':>7} {'late':>5}")
     for r in sorted(rows, key=lambda r: (r["label"], r["repeat"])):
         print(f"  {r['tag']:>22} {r['symbol_us']:>7.0f} {r['raw_bps']:>7.1f} "
               f"{r['ber']:>7.4f} {r['preamble_ber']:>6.3f} "
               f"{r['voted_ber']:>6.3f} {r['delta_w'] * scale:>8.3f} "
-              f"{r['noise_sd_w'] * scale:>8.3f} {r['d_prime']:>8.2f} "
+              f"{r['noise_sd_w'] * scale:>8.3f} {r['d_prime']:>7.2f} "
+              f"{r['d_prime_paired']:>7.2f} {r['ber_predicted']:>8.4f} "
               f"{r['overshoot_fraction'] * 100:>5.2f} "
               f"{r['sync_error_chips']:>+7.2f} {r['late_chips']:>5}"
               f"{'' if r['settled'] else '   << unsettled sampler'}")
     print(f"\n  BER over payload bits; pre = preamble BER (a sync check);")
     print(f"  vote = BER after majority vote across frames; d{unit} and sd are")
-    print(f"  the per-chip separation and noise, d-prime their ratio; ovr% is")
-    print(f"  the share of RAPL edges seen late; sync = recovered start minus")
-    print(f"  true start, in chips.")
+    print(f"  the per-chip separation and noise, d-marg their ratio. d-pair is")
+    print(f"  the same for the within-symbol difference the decision actually")
+    print(f"  uses, and Q(pair) is the error rate it predicts -- compare that")
+    print(f"  with BER, not d-marg, which ignores noise shared between chips.")
+    print(f"  ovr% is the share of RAPL edges seen late; sync = recovered")
+    print(f"  start minus true start, in chips.")
     if freq:
         cpus = sorted({r["watched_cpu"] for r in rows if r["watched_cpu"] is not None})
         print(f"  Tier 2: decoding cpu{cpus} frequency. A negative separation is")

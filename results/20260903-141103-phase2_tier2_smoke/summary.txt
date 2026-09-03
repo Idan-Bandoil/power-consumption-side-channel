@@ -1,0 +1,62 @@
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER    pre   vote     dMHz   sd MHz  d-marg  d-pair  Q(pair)  ovr%    sync  late
+                aa_256ms  256000     3.9  0.5625  0.231  0.625    7.311  678.503    0.01    0.15   0.4404  0.00   -9.55     0
+               sym_256ms  256000     3.9  0.1875  0.308  0.125  -22.604  660.224    0.03    0.25   0.4010  0.00   +0.45     0
+
+  BER over payload bits; pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dMHz and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
+  Tier 2: decoding cpu[0] frequency. A negative separation is
+  the expected direction -- the heavier operand throttles the part.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+               label   n   bit/s      BER       sd  capacity b/s  vote BER   p<chance  settled-only
+            aa_256ms   1     3.9   0.5625      nan           0.0    0.6250   8.11e-01  0.5625 (n=1)
+           sym_256ms   1     3.9   0.1875      nan           1.2    0.1250   2.68e-04  0.1875 (n=1)
+
+==============================================================================
+gates
+==============================================================================
+  all gates pass
+
+### watching cpu2 (a victim core) instead ###
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER    pre   vote     dMHz   sd MHz  d-marg  d-pair  Q(pair)  ovr%    sync  late
+                aa_256ms  256000     3.9  0.5938  0.269  0.625    4.608  538.608    0.01    0.14   0.4442  0.00  +16.20     0
+               sym_256ms  256000     3.9  0.2812  0.096  0.500   91.156  655.385    0.14    0.46   0.3236  0.00   +0.83     0
+
+  BER over payload bits; pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dMHz and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
+  Tier 2: decoding cpu[2] frequency. A negative separation is
+  the expected direction -- the heavier operand throttles the part.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+               label   n   bit/s      BER       sd  capacity b/s  vote BER   p<chance  settled-only
+            aa_256ms   1     3.9   0.5938      nan           0.1    0.6250   8.92e-01  0.5938 (n=1)
+           sym_256ms   1     3.9   0.2812      nan           0.6    0.5000   1.00e-02  0.2812 (n=1)
+
+==============================================================================
+gates
+==============================================================================
+  all gates pass
