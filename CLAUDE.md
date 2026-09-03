@@ -33,7 +33,7 @@ Next:
 2. **Tiers 2 and 3** (`rx_freq.c` on world-readable `scaling_cur_freq`, `rx_timing.c` Hertzbleed-style self-timing). These are what make the chapter a security result rather than an instrument reading, since tier 1 needs root and root can already read memory. Both need **Config-B** — Config-A removes the DVFS response they depend on entirely.
 3. Then the protocol work the plan asks for: BER vs symbol rate per tier, cross-SMT / cross-P-E / cross-container placements, and a comparison against Liu et al. (CCS'22) and Hertzbleed.
 
-Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts of the Phase 0 and Phase 1 chapters; the Phase 2 chapter is not started, and should wait for tiers 2–3.
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts. `thesis/phase2-covert.md` is a **partial** draft covering tier 1 only; its §9 lists what is missing, and the tier-2/3 sections cannot be written until those receivers exist and have been run under Config-B.
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
