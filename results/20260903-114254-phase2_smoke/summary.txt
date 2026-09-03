@@ -1,0 +1,25 @@
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER    pre   vote     dW     sd  d-prime  ovr%    sync  late
+                 aa_16ms   16000    62.5  0.5078  0.346  0.594  0.061  5.955     0.01  0.21 +166.23     0
+                sym_16ms   16000    62.5  0.0156  0.000  0.000  1.575  0.487     3.24  0.30   +0.14     0
+
+  BER over payload bits; pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dW and sd are the
+  per-chip separation and noise, d-prime their ratio; ovr% is the
+  share of RAPL edges seen late; sync = recovered start minus true
+  start, in chips.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+               label   n   bit/s      BER       sd  capacity b/s  vote BER  settled-only
+             aa_16ms   1    62.5   0.5078      nan           0.0    0.5938  0.5078 (n=1)
+            sym_16ms   1    62.5   0.0156      nan          55.2    0.0000  0.0156 (n=1)
+
+==============================================================================
+gates
+==============================================================================
+  all gates pass

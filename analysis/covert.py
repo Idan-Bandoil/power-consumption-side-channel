@@ -29,6 +29,14 @@ SYNC_OVERSAMPLE = 8
 REFINE_CHIPS = 0.5
 # An A/A run (on == off) must not decode better than this.
 AA_BER_FLOOR = 0.40
+# Share of RAPL edges observed more than 1.5 periods late. Phase 0 established
+# that overshoots are harmless to a *mean* difference -- within a run they are
+# balanced across conditions, so they cancel. A per-symbol decision has no such
+# protection: one overshoot is a single RAPL sample spanning two chips, which
+# smears them together and costs those bits outright. The sampler is bimodal,
+# sitting at either ~0.1% or ~4% for a whole run, so this threshold separates
+# the two regimes rather than cutting through a distribution.
+MAX_OVERSHOOT_FRACTION = 0.01
 
 
 class Trace:
@@ -199,6 +207,18 @@ def decode_run(entry, csv_path, sync_span=None):
     n_pay = len(truth_pay)
     ber = pay_err / (n_pay * frames)
 
+    # Per-chip separation, which is what actually sets the error rate. A
+    # Manchester decision compares two chips, so with per-chip noise sd the
+    # difference carries sd*sqrt(2) and BER should track Q(d_prime/sqrt(2)).
+    # Measured against the transmitted chips, so it describes the channel
+    # even on a run where sync failed.
+    truth_chips = np.tile(bits_to_chips(preamble + payload, code), frames)
+    flat = chip_power.reshape(-1)
+    on, off = flat[truth_chips > 0], flat[truth_chips < 0]
+    noise_sd = float(np.sqrt(0.5 * (on.var() + off.var())))
+    delta_w = float(on.mean() - off.mean())
+    d_prime = delta_w / noise_sd if noise_sd > 0 else float("nan")
+
     # Majority vote across the repeated frames: the cheapest possible ECC,
     # and the honest way to show what repetition buys against the raw BER.
     stacked = np.stack(decoded_frames)
@@ -230,6 +250,10 @@ def decode_run(entry, csv_path, sync_span=None):
         "sync_runner_up": runner_up(scores, best, SYNC_OVERSAMPLE),
         # Truth, used for reporting only -- the sync above never saw it.
         "sync_error_chips": (t_sync - tx["tsc_start"]) / chip_tsc,
+        "delta_w": delta_w,
+        "noise_sd_w": noise_sd,
+        "d_prime": d_prime,
+        "overshoot_fraction": rx["rapl_overshoots"] / max(rx["samples_written"], 1),
         "rapl_period_ms": rx["rapl_period_ms"],
         "samples_per_chip": chip_tsc / (rx["rapl_period_tsc"] or float("nan")),
         "zero_tick_fraction": rx["zero_tick_samples"] / max(rx["samples_written"], 1),
@@ -287,7 +311,7 @@ def main():
     ap.add_argument("--json", metavar="PATH", help="also write the rows as JSON")
     args = ap.parse_args()
 
-    rows, failures = [], []
+    rows, failures, warnings = [], [], []
     for d in args.results:
         d = Path(d)
         manifest = json.loads((d / "manifest.json").read_text())
@@ -302,31 +326,45 @@ def main():
     if not rows:
         raise SystemExit("no covert runs found (is this a driver experiment?)")
 
+    for r in rows:
+        r["settled"] = r["overshoot_fraction"] <= MAX_OVERSHOOT_FRACTION
+
     print(hr("per-run decode"))
     print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'pre':>6} "
-          f"{'vote':>6} {'corr':>6} {'2nd':>6} {'sync':>7} {'late':>5}")
+          f"{'vote':>6} {'dW':>6} {'sd':>6} {'d-prime':>8} {'ovr%':>5} "
+          f"{'sync':>7} {'late':>5}")
     for r in sorted(rows, key=lambda r: (r["label"], r["repeat"])):
         print(f"  {r['tag']:>22} {r['symbol_us']:>7.0f} {r['raw_bps']:>7.1f} "
               f"{r['ber']:>7.4f} {r['preamble_ber']:>6.3f} "
-              f"{r['voted_ber']:>6.3f} {r['sync_corr']:>6.3f} "
-              f"{r['sync_runner_up']:>6.3f} {r['sync_error_chips']:>+7.2f} "
-              f"{r['late_chips']:>5}")
+              f"{r['voted_ber']:>6.3f} {r['delta_w']:>6.3f} "
+              f"{r['noise_sd_w']:>6.3f} {r['d_prime']:>8.2f} "
+              f"{r['overshoot_fraction'] * 100:>5.2f} "
+              f"{r['sync_error_chips']:>+7.2f} {r['late_chips']:>5}"
+              f"{'' if r['settled'] else '   << unsettled sampler'}")
     print("\n  BER over payload bits; pre = preamble BER (a sync check);")
-    print("  vote = BER after majority vote across frames; corr = mean per-frame")
-    print("  preamble correlation, 2nd = best correlation outside that peak;")
-    print("  sync = recovered start minus true start, in chips.")
+    print("  vote = BER after majority vote across frames; dW and sd are the")
+    print("  per-chip separation and noise, d-prime their ratio; ovr% is the")
+    print("  share of RAPL edges seen late; sync = recovered start minus true")
+    print("  start, in chips.")
 
     print(hr("by condition (between-repeat spread is the error bar)"))
     print(f"  {'label':>18} {'n':>3} {'bit/s':>7} {'BER':>8} {'sd':>8} "
-          f"{'capacity b/s':>13} {'vote BER':>9}")
+          f"{'capacity b/s':>13} {'vote BER':>9}  settled-only")
     for label, group in sorted(aggregate(rows).items()):
         bers = np.array([g["ber"] for g in group])
         caps = np.array([g["capacity_bps"] for g in group])
         votes = np.array([g["voted_ber"] for g in group])
         sd = bers.std(ddof=1) if len(bers) > 1 else float("nan")
+        # Both columns, always. Restricting to settled runs is a defensible
+        # instrument-quality criterion -- the overshoot rate is measured by the
+        # receiver and knows nothing about the decode -- but a filtered number
+        # quoted on its own is how selection bias gets in, so the unfiltered
+        # one stays next to it.
+        keep = [g["ber"] for g in group if g["settled"]]
+        note = (f"{np.mean(keep):.4f} (n={len(keep)})" if keep else "none settled")
         print(f"  {label:>18} {len(group):>3} {group[0]['raw_bps']:>7.1f} "
               f"{bers.mean():>8.4f} {sd:>8.4f} {caps.mean():>13.1f} "
-              f"{votes.mean():>9.4f}")
+              f"{votes.mean():>9.4f}  {note}")
 
     # --- gates ------------------------------------------------------------
     print(hr("gates"))
@@ -338,6 +376,11 @@ def main():
         if r["zero_tick_fraction"] > 0.01:
             failures.append(f"{r['tag']}: {r['zero_tick_fraction']:.1%} zero-tick "
                             f"samples -- the sampler is aliasing")
+        if not r["settled"]:
+            warnings.append(f"{r['tag']}: {r['overshoot_fraction']:.1%} of RAPL "
+                            f"edges seen late -- per-chip noise is "
+                            f"{r['noise_sd_w']:.3f} W and the decode is degraded "
+                            f"by the instrument, not by the channel")
         # An A/A transmission carries nothing, so the decoder must fail on it.
         # This is the same negative control every A/B claim in the project
         # ships with, in the form the channel takes.
@@ -351,11 +394,13 @@ def main():
             ok = "OK" if r["decoded_message"] == r["message"] else "MISMATCH"
             print(f"  {r['tag']}: message {r['decoded_message']!r} [{ok}]")
 
+    for w in warnings:
+        print(f"  WARN  {w}")
     if failures:
         for f in failures:
             print(f"  FAIL  {f}")
     else:
-        print("  all gates pass")
+        print("  all gates pass" + (" (with warnings)" if warnings else ""))
 
     if args.json:
         Path(args.json).write_text(json.dumps(rows, indent=2))

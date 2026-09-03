@@ -10,7 +10,7 @@ silently produces plausible-but-wrong numbers on real data: the Manchester
 convention, frame indexing, and the fact that sync is recovered rather than
 assumed. A synthetic trace has a known answer; a real one does not.
 """
-import json
+import math
 import sys
 import tempfile
 from pathlib import Path
@@ -36,7 +36,8 @@ def check(name, cond, detail=""):
 
 
 def synth_run(payload, symbol_us, delta_w, base_w=20.0, noise_w=0.0,
-              frames=4, code="manchester", lead_ms=300.0, seed=1):
+              frames=4, code="manchester", lead_ms=300.0, seed=1,
+              overshoots=0):
     """A transmission and the trace a receiver would have recorded of it.
 
     Power follows the chip pattern exactly; the receiver samples it on a
@@ -95,6 +96,8 @@ def synth_run(payload, symbol_us, delta_w, base_w=20.0, noise_w=0.0,
             "rapl_period_ms": RAPL_MS,
             "rapl_period_tsc": int(period), "samples_written": len(rows),
             "zero_tick_samples": sum(1 for r in rows if r[1] == 0),
+            # The synthetic sampler keeps to its grid, so no edge is ever late.
+            "rapl_overshoots": overshoots,
         },
     }
     return entry, rows
@@ -131,6 +134,43 @@ def main():
         check("BER stays low", d["ber"] < 0.05, f"BER {d['ber']:.4f}")
         check("majority vote over frames is at least as good",
               d["voted_ber"] <= d["ber"], f"vote {d['voted_ber']:.4f}")
+
+        print("\nper-chip separation, in a regime that actually makes errors")
+        # Noise chosen to land d' near 2-3, where Q(d'/sqrt2) is a percent or
+        # two: high enough that the comparison is not 0 against 0, low enough
+        # that sync still holds.
+        e, r = synth_run(payload, symbol_us=8000, delta_w=1.0, noise_w=6.0,
+                         frames=8, seed=3)
+        d = write_and_decode(e, r, tmp)
+        # A Manchester decision differences two chips, so BER should track
+        # Q(d'/sqrt(2)). This is the relation the overshoot gate leans on: a
+        # run whose noise rose is a run whose d' fell, and the errors follow.
+        q = 0.5 * math.erfc(d["d_prime"] / 2.0)
+        check("the regime is one where errors happen",
+              1.0 < d["d_prime"] < 5.0, f"d' {d['d_prime']:.2f}, Q {q:.4f}")
+        check("BER is within a factor of 3 of Q(d'/sqrt2)",
+              d["ber"] <= max(3 * q, 0.01), f"BER {d['ber']:.4f} vs Q {q:.4f}")
+        check("delta and noise are reported separately",
+              d["delta_w"] > 0 and d["noise_sd_w"] > 0,
+              f"dW {d['delta_w']:.3f}, sd {d['noise_sd_w']:.3f}")
+
+        # Same signal, more noise: d' must fall and the errors must follow it.
+        e2, r2 = synth_run(payload, symbol_us=8000, delta_w=1.0, noise_w=12.0,
+                           frames=8, seed=3)
+        d2 = write_and_decode(e2, r2, tmp)
+        check("doubling the noise lowers d-prime",
+              d2["d_prime"] < d["d_prime"],
+              f"{d['d_prime']:.2f} -> {d2['d_prime']:.2f}")
+        check("and raises the error rate",
+              d2["ber"] > d["ber"], f"{d['ber']:.4f} -> {d2['ber']:.4f}")
+
+        print("\novershoot bookkeeping")
+        e, r = synth_run(payload, symbol_us=8000, delta_w=2.0)
+        e["rx"]["rapl_overshoots"] = int(0.04 * e["rx"]["samples_written"])
+        d = write_and_decode(e, r, tmp)
+        check("overshoot fraction is carried through for the gate",
+              abs(d["overshoot_fraction"] - 0.04) < 0.005,
+              f"{d['overshoot_fraction']:.3f}")
 
         print("\nA/A control: nothing transmitted")
         e, r = synth_run(payload, symbol_us=8000, delta_w=0.0, noise_w=0.3)

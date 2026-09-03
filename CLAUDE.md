@@ -10,7 +10,7 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-09-02)
+## Where things stand (last updated 2026-09-03)
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
@@ -26,10 +26,14 @@ The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 
 
 **Phase 1's experiments are done.** Items 5–7 of the plan (width, core type, thread scaling) remain optional against the time budget; core type is the cheapest novelty of the three. `thesis/phase1-leakage.md` is a full first draft, 13 sections, no stubs.
 
-Next:
-1. Phase 2 (covert channel) as planned — the `ctl->selector` live-switch is already the transmitter primitive. `ws_l3_x8` under Config-A hits 95% detector accuracy at n=1–8 samples and 99% at n=2–13 across eight runs, i.e. roughly 125–1000 bit/s raw at a ~1 ms RAPL period. That is the ceiling figure to quote, and it is an order of magnitude better than `ws_dram_x8` (n=13–89 for 95%), which is worth remembering when picking a Phase 2 transmitter: largest Δ power is not the same as best detectability.
+**Phase 2 (covert channel) is under way, and tier 1 works.** `src/covert/tx.c` is the unprivileged transmitter, `src/covert/rx_rapl.c` the root tier-1 receiver, and `analysis/covert.py` the decoder; `tests/test_covert_decode.py` pins the framing maths to synthetic traces. The first rate sweep (`experiments/phase2_tier1_rate.json`) runs error-free at 83 bit/s and reaches 500 bit/s at BER 0.037 — see *Findings so far*. Run one with the runner's `"kind": "covert"` mode and read it with `analysis.covert`.
 
-Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts of the Phase 0 and Phase 1 chapters.
+Next:
+1. **Re-run `phase2_tier1_rate` with 4 repeats** now that the overshoot gate exists. The first sweep had 7 of 30 runs in the bad sampler regime, and at 2 ms and 4 ms that left only one usable repeat each, so the fast end of the curve rests on n=1.
+2. **Tiers 2 and 3** (`rx_freq.c` on world-readable `scaling_cur_freq`, `rx_timing.c` Hertzbleed-style self-timing). These are what make the chapter a security result rather than an instrument reading, since tier 1 needs root and root can already read memory. Both need **Config-B** — Config-A removes the DVFS response they depend on entirely.
+3. Then the protocol work the plan asks for: BER vs symbol rate per tier, cross-SMT / cross-P-E / cross-container placements, and a comparison against Liu et al. (CCS'22) and Hertzbleed.
+
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts of the Phase 0 and Phase 1 chapters; the Phase 2 chapter is not started, and should wait for tiers 2–3.
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
@@ -61,6 +65,19 @@ r=results/<run_id>
 
 Chapter drafts live in `thesis/`, one per phase, written as the phase completes. Every number in a draft cites the run directory it came from.
 
+### Covert-channel runs
+
+A spec with `"kind": "covert"` runs the Phase 2 pair instead of the driver: keys under `tx` (any of `TX_FLAGS`) and `rx` set the transmitter and receiver, overridable per run exactly as `driver` keys are. The receiver's duration is computed from the transmission, not configured. Read one with `analysis.covert`, which is also what writes its `summary.txt`:
+
+```bash
+sudo -n src/experiment_runner.py experiments/phase2_tier1_rate.json
+r=results/<run_id>; ./venv/bin/python3 -m analysis.covert "$r" > "$r/summary.txt" 2>&1
+```
+
+Both binaries also run by hand — `bin/tx` needs no root, `bin/rx_rapl` does. Start the receiver first and give it a duration covering the whole transmission; it records blind and has no idea what is being sent.
+
+Two per-run self-checks decide whether a result means anything. `late_chips` must be zero: a non-zero count means the transmitter could not hold its own schedule, so the BER describes the transmitter rather than the channel. And the overshoot gate must pass, for the reason in *Methodology notes* below.
+
 ### Driver by hand
 
 ```bash
@@ -74,6 +91,8 @@ sudo ./bin/driver --victim avx2_mul --threads 4 --blocks 100 --samples 100
 `make clean` removes `bin/` and `obj/` only — never measurement output. `bin/hybrid_detect` reports per-CPU core type via CPUID leaf 0x1A.
 
 `python3 tests/test_runner_cleanup.py` checks that an interrupted run still restores turbo and hands its output back. Stdlib-only, unprivileged, and every machine-touching function is stubbed, so it is safe to run while an experiment is in flight.
+
+`./venv/bin/python3 tests/test_covert_decode.py` checks the covert decoder against synthetic traces with known answers — the framing, the Manchester convention, that sync is recovered rather than assumed, that an A/A decodes at chance, and that BER tracks Q(d′/√2). It needs numpy, so unlike the runner test it runs in the venv. A synthetic trace has a right answer; a real one does not, which is the whole point of having it.
 
 `cd src && make check` runs `tests/victim_smoke.c` against every victim — no root needed. It verifies each one actually spins, picks up a live `ctl->selector` write, and exits cleanly when `ctl->run` clears. This is the only pre-flight check that does not need MSR access, and it is what catches mis-assembled instructions (see the AVX-VNNI note below). The validity gates cover experiment correctness.
 
@@ -93,6 +112,12 @@ Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inp
 
 **`util/rapl-utils.c`** — general RAPL wrapper, still linked but unused by the driver, which preads `MSR_PKG_ENERGY_STATUS` inline to keep the sampling loop tight.
 
+**`util/sampler.c`** — the edge-triggered RAPL sampler, factored out of the driver so the covert receiver measures with the validated instrument rather than a copy of it. Holds the guard fraction, the EWMA period estimate and the overshoot count. Also `measure_tsc_hz()` and `busy_wait_until()`, which is what puts symbol boundaries on absolute TSC deadlines.
+
+**`util/victim-pool.c`** — victim spawn/stop, shared by the driver and the transmitter. Keeps the two footguns that were already paid for once: a private `victim_args_t` per victim, and `PR_SET_PDEATHSIG` so an orphan cannot spin on a pinned core and poison later runs.
+
+**`src/covert/`** — Phase 2. `tx.c` is the transmitter and needs no root: it spawns victims and modulates `ctl->selector` on absolute TSC deadlines, counting any chip it misses. It pre-warms both operands before the frame, which matters because a working-set victim fills a buffer per distinct selector value and caches `WS_SLOTS` = 2 of them — with exactly two values that makes a symbol transition a pointer swap rather than a refill, so the modulation is a change of *operand* and not of how much work is being done. `rx_rapl.c` is the tier-1 receiver: root, pinned, and deliberately ignorant of the symbol period, preamble and payload. They are separate processes sharing no memory; the only thing they share is the invariant TSC, which any process can read.
+
 **`src/driver.c`** — the monitor is the main thread (pinned, priority −20); victims are `clone(CLONE_VM | SIGCHLD)` children on 64 KB stacks, each with its own `victim_args_t`. Two things matter most:
 
 - *Interleaving.* A run is `blocks_per_condition × conditions` short blocks in seeded-shuffled order, not one long block per condition. This makes thermal drift common-mode. Getting this wrong is what made `src/data/out-1207-2115` unusable.
@@ -100,11 +125,29 @@ Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inp
 
 TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analysis cannot convert energy per edge into watts. Progress goes to stderr, a JSON summary to stdout which the runner folds into the manifest.
 
-**Output schema** — `block,cond,ticks,dtsc,daperf,dmperf`, one row per sample. `ticks` is raw RAPL energy units (`uint32` subtraction, so counter wraparound is handled); power is `ticks * energy_unit / (dtsc / tsc_hz)`.
+**Output schema** — `block,cond,ticks,dtsc,daperf,dmperf`, one row per sample. `ticks` is raw RAPL energy units (`uint32` subtraction, so counter wraparound is handled); power is `ticks * energy_unit / (dtsc / tsc_hz)`. The covert receiver writes `tsc,ticks,dtsc,daperf,dmperf` instead: it has no blocks or conditions, and it needs the *absolute* TSC so the trace can be aligned against the transmitter's schedule.
 
 **`analysis/`** — numpy-only (this venv has no scipy or sklearn). `stats.py` resamples **blocks, not samples** throughout: samples within a block share a thermal and frequency state, so treating 300k correlated samples as independent will "prove" anything. Contains block bootstrap, block permutation test, `temporal_balance`, and a threshold detector whose accuracy-vs-*n* curve converts directly into covert-channel bit rate. Three entry points: `analysis.report` (one run, gates enforced, exits non-zero on failure), `analysis.aggregate` (between-run spread over repeats — the minimum before quoting anything; `--against LABEL` additionally differences every row against a reference row *within* each repeat, which is the only way to read a table whose rows share a large common term, and `--per-byte` does that in pJ/byte so rows at different throughputs are comparable — check the paired SD against the unpaired one, since pairing hurts when rows are anti-correlated), and `analysis.hwfit` (a sweep read as a slope: fits `dP = a + b·x` once per repeat and takes the spread across repeats as the error bar, and reports whether operands at the same point on the axis but with different bit placement differ). `hwfit` takes `--axis hw` (default, popcount of the selector) or `--axis hd` (popcount of the XOR of the selector's two halves — the bits a `ws_*_ab` victim flips per transfer), and `--labels GLOB` to restrict which runs are fitted, which a mixed session needs so that an anchor run sitting at distance 0 is not fitted as a point on the distance axis. It accepts several result directories and pools them, which is how the two Hamming-weight sessions are read together.
 
-## Findings so far (2026-09-02)
+`analysis.covert` is the fourth entry point and reads a covert run instead of a driver run. It integrates the trace over each chip window — symbol boundaries never line up with RAPL update instants, so windowed integration over a cumulative-energy function is what keeps that exact — and finds the frame by sliding the preamble along the trace, summing the correlation over all frames at a candidate offset. **Sync is recovered, not supplied**: the transmitter's `tsc_start` is read only afterwards, to report how far the recovered sync landed from the truth, and `--sync-span-symbols` restricts the search around it as a diagnostic when you want to separate a sync failure from a dead channel. It reports per-chip Δ, noise and d′ alongside the BER, because those say whether a bad run was a bad channel or a bad instrument.
+
+## Findings so far (2026-09-03)
+
+**The tier-1 covert channel runs error-free at 83 bit/s and reaches 500 bit/s at BER 0.037.** `experiments/phase2_tier1_rate.json` on `ws_l3_x8` under Config-A, Manchester-coded, 8 frames of [13-bit Barker preamble | payload] per run, transmitter and receiver in separate processes sharing no memory (`results/20260903-115606-phase2_tier1_rate`, 10 conditions × 3 repeats, zero late chips in all 30 runs). Read off the settled repeat, whose sampler stayed in the good regime:
+
+| bit/s | 500 | 333 | 250 | 167 | 125 | 83 | 62.5 | 41.7 | 31.2 |
+|---|---|---|---|---|---|---|---|---|---|
+| BER | 0.037 | 0.012 | 0.008 | 0.005 | 0.002 | 0 | 0 | 0 | 0 |
+
+The A/A control (`--on` equal to `--off`) reads BER 0.496 with a preamble correlation of 0.30, indistinguishable from a failed run — the decoder finds nothing when nothing is sent. Majority vote across the 8 frames clears every rate from 125 bit/s down to zero errors. This is well above the plan's "low tens of bits/s on tier 1" expectation.
+
+**BER is set by the per-chip d′, and the run-to-run spread is the instrument, not the channel.** The first read of that sweep looked like a rate limit: 4 ms failed in two repeats of three while 3 ms worked in all three. It is not. Forcing sync to the true offset leaves the bad runs failing, and the per-chip numbers say why — Δ power is the same in every repeat (1.06 / 1.12 / 1.15 W at 4 ms) while per-chip *noise* varies fourfold (1.61 / 0.72 / 0.40 W). A Manchester decision differences two chips, so BER should track Q(d′/√2), and it does: d′ 0.69 gives 0.346 against a predicted 0.313, d′ 3.43 gives 0.009 against 0.008.
+
+What moves the noise is the sampler's overshoot regime (r = +0.63 against per-chip SD over 30 runs). `analysis.covert` gates on it at 1% of edges and prints settled-only alongside unfiltered numbers, since the overshoot rate is measured by the receiver and knows nothing about the decode, but a filtered number quoted alone is how selection bias gets in. **The gate is necessary and not sufficient**: `sym_04ms_r1` passes it at 0.29% and still carries 0.72 W of per-chip noise, so overshoots are the dominant cause and not the only one.
+
+Two things about it remain open. The bad regime gets rarer across a session — 1.66%, 0.89%, 0.09% of edges by repeat, so repeat 0 is reliably the noisiest — and nothing here explains why. And Δ falls as symbols shorten (1.54 W at 8 ms, 1.13 at 4 ms, 0.64 at 2 ms), which is the ~1 ms RAPL integration window low-passing the modulation; that one is expected and is the real ceiling on rate.
+
+## Earlier findings (2026-09-02)
 
 **Leakage is linear in operand Hamming weight above a step at zero.** `experiments/phase1_hamming_weight.json` on `ws_l3_x8`, 11 runs × 3 repeats, every run contrasting the test operand against an all-zero working set (`results/20260901-213211-phase1_hamming_weight`, 70/71 gates pass — see below):
 
@@ -244,7 +287,7 @@ Methodology notes carried forward:
 - **Within-run CIs are optimistic, and badly so for large effects.** This note previously said between-run spread was *smaller* than within-run CIs (ratio 0.26–0.84); that generalised from small effects and does not hold. The traffic-volume sweep gives ratios of 0.19–2.42, and the polarity runs give **5.8–6.8** for `l3_forward`/`l3_reverse` — a single run's ±15 mW bootstrap CI sits inside a between-run spread of ±100 mW. The bigger the effect, the worse the ratio, presumably because the effect itself scales with a thermal/frequency state that varies between runs while being constant within one. Never quote a single run's CI as the error bar; `analysis.aggregate` over ≥3 repeats is the minimum.
 - **Randomise victim order across repeats.** Interleaving cancels drift *within* a run; comparing effects *across* runs is separately confounded with position in the session. The first, fixed-order run had `mul_load_store` last, and it also had the largest effect. Reshuffling reproduced the ordering, so it was not an artifact — but the check was needed. `repeats` + `shuffle_runs` in the experiment spec handle this.
 - A deliberately sequential A/A (`experiments/phase0_artifact_demo.json`, `--order sequential`) did **not** reproduce a spurious effect on a warm machine under Config-A (−0.013 W, p=0.74), so the thermal-step story does not by itself explain the old +0.8 W. The `interleaving` gate still correctly failed that run's design.
-- **Sampler overshoots are harmless — question closed.** They are bimodal per run (either ~0.1% or ~4% of edges, never between) and uncorrelated with victim, so the sampler phase-locks to the RAPL update in one of two regimes and stays there for a whole run. Within a run they are balanced across conditions (worst imbalance ±0.43%, sign flips) and mean `dtsc`/period is 1.00 for both conditions, so they are common-mode and cannot bias an A/B difference. They cost time resolution, not correctness. `rapl_overshoots` is still in every manifest.
+- **Sampler overshoots are harmless to a mean difference — but not to a per-symbol decision.** They are bimodal per run (either ~0.1% or ~4% of edges, never between) and uncorrelated with victim, so the sampler phase-locks to the RAPL update in one of two regimes and stays there for a whole run. Within a run they are balanced across conditions (worst imbalance ±0.43%, sign flips) and mean `dtsc`/period is 1.00 for both conditions, so they are common-mode and **cannot bias an A/B difference** — that part stands, and it is why every Phase 0/1 result is unaffected. What does not carry over is the conclusion that they cost only time resolution. A per-symbol decision has no averaging to hide behind: one overshoot is a single RAPL sample spanning two chips, which smears them together and costs those bits outright. Phase 2 therefore gates on `rapl_overshoots` (see *Findings so far*). `rapl_overshoots` is in every manifest.
 
 ## Validity gates
 
@@ -258,12 +301,23 @@ Methodology notes carried forward:
 
 An A/A control is just an experiment with the same selector in both conditions — no special code path. Every A/B claim should ship with one.
 
+`analysis/covert.py` enforces the Phase 2 equivalents:
+
+| Gate | Threshold | Catches |
+|---|---|---|
+| `late_chips` | 0 | The transmitter missing its own deadlines, so the BER measures it and not the channel |
+| `zero_ticks` | ≤1% of samples | As above |
+| `aa_ber` | A/A decodes at BER ≥0.40 | The decoder finding structure in a transmission that carries none |
+| `overshoot` (warn) | ≤1% of edges seen late | The unsettled sampler regime, which smears adjacent chips and costs bits |
+
+The A/A here is a transmission with `--on` equal to `--off` — again no special code path, and again every claim should ship with one. The overshoot check warns rather than fails, because the run is still evidence about the channel; it is the *decode* that is degraded.
+
 ## Gotchas
 
 - **A "significant" result is not a real one.** A drift-confounded dataset will pass a permutation test with p<0.001 while having no true effect. The `interleaving` gate, not the p-value, is what rules that out.
 - **`isolcpus=0` only isolates the attacker core.** Victim cores 2,4,6,8,10 still take stray work. Extending to `isolcpus=0,2,4,6,8,10` needs a GRUB edit and reboot.
 - **`-O2` is safe only because every victim hot loop is inline asm.** Do not add a plain-C victim without making its result `volatile`, or the compiler will delete the work being measured.
-- **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while a `driver` is still running.
+- **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while any of `driver`, `smoke`, `tx` or `rx_rapl` is still running.
 - **Do not `git add -A` while an experiment is in flight.** The runner appends to `manifest.json` as each run finishes, so a commit made mid-run captures a partial manifest and the next commit shows a spurious several-thousand-line diff. Commit before launching, or stage explicit paths.
 - **`settle` is samples-per-block, not blocks-per-run.** It does not protect against a run-level startup transient, which large working sets do produce. Use `--warmup-blocks N` (`warmup_blocks` in an experiment spec) for that: it runs N whole blocks before recording starts, cycling every condition so each one's buffers are faulted in and filled first, and it excludes them from the throughput figure too. Cheap enough to set by default on any working-set victim.
 - **Config-A and Config-B are not interchangeable.** Pinning frequency removes the DVFS response that the Phase 2 tier-2/tier-3 receivers depend on entirely.
