@@ -64,7 +64,7 @@ def run_case(sig, kill_after):
 
         old = {k: getattr(R, k) for k in
                ("RESULTS", "preflight", "build", "apply_config", "restore",
-                "give_back", "cooldown", "run_driver")}
+                "give_back", "cooldown", "run_driver", "open_output_dir")}
         R.RESULTS = tmp / "results"
         R.preflight = lambda: None
         R.build = lambda: None
@@ -72,6 +72,10 @@ def run_case(sig, kill_after):
         R.cooldown = lambda *a, **k: None
         R.restore = lambda: calls.append("restore")
         R.give_back = lambda paths: calls.append("give_back")
+        # Setup rather than cleanup -- it opens the output directory to the
+        # invoking user so the unprivileged receivers can write into it. Kept
+        # separate so the cleanup assertions below still mean what they say.
+        R.open_output_dir = lambda out_dir: calls.append("open_output_dir")
         R.run_driver = fake_run_driver
         argv, geteuid = sys.argv, os.geteuid
         sys.argv = ["experiment_runner.py", str(spec_path)]
@@ -131,6 +135,8 @@ def main():
     ok &= check("all 6 runs complete", len(done) == 6, f"ran {len(done)}")
     ok &= check("cleanup runs exactly once",
                 calls.count("restore") == 1 and calls.count("give_back") == 1)
+    ok &= check("output dir is opened once, before anything else",
+                calls.count("open_output_dir") == 1 and calls[0] == "open_output_dir")
     ok &= check("manifest lists every run",
                 len(manifest["runs"]) == 6 and len(on_disk) == 6)
 

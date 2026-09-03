@@ -73,36 +73,39 @@ uint32_t frequency_msr(int core_ID)
 /*
  * Gets the current CPU frequency from scaling_cur_freq (easier than the MSR)
  */
+int cpufreq_open(int cpu_id)
+{
+	char path[128];
+
+	snprintf(path, sizeof(path),
+		 "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", cpu_id);
+
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "open %s: %s\n", path, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	return fd;
+}
+
+uint32_t cpufreq_read(int fd)
+{
+	char buf[32];
+
+	/* pread rather than read+lseek: sysfs regenerates the value on each
+	 * read from offset 0, and this keeps a sample at one syscall. */
+	ssize_t n = pread(fd, buf, sizeof(buf) - 1, 0);
+	if (n <= 0)
+		return 0;
+	buf[n] = '\0';
+	return (uint32_t)strtoul(buf, NULL, 10);
+}
+
 uint32_t frequency_cpufreq(int cpu_id)
 {
-	// Open sysfs CPU frequency file once
-	FILE *cur_freq_file = NULL;
-	if (!cur_freq_file) {
-		char file_name[100];
+	int fd = cpufreq_open(cpu_id);
+	uint32_t khz = cpufreq_read(fd);
 
-		// scaling_cur_freq is the file with the current frequency on our system
-		sprintf(file_name, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", cpu_id);
-
-		cur_freq_file = fopen(file_name, "r");
-		if (cur_freq_file == NULL) {
-			perror("Error opening scaling_cur_freq file");
-			exit(1);
-		}
-	}
-
-	// Read current CPU frequency
-	uint32_t scaling_cur_freq = 0;
-	if (cur_freq_file) {
-		rewind(cur_freq_file);
-		fflush(cur_freq_file);
-		if (fscanf(cur_freq_file, "%" PRIu32, &scaling_cur_freq) == 1) {
-			return scaling_cur_freq;
-		}
-	}
-
-	// Abort if file could not be opened or read
-	fprintf(stderr, "Unable to get cpufreq\n");
-	fclose(cur_freq_file);
-	cur_freq_file = NULL;
-	return -1;
+	close(fd);
+	return khz;
 }

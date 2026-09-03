@@ -62,6 +62,33 @@ class Trace:
         self.e[0] = 0.0
         np.cumsum(joules, out=self.e[1:])
 
+    @classmethod
+    def from_levels(cls, tsc, value, tsc_hz):
+        """A trace of an instantaneous *level* rather than an accumulator.
+
+        The tier-2 receiver polls scaling_cur_freq, which reports a level: it
+        has no counter edge to lock onto and no energy increment to integrate.
+        Holding each reading until the next one and integrating gives the same
+        cumulative function the energy path builds, so every window query
+        downstream is identical. The last sample is held for one median
+        interval, since nothing says when it stopped being true.
+        """
+        self = cls.__new__(cls)
+        self.tsc_hz = tsc_hz
+        tsc = np.asarray(tsc, dtype=np.float64)
+        value = np.asarray(value, dtype=np.float64)
+        step = float(np.median(np.diff(tsc))) if len(tsc) > 1 else 1.0
+        self.t = np.empty(len(tsc) + 1, dtype=np.float64)
+        self.t[:-1] = tsc
+        self.t[-1] = tsc[-1] + step
+        self.e = np.empty(len(tsc) + 1, dtype=np.float64)
+        self.e[0] = 0.0
+        # Integrate against *seconds*, matching the energy path: window_power
+        # divides by seconds, so accumulating against raw TSC cycles here
+        # would scale every reported level by tsc_hz.
+        np.cumsum(value * np.diff(self.t) / tsc_hz, out=self.e[1:])
+        return self
+
     @property
     def start(self):
         return self.t[0]
@@ -121,8 +148,15 @@ def sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames):
     return total / frames
 
 
-def demodulate(chips, code, nrz_window=16):
-    """Chip powers -> bits."""
+def demodulate(chips, code, nrz_window=16, polarity=1.0):
+    """Chip levels -> bits.
+
+    `polarity` is +1 when the ON operand reads high and -1 when it reads low.
+    Tier 2 is the inverted case: the heavier operand draws more power, the
+    part throttles, and the reported frequency *falls*. The receiver is not
+    told which it is looking at -- see resolve_polarity.
+    """
+    chips = chips * polarity
     if code == "manchester":
         pairs = chips.reshape(-1, 2)
         return (pairs[:, 0] > pairs[:, 1]).astype(np.int8)
@@ -135,14 +169,28 @@ def demodulate(chips, code, nrz_window=16):
     return (chips > baseline).astype(np.int8)
 
 
-def decode_run(entry, csv_path, sync_span=None):
+def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     tx, rx = entry["tx"], entry["rx"]
     raw = np.loadtxt(csv_path, delimiter=",", skiprows=1, dtype=np.float64, ndmin=2)
     if raw.size == 0:
         raise ValueError(f"{csv_path} contains no samples")
 
-    trace = Trace(tsc=raw[:, 0], ticks=raw[:, 1], dtsc=raw[:, 2],
-                  energy_unit_j=rx["energy_unit_j"], tsc_hz=rx["tsc_hz"])
+    # Tier 1 records an energy accumulator, tier 2 a frequency level; the
+    # cumulative-integral form makes every window query below identical.
+    if rx.get("receiver", "rapl") == "freq":
+        # A tier-2 receiver may watch several CPUs, since an attacker need not
+        # know which cores the victim occupies. Column 0 is the first --watch
+        # entry; which one decodes best is an experimental question.
+        watched = rx.get("watch", [None])
+        if freq_column >= len(watched):
+            raise ValueError(f"{csv_path}: --freq-column {freq_column} but only "
+                             f"{len(watched)} CPU(s) watched")
+        trace = Trace.from_levels(raw[:, 0], raw[:, 1 + freq_column], rx["tsc_hz"])
+        unit = "kHz"
+    else:
+        trace = Trace(tsc=raw[:, 0], ticks=raw[:, 1], dtsc=raw[:, 2],
+                      energy_unit_j=rx["energy_unit_j"], tsc_hz=rx["tsc_hz"])
+        unit = "W"
 
     code = tx["code"]
     chip_tsc = float(tx["chip_tsc"])
@@ -165,8 +213,13 @@ def decode_run(entry, csv_path, sync_span=None):
     step = chip_tsc / SYNC_OVERSAMPLE
     offsets = np.arange(lo, hi, step)
     scores = sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames)
-    best = int(np.argmax(scores))
+    # Peak on |correlation|, then read the polarity off its sign. A receiver
+    # knows the preamble, so it can resolve which way round the channel is
+    # without being told -- which matters because tier 2 is inverted relative
+    # to tier 1. This is the usual resolution of a BPSK phase ambiguity.
+    best = int(np.argmax(np.abs(scores)))
     t_sync = offsets[best]
+    polarity = 1.0 if scores[best] >= 0 else -1.0
 
     # --- per-frame refinement --------------------------------------------
     # Each frame carries its own preamble, so phase is re-acquired per frame
@@ -181,7 +234,7 @@ def decode_run(entry, csv_path, sync_span=None):
             frame_starts.append(t_sync + f * frame_tsc)
             frame_corr.append(float("nan"))
             continue
-        sc = sync_score(trace, cand, chip_tsc, pattern, frame_tsc, 1)
+        sc = sync_score(trace, cand, chip_tsc, pattern, frame_tsc, 1) * polarity
         j = int(np.argmax(sc))
         frame_starts.append(float(cand[j]))
         frame_corr.append(float(sc[j]))
@@ -198,7 +251,7 @@ def decode_run(entry, csv_path, sync_span=None):
     pre_err = pay_err = 0
     decoded_frames = []
     for f in range(frames):
-        bits = demodulate(chip_power[f], code)
+        bits = demodulate(chip_power[f], code, polarity=polarity)
         pre_err += int(np.sum(bits[:n_pre] != truth_pre))
         pay = bits[n_pre:]
         pay_err += int(np.sum(pay != truth_pay))
@@ -225,8 +278,11 @@ def decode_run(entry, csv_path, sync_span=None):
     true_power = trace.window_power(true_edges)
     on, off = true_power[truth_chips > 0], true_power[truth_chips < 0]
     noise_sd = float(np.sqrt(0.5 * (on.var() + off.var())))
+    # Signed: negative is the tier-2 direction, where the ON operand reads as
+    # a *lower* frequency. d' is taken on the magnitude, since which way round
+    # the channel sits does not change how separable its two states are.
     delta_w = float(on.mean() - off.mean())
-    d_prime = delta_w / noise_sd if noise_sd > 0 else float("nan")
+    d_prime = abs(delta_w) / noise_sd if noise_sd > 0 else float("nan")
 
     # Majority vote across the repeated frames: the cheapest possible ECC,
     # and the honest way to show what repetition buys against the raw BER.
@@ -251,6 +307,7 @@ def decode_run(entry, csv_path, sync_span=None):
         "payload_bits": n_pay,
         "preamble_ber": pre_err / (n_pre * frames),
         "ber": ber,
+        "p_below_chance": binom_p_below_chance(pay_err, n_pay * frames),
         "voted_errors": voted_err,
         "voted_ber": voted_err / n_pay,
         "capacity_bps": raw_bps * bsc_capacity(ber),
@@ -259,16 +316,44 @@ def decode_run(entry, csv_path, sync_span=None):
         "sync_runner_up": runner_up(scores, best, SYNC_OVERSAMPLE),
         # Truth, used for reporting only -- the sync above never saw it.
         "sync_error_chips": (t_sync - tx["tsc_start"]) / chip_tsc,
+        "receiver": rx.get("receiver", "rapl"),
+        "watched_cpu": (rx.get("watch", [None])[freq_column]
+                        if rx.get("receiver") == "freq" else None),
+        "unit": unit,
+        "polarity": polarity,
         "delta_w": delta_w,
         "noise_sd_w": noise_sd,
         "d_prime": d_prime,
-        "overshoot_fraction": rx["rapl_overshoots"] / max(rx["samples_written"], 1),
-        "rapl_period_ms": rx["rapl_period_ms"],
-        "samples_per_chip": chip_tsc / (rx["rapl_period_tsc"] or float("nan")),
-        "zero_tick_fraction": rx["zero_tick_samples"] / max(rx["samples_written"], 1),
+        # Tier 2 polls a level on a fixed grid, so it has neither an
+        # overshoot regime nor a zero-tick failure mode; its analogue is
+        # late_polls, which the runner records in the manifest. Reporting 0
+        # here rather than omitting the keys keeps one table for both tiers.
+        "overshoot_fraction": (rx["rapl_overshoots"] / max(rx["samples_written"], 1)
+                               if "rapl_overshoots" in rx else 0.0),
+        "rapl_period_ms": rx.get("rapl_period_ms", float("nan")),
+        "samples_per_chip": chip_tsc / (rx.get("rapl_period_tsc")
+                                        or rx.get("interval_tsc") or float("nan")),
+        "zero_tick_fraction": (rx["zero_tick_samples"] / max(rx["samples_written"], 1)
+                               if "zero_tick_samples" in rx else 0.0),
         "message": tx.get("message"),
         "decoded_message": bits_to_text(voted) if tx.get("message") else None,
     }
+
+
+def binom_p_below_chance(errors, n):
+    """One-sided exact p that `errors` or fewer arose from coin flips.
+
+    The tier-1 channel is far enough from chance that this adds nothing. Tier 2
+    is not: a run there can sit at BER 0.19 over 32 bits, which looks weak and
+    is in fact p < 1e-3. Exact rather than normal-approximated because the bit
+    counts are small and the interesting region is the tail.
+    """
+    if n <= 0:
+        return float("nan")
+    errors = min(errors, n)
+    # Integer division throughout: a run can carry a couple of thousand bits,
+    # and 2.0**2048 overflows a float long before the ratio does.
+    return sum(math.comb(n, k) for k in range(errors + 1)) / (1 << n)
 
 
 def bsc_capacity(p):
@@ -317,6 +402,9 @@ def main():
                     help="restrict the sync search to +/- N symbol periods "
                          "around the true start (diagnostic only -- the "
                          "default searches the whole trace)")
+    ap.add_argument("--freq-column", type=int, default=0,
+                    help="for tier-2 runs watching several CPUs, which one to "
+                         "decode (index into the receiver's --watch list)")
     ap.add_argument("--json", metavar="PATH", help="also write the rows as JSON")
     args = ap.parse_args()
 
@@ -330,7 +418,8 @@ def main():
             span = None
             if args.sync_span_symbols is not None:
                 span = args.sync_span_symbols * float(entry["tx"]["symbol_tsc"])
-            rows.append(decode_run(entry, d / entry["csv"], sync_span=span))
+            rows.append(decode_run(entry, d / entry["csv"], sync_span=span,
+                                   freq_column=args.freq_column))
 
     if not rows:
         raise SystemExit("no covert runs found (is this a driver experiment?)")
@@ -338,32 +427,47 @@ def main():
     for r in rows:
         r["settled"] = r["overshoot_fraction"] <= MAX_OVERSHOOT_FRACTION
 
+    # Tier 1 reports watts, tier 2 kHz. Printing kHz raw put a 660 MHz noise
+    # figure on the page as "660223", which reads as gibberish; scale it.
+    freq = any(r["receiver"] == "freq" for r in rows)
+    scale, unit = (1e-3, "MHz") if freq else (1.0, "W")
+
     print(hr("per-run decode"))
     print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'pre':>6} "
-          f"{'vote':>6} {'dW':>6} {'sd':>6} {'d-prime':>8} {'ovr%':>5} "
-          f"{'sync':>7} {'late':>5}")
+          f"{'vote':>6} {'d' + unit:>8} {'sd ' + unit:>8} {'d-prime':>8} "
+          f"{'ovr%':>5} {'sync':>7} {'late':>5}")
     for r in sorted(rows, key=lambda r: (r["label"], r["repeat"])):
         print(f"  {r['tag']:>22} {r['symbol_us']:>7.0f} {r['raw_bps']:>7.1f} "
               f"{r['ber']:>7.4f} {r['preamble_ber']:>6.3f} "
-              f"{r['voted_ber']:>6.3f} {r['delta_w']:>6.3f} "
-              f"{r['noise_sd_w']:>6.3f} {r['d_prime']:>8.2f} "
+              f"{r['voted_ber']:>6.3f} {r['delta_w'] * scale:>8.3f} "
+              f"{r['noise_sd_w'] * scale:>8.3f} {r['d_prime']:>8.2f} "
               f"{r['overshoot_fraction'] * 100:>5.2f} "
               f"{r['sync_error_chips']:>+7.2f} {r['late_chips']:>5}"
               f"{'' if r['settled'] else '   << unsettled sampler'}")
-    print("\n  BER over payload bits; pre = preamble BER (a sync check);")
-    print("  vote = BER after majority vote across frames; dW and sd are the")
-    print("  per-chip separation and noise, d-prime their ratio; ovr% is the")
-    print("  share of RAPL edges seen late; sync = recovered start minus true")
-    print("  start, in chips.")
+    print(f"\n  BER over payload bits; pre = preamble BER (a sync check);")
+    print(f"  vote = BER after majority vote across frames; d{unit} and sd are")
+    print(f"  the per-chip separation and noise, d-prime their ratio; ovr% is")
+    print(f"  the share of RAPL edges seen late; sync = recovered start minus")
+    print(f"  true start, in chips.")
+    if freq:
+        cpus = sorted({r["watched_cpu"] for r in rows if r["watched_cpu"] is not None})
+        print(f"  Tier 2: decoding cpu{cpus} frequency. A negative separation is")
+        print(f"  the expected direction -- the heavier operand throttles the part.")
 
     print(hr("by condition (between-repeat spread is the error bar)"))
     print(f"  {'label':>18} {'n':>3} {'bit/s':>7} {'BER':>8} {'sd':>8} "
-          f"{'capacity b/s':>13} {'vote BER':>9}  settled-only")
+          f"{'capacity b/s':>13} {'vote BER':>9} {'p<chance':>10}  settled-only")
     for label, group in sorted(aggregate(rows).items()):
         bers = np.array([g["ber"] for g in group])
         caps = np.array([g["capacity_bps"] for g in group])
         votes = np.array([g["voted_ber"] for g in group])
         sd = bers.std(ddof=1) if len(bers) > 1 else float("nan")
+        # Pooled over repeats: the bits are independent across runs, so the
+        # exact test applies to their sum and is far stronger than any one run.
+        tot_bits = sum(g["payload_bits"] * g["frames"] for g in group)
+        tot_err = sum(int(round(g["ber"] * g["payload_bits"] * g["frames"]))
+                      for g in group)
+        pval = binom_p_below_chance(tot_err, tot_bits)
         # Both columns, always. Restricting to settled runs is a defensible
         # instrument-quality criterion -- the overshoot rate is measured by the
         # receiver and knows nothing about the decode -- but a filtered number
@@ -373,7 +477,7 @@ def main():
         note = (f"{np.mean(keep):.4f} (n={len(keep)})" if keep else "none settled")
         print(f"  {label:>18} {len(group):>3} {group[0]['raw_bps']:>7.1f} "
               f"{bers.mean():>8.4f} {sd:>8.4f} {caps.mean():>13.1f} "
-              f"{votes.mean():>9.4f}  {note}")
+              f"{votes.mean():>9.4f} {pval:>10.2e}  {note}")
 
     # --- gates ------------------------------------------------------------
     print(hr("gates"))

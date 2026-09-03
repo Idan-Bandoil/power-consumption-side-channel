@@ -105,6 +105,17 @@ def give_back(paths):
                 pass
 
 
+def open_output_dir(out_dir):
+    """Make the run's output directory writable by the invoking user.
+
+    Setup, not cleanup: the unprivileged receivers are dropped to SUDO_UID and
+    open their own CSV, so a root-owned directory fails them mid-run rather
+    than at the end. give_back() in the finally block still covers everything
+    root created afterwards; this only opens the door first.
+    """
+    give_back([RESULTS, out_dir])
+
+
 def git_commit():
     try:
         out = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"],
@@ -143,7 +154,7 @@ MAX_START_LOAD = 2.0
 # Anything that spawns victims or holds an MSR open. A survivor from an older
 # run spins at 100% on a pinned core and quietly poisons every later
 # measurement, so a run refuses to start while one is alive.
-MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl")
+MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl", "rx_freq")
 
 
 def load1():
@@ -344,8 +355,24 @@ TX_FLAGS = {
     "max_victim_core": "--max-victim-core",
 }
 
-RX_DEFAULTS = {"core": 0, "mode": "edge"}
-RX_FLAGS = {"core": "--core", "mode": "--mode"}
+# Tier 1 (RAPL, root) and tier 2 (scaling_cur_freq, unprivileged) take
+# different options, so each receiver carries its own flag map. "tier" in an
+# experiment's `rx` section picks between them.
+RX_RECEIVERS = {
+    "rapl": {
+        "bin": "rx_rapl",
+        "defaults": {"core": 0, "mode": "edge"},
+        "flags": {"core": "--core", "mode": "--mode"},
+        "root": True,
+    },
+    "freq": {
+        "bin": "rx_freq",
+        "defaults": {"core": 1, "watch": 2, "interval_us": 200},
+        "flags": {"core": "--core", "watch": "--watch",
+                  "interval_us": "--interval-us"},
+        "root": False,
+    },
+}
 
 # Seconds the receiver keeps recording past the transmitter's last symbol.
 RX_MARGIN_S = 2.0
@@ -373,9 +400,15 @@ def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
     opts = dict(TX_DEFAULTS)
     opts.update(tx_opts)
     opts.update({k: v for k, v in run_spec.items() if k in TX_FLAGS or k == "message"})
-    ropts = dict(RX_DEFAULTS)
-    ropts.update(rx_opts)
-    ropts.update({k: v for k, v in run_spec.items() if k in RX_FLAGS})
+
+    tier = run_spec.get("tier", rx_opts.get("tier", "rapl"))
+    if tier not in RX_RECEIVERS:
+        raise SystemExit(f"unknown receiver tier '{tier}' "
+                         f"(expected one of {sorted(RX_RECEIVERS)})")
+    recv = RX_RECEIVERS[tier]
+    ropts = dict(recv["defaults"])
+    ropts.update({k: v for k, v in rx_opts.items() if k in recv["flags"]})
+    ropts.update({k: v for k, v in run_spec.items() if k in recv["flags"]})
 
     tx_cmd = [str(BIN / "tx")]
     for key, flag in TX_FLAGS.items():
@@ -390,20 +423,25 @@ def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
             + bits * float(opts["symbol_us"]) / 1e6)
     rx_s = RX_LEAD_S + tx_s + RX_MARGIN_S
 
-    rx_cmd = [str(BIN / "rx_rapl"), "--duration", f"{rx_s:.3f}", "--out", str(csv_path)]
-    for key, flag in RX_FLAGS.items():
+    rx_cmd = [str(BIN / recv["bin"]), "--duration", f"{rx_s:.3f}",
+              "--out", str(csv_path)]
+    for key, flag in recv["flags"].items():
         rx_cmd += [flag, str(ropts[key])]
 
     uid = int(os.environ.get("SUDO_UID", 0))
     gid = int(os.environ.get("SUDO_GID", 0))
+    # Only tier 1 needs root. Dropping the others to the invoking user is the
+    # point of the ladder, not a detail: a tier-2 receiver run as root would
+    # demonstrate nothing about what an unprivileged process can see.
+    drop = {"user": uid, "group": gid} if uid and not recv["root"] else {}
 
-    logger.info("running %s: %s symbol=%sus %d bits (%.1fs tx, %.1fs rx)",
-                tag, opts["victim"], opts["symbol_us"], bits, tx_s, rx_s)
+    logger.info("running %s: tier-%s %s symbol=%sus %d bits (%.1fs tx, %.1fs rx)",
+                tag, tier, opts["victim"], opts["symbol_us"], bits, tx_s, rx_s)
     before = system_state()
     started = time.time()
 
     rx_proc = subprocess.Popen(rx_cmd, cwd=SRC, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True)
+                               stderr=subprocess.PIPE, text=True, **drop)
     try:
         time.sleep(RX_LEAD_S)
         tx_kwargs = {"user": uid, "group": gid} if uid else {}
@@ -438,14 +476,24 @@ def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
     if tx_summary["late_chips"]:
         logger.warning("  %d late chips (max %.1f us) -- symbol period too short",
                        tx_summary["late_chips"], tx_summary["max_late_us"])
-    logger.info("  %s rx samples in %.1fs, RAPL period %.3f ms, %d late chips",
-                rx_summary["samples_written"], elapsed,
-                rx_summary["rapl_period_ms"], tx_summary["late_chips"])
+    if tier == "freq" and rx_summary["value_changes"] == 0:
+        # A flat frequency trace means no DVFS response to read: either the
+        # part never had to throttle at this load, or the run is Config-A.
+        logger.warning("  frequency never changed -- nothing to decode. "
+                       "Config-B and enough load to make something limit?")
+    detail = (f"RAPL period {rx_summary['rapl_period_ms']:.3f} ms"
+              if tier == "rapl"
+              else f"{rx_summary['value_changes']} value changes, "
+                   f"{rx_summary['late_polls']} late polls")
+    logger.info("  %s rx samples in %.1fs, %s, %d late chips",
+                rx_summary["samples_written"], elapsed, detail,
+                tx_summary["late_chips"])
 
     return {
         "tag": tag,
         "repeat": repeat,
         "label": run_spec.get("label", tag),
+        "tier": tier,
         "victim": opts["victim"],
         "csv": csv_path.name,
         "elapsed_s": elapsed,
@@ -515,6 +563,7 @@ def main():
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + spec["name"]
     out_dir = RESULTS / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
+    open_output_dir(out_dir)
 
     cool = args.cooldown if args.cooldown is not None else spec.get("cooldown_s", 30)
     manifest = {

@@ -103,6 +103,53 @@ def synth_run(payload, symbol_us, delta_w, base_w=20.0, noise_w=0.0,
     return entry, rows
 
 
+def synth_freq_run(payload, symbol_us, delta_khz, base_khz=3600.0,
+                   noise_khz=0.0, frames=8, interval_us=200.0, seed=5):
+    """A tier-2 recording: a frequency level polled on a fixed grid.
+
+    Unlike the RAPL trace this is sampled, not integrated -- each row is the
+    value at an instant, held until the next poll. delta_khz is negative for
+    the real channel, since the heavier operand throttles the part.
+    """
+    rng = np.random.default_rng(seed)
+    bits = PREAMBLE + payload
+    pattern = np.tile(bits_to_chips(bits, "manchester"), frames)
+
+    chip_tsc = int(symbol_us * 1e-6 * TSC_HZ) // 2
+    t0 = int(5.0 * TSC_HZ) + int(0.3 * TSC_HZ)
+    t_end = t0 + len(pattern) * chip_tsc
+    step = interval_us * 1e-6 * TSC_HZ
+
+    ts = np.arange(t0 - 0.3 * TSC_HZ, t_end + 0.3 * TSC_HZ, step)
+    idx = np.floor((ts - t0) / chip_tsc).astype(int)
+    on = np.zeros(len(ts))
+    live = (idx >= 0) & (idx < len(pattern))
+    on[live] = (pattern[idx[live]] > 0).astype(float)
+    khz = base_khz + delta_khz * on
+    if noise_khz:
+        khz = khz + rng.normal(0, noise_khz, len(ts))
+    rows = [(int(t), int(round(v)), 0) for t, v in zip(ts, khz)]
+
+    entry = {
+        "tag": "synth_freq", "label": "synth_freq", "repeat": 0,
+        "csv": "synth_freq.rx.csv",
+        "tx": {
+            "victim": "synthetic", "on_selector": 1, "off_selector": 0,
+            "code": "manchester", "chips_per_bit": 2, "symbol_us": symbol_us,
+            "symbol_tsc": chip_tsc * 2, "chip_tsc": chip_tsc, "tsc_hz": TSC_HZ,
+            "tsc_start": t0, "tsc_end": t_end, "frames": frames,
+            "bits_per_frame": len(bits), "preamble_bits": PREAMBLE,
+            "payload_bits": payload, "message": None, "late_chips": 0,
+        },
+        "rx": {
+            "receiver": "freq", "tsc_hz": TSC_HZ,
+            "interval_us": interval_us, "interval_tsc": int(step),
+            "samples_written": len(rows), "late_polls": 0,
+        },
+    }
+    return entry, rows
+
+
 def write_and_decode(entry, rows, tmp):
     csv = Path(tmp) / entry["csv"]
     with open(csv, "w") as f:
@@ -178,6 +225,28 @@ def main():
         check("A/A decodes at chance", 0.25 < d["ber"] < 0.75, f"BER {d['ber']:.4f}")
         check("A/A sync correlation is weak", abs(d["sync_corr"]) < 0.5,
               f"corr {d['sync_corr']:.3f}")
+
+        print("\ntier 2: a frequency trace, inverted and polled on a grid")
+        # The tier-2 channel runs the other way round -- the heavier operand
+        # throttles the part, so the ON state reads as a *lower* frequency --
+        # and the receiver polls a level rather than integrating a counter.
+        # Nothing tells the decoder either fact; it resolves the sign from the
+        # preamble it already knows.
+        e, r = synth_freq_run(payload, symbol_us=8000, delta_khz=-250.0,
+                              base_khz=3600.0, noise_khz=40.0, frames=8)
+        d = write_and_decode(e, r, tmp)
+        check("inverted channel still decodes", d["ber"] < 0.05, f"BER {d['ber']:.4f}")
+        check("polarity is recovered, not supplied", d["polarity"] == -1.0,
+              f"polarity {d['polarity']:+.0f}")
+        # Magnitude, not just sign: an integration that accumulated against
+        # TSC cycles instead of seconds passes a sign check while reporting
+        # levels scaled by tsc_hz.
+        check("the separation is signed and in the right units",
+              -300 < d["delta_w"] < -200, f"{d['delta_w']:.1f} kHz (want ~-250)")
+        check("d-prime stays positive on an inverted channel",
+              d["d_prime"] > 0, f"d' {d['d_prime']:.2f}")
+        check("the trace is labelled as a frequency receiver",
+              d["receiver"] == "freq" and d["unit"] == "kHz")
 
         print("\nNRZ line code")
         e, r = synth_run(payload, symbol_us=8000, delta_w=2.0, code="nrz")
