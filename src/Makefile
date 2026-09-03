@@ -7,7 +7,7 @@ CFLAGS:= -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -Wextra -march=native -O2
 LIBS:= -lpthread -lrt -lm
 UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/victim-utils.o ../util/victim-pool.o ../util/sampler.o
 
-all: obj bin out data driver hybrid_detect tx rx_rapl rx_freq
+all: obj bin out data driver hybrid_detect tx rx_rapl rx_freq rx_timing
 
 driver: obj/driver.o $(UTILS) | bin
 	$(CC) -o bin/$@ $^ $(LIBS)
@@ -25,6 +25,11 @@ rx_rapl: obj/covert_rx_rapl.o $(UTILS) | bin
 # Tier 2: reads world-readable scaling_cur_freq, so it needs no privilege at
 # all. Requires Config-B -- Config-A pins the frequency this receiver lives on.
 rx_freq: obj/covert_rx_freq.o $(UTILS) | bin
+	$(CC) -o bin/$@ $^ $(LIBS)
+
+# Tier 3: times its own workload and reads nothing at all -- no MSR, no file.
+# Also Config-B only, and needs the part to be throttling.
+rx_timing: obj/covert_rx_timing.o $(UTILS) | bin
 	$(CC) -o bin/$@ $^ $(LIBS)
 
 obj/covert_%.o: covert/%.c | obj

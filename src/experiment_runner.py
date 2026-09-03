@@ -372,6 +372,12 @@ RX_RECEIVERS = {
                   "interval_us": "--interval-us"},
         "root": False,
     },
+    "timing": {
+        "bin": "rx_timing",
+        "defaults": {"core": 0, "sample_us": 500},
+        "flags": {"core": "--core", "sample_us": "--sample-us"},
+        "root": False,
+    },
 }
 
 # Seconds the receiver keeps recording past the transmitter's last symbol.
@@ -481,10 +487,14 @@ def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
         # part never had to throttle at this load, or the run is Config-A.
         logger.warning("  frequency never changed -- nothing to decode. "
                        "Config-B and enough load to make something limit?")
-    detail = (f"RAPL period {rx_summary['rapl_period_ms']:.3f} ms"
-              if tier == "rapl"
-              else f"{rx_summary['value_changes']} value changes, "
-                   f"{rx_summary['late_polls']} late polls")
+    if tier == "rapl":
+        detail = f"RAPL period {rx_summary['rapl_period_ms']:.3f} ms"
+    elif tier == "freq":
+        detail = (f"{rx_summary['value_changes']} value changes, "
+                  f"{rx_summary['late_polls']} late polls")
+    else:
+        detail = (f"work {rx_summary['work_mean_tsc']:.0f} TSC, "
+                  f"CV {rx_summary['work_cv'] * 100:.1f}%")
     logger.info("  %s rx samples in %.1fs, %s, %d late chips",
                 rx_summary["samples_written"], elapsed, detail,
                 tx_summary["late_chips"])

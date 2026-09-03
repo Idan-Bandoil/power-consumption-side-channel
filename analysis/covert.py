@@ -177,16 +177,20 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
 
     # Tier 1 records an energy accumulator, tier 2 a frequency level; the
     # cumulative-integral form makes every window query below identical.
-    if rx.get("receiver", "rapl") == "freq":
+    receiver = rx.get("receiver", "rapl")
+    if receiver in ("freq", "timing"):
         # A tier-2 receiver may watch several CPUs, since an attacker need not
         # know which cores the victim occupies. Column 0 is the first --watch
-        # entry; which one decodes best is an experimental question.
+        # entry; which one decodes best is an experimental question. Tier 3
+        # has a single column and ignores this.
         watched = rx.get("watch", [None])
         if freq_column >= len(watched):
             raise ValueError(f"{csv_path}: --freq-column {freq_column} but only "
                              f"{len(watched)} CPU(s) watched")
         trace = Trace.from_levels(raw[:, 0], raw[:, 1 + freq_column], rx["tsc_hz"])
-        unit = "kHz"
+        # Tier 3's level is the workload's own duration, not a frequency, and
+        # runs the other way up: throttling makes it larger.
+        unit = "kHz" if receiver == "freq" else "TSC"
     else:
         trace = Trace(tsc=raw[:, 0], ticks=raw[:, 1], dtsc=raw[:, 2],
                       energy_unit_j=rx["energy_unit_j"], tsc_hz=rx["tsc_hz"])
@@ -334,9 +338,9 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "sync_runner_up": runner_up(scores, best, SYNC_OVERSAMPLE),
         # Truth, used for reporting only -- the sync above never saw it.
         "sync_error_chips": (t_sync - tx["tsc_start"]) / chip_tsc,
-        "receiver": rx.get("receiver", "rapl"),
+        "receiver": receiver,
         "watched_cpu": (rx.get("watch", [None])[freq_column]
-                        if rx.get("receiver") == "freq" else None),
+                        if receiver == "freq" else None),
         "unit": unit,
         "polarity": polarity,
         "delta_w": delta_w,
@@ -450,7 +454,13 @@ def main():
     # Tier 1 reports watts, tier 2 kHz. Printing kHz raw put a 660 MHz noise
     # figure on the page as "660223", which reads as gibberish; scale it.
     freq = any(r["receiver"] == "freq" for r in rows)
-    scale, unit = (1e-3, "MHz") if freq else (1.0, "W")
+    timing = any(r["receiver"] == "timing" for r in rows)
+    if freq:
+        scale, unit = 1e-3, "MHz"
+    elif timing:
+        scale, unit = 1e-3, "kTSC"
+    else:
+        scale, unit = 1.0, "W"
 
     print(hr("per-run decode"))
     print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'pre':>6} "
@@ -477,6 +487,10 @@ def main():
         cpus = sorted({r["watched_cpu"] for r in rows if r["watched_cpu"] is not None})
         print(f"  Tier 2: decoding cpu{cpus} frequency. A negative separation is")
         print(f"  the expected direction -- the heavier operand throttles the part.")
+    if timing:
+        print(f"  Tier 3: the level is the receiver's own workload duration, so a")
+        print(f"  POSITIVE separation is the expected direction -- throttling makes")
+        print(f"  it slower. Polarity is recovered from the preamble either way.")
 
     print(hr("by condition (between-repeat spread is the error bar)"))
     print(f"  {'label':>18} {'n':>3} {'bit/s':>7} {'BER':>8} {'sd':>8} "
