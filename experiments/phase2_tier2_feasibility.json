@@ -1,0 +1,81 @@
+{
+  "name": "phase2_tier2_feasibility",
+  "config": "B",
+  "cooldown_s": 30,
+  "cooldown_target_c": 60,
+  "repeats": 3,
+  "shuffle_runs": true,
+  "description": [
+    "Does the operand modulate FREQUENCY, not just power? Tiers 2 and 3 of the",
+    "receiver ladder read frequency (world-readable scaling_cur_freq) and",
+    "self-timing dilation, so both need a DVFS response to observe. Under",
+    "Config-A there is none by construction; this runs under Config-B.",
+    "",
+    "The reason to doubt it: this part reports PL1 = 200 W and PL2 = 80 W,",
+    "while four victim threads draw about 16 W package and the die sits near",
+    "50 C against a Tjmax around 100. Nothing is limiting, so nothing has to",
+    "clock down, and a 1.9 W operand difference on top of that may move the",
+    "frequency not at all.",
+    "",
+    "So the load is swept rather than assumed. t4 is the standard placement",
+    "(P-cores, stride 2). t10 fills the P-cores including SMT siblings. t18",
+    "adds the E-cores, which is the most package power this machine can be",
+    "made to draw from user space. If the frequency delta is still at the",
+    "noise floor at t18, tiers 2 and 3 are not reachable on this hardware at",
+    "these limits, and that is a result about the platform rather than a gap",
+    "in the work.",
+    "",
+    "Read the MHz column per condition, not the watts. aa_t18 is the control:",
+    "the same operand in both conditions at the highest load, so any frequency",
+    "difference it shows is drift rather than signal."
+  ],
+  "driver": {
+    "threads": 4,
+    "samples": 100,
+    "blocks": 80,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "victim_core_start": 2,
+    "victim_core_stride": 2,
+    "max_victim_core": 11,
+    "seed": 31337
+  },
+  "runs": [
+    {
+      "label": "t4",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "threads": 4,
+      "comment": "Standard placement: 5 P-cores at stride 2. ~16 W."
+    },
+    {
+      "label": "t10",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "threads": 10,
+      "victim_core_stride": 1,
+      "max_victim_core": 11,
+      "comment": "All P-cores including SMT siblings."
+    },
+    {
+      "label": "t18",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "threads": 18,
+      "victim_core_stride": 1,
+      "max_victim_core": 19,
+      "comment": "P-cores and E-cores: the most package power reachable from user space."
+    },
+    {
+      "label": "aa_t18",
+      "victim": "ws_l3_x8",
+      "selectors": [4294967295, 4294967295],
+      "threads": 18,
+      "victim_core_stride": 1,
+      "max_victim_core": 19,
+      "comment": "A/A at the highest load: bounds what drift alone can produce."
+    }
+  ]
+}
