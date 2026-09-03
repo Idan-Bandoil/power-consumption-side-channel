@@ -1,8 +1,8 @@
 {
   "name": "phase2_tier2_feasibility",
   "config": "B",
-  "cooldown_s": 30,
-  "cooldown_target_c": 60,
+  "cooldown_s": 45,
+  "cooldown_target_c": 65,
   "repeats": 3,
   "shuffle_runs": true,
   "description": [
@@ -11,23 +11,34 @@
     "self-timing dilation, so both need a DVFS response to observe. Under",
     "Config-A there is none by construction; this runs under Config-B.",
     "",
-    "The reason to doubt it: this part reports PL1 = 200 W and PL2 = 80 W,",
-    "while four victim threads draw about 16 W package and the die sits near",
-    "50 C against a Tjmax around 100. Nothing is limiting, so nothing has to",
-    "clock down, and a 1.9 W operand difference on top of that may move the",
-    "frequency not at all.",
+    "A first pass (results/20260903-132837, interrupted after 6 runs) answered",
+    "the question yes and reshaped this spec three ways.",
     "",
-    "So the load is swept rather than assumed. t4 is the standard placement",
-    "(P-cores, stride 2). t10 fills the P-cores including SMT siblings. t18",
-    "adds the E-cores, which is the most package power this machine can be",
-    "made to draw from user space. If the frequency delta is still at the",
-    "noise floor at t18, tiers 2 and 3 are not reachable on this hardware at",
-    "these limits, and that is a result about the platform rather than a gap",
-    "in the work.",
+    "1. The response is large where it exists: 10 threads on the P-cores drew",
+    "   46.9 W at 3694 MHz and swung 804 MHz between the two operands, which",
+    "   scaling_cur_freq would read easily. Four threads gave only -195 MHz",
+    "   with a CI that barely excluded zero.",
+    "2. The sign is negative and that is the physics, not an artifact: the",
+    "   heavier operand draws more power, the part throttles, and the measured",
+    "   frequency AND package power both fall. Under Config-B the power delta",
+    "   inverts relative to Config-A for this reason, so watts are no longer",
+    "   the quantity to read.",
+    "3. Adding the E-cores was counterproductive. 18 threads drew less power",
+    "   than 10 (31 W vs 47 W) because memory bandwidth saturates and per-",
+    "   thread throughput collapses. The ladder therefore stays on P-cores.",
     "",
-    "Read the MHz column per condition, not the watts. aa_t18 is the control:",
-    "the same operand in both conditions at the highest load, so any frequency",
-    "difference it shows is drift rather than signal."
+    "The first pass put its A/A at 18 threads, which was the wrong place: a",
+    "control belongs at the configuration whose effect is being claimed. The",
+    "A/A here is at 10 threads. Under Config-B its job is harder than usual --",
+    "turbo leaves large slow swings in both power and frequency, and the first",
+    "pass's A/A frequency deltas were -104 and -75 MHz with confidence",
+    "intervals comfortably containing zero. That is the noise this has to beat.",
+    "",
+    "t4_s2 is the standard Phase 1 placement, kept so this session can be",
+    "compared with the Config-A work. The rest hold stride 1 and vary only the",
+    "thread count, so they form a dose axis rather than a change of kind.",
+    "",
+    "Read the MHz column per condition, not the watts."
   ],
   "driver": {
     "threads": 4,
@@ -38,44 +49,46 @@
     "mode": "edge",
     "attacker_core": 0,
     "victim_core_start": 2,
-    "victim_core_stride": 2,
+    "victim_core_stride": 1,
     "max_victim_core": 11,
     "seed": 31337
   },
   "runs": [
     {
-      "label": "t4",
+      "label": "t4_s2",
       "victim": "ws_l3_x8",
       "selectors": [0, 4294967295],
       "threads": 4,
-      "comment": "Standard placement: 5 P-cores at stride 2. ~16 W."
+      "victim_core_stride": 2,
+      "comment": "Standard Phase 1 placement: distinct physical P-cores."
+    },
+    {
+      "label": "t6",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "threads": 6,
+      "comment": "Cores 2-7."
+    },
+    {
+      "label": "t8",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "threads": 8,
+      "comment": "Cores 2-9."
     },
     {
       "label": "t10",
       "victim": "ws_l3_x8",
       "selectors": [0, 4294967295],
       "threads": 10,
-      "victim_core_stride": 1,
-      "max_victim_core": 11,
-      "comment": "All P-cores including SMT siblings."
+      "comment": "All P-cores. Where the first pass saw -804 MHz."
     },
     {
-      "label": "t18",
-      "victim": "ws_l3_x8",
-      "selectors": [0, 4294967295],
-      "threads": 18,
-      "victim_core_stride": 1,
-      "max_victim_core": 19,
-      "comment": "P-cores and E-cores: the most package power reachable from user space."
-    },
-    {
-      "label": "aa_t18",
+      "label": "aa_t10",
       "victim": "ws_l3_x8",
       "selectors": [4294967295, 4294967295],
-      "threads": 18,
-      "victim_core_stride": 1,
-      "max_victim_core": 19,
-      "comment": "A/A at the highest load: bounds what drift alone can produce."
+      "threads": 10,
+      "comment": "A/A at the configuration being claimed, not at some other one."
     }
   ]
 }

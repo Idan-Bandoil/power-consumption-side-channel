@@ -1,0 +1,273 @@
+
+==============================================================================
+Run 20260903-132837-phase2_tier2_feasibility
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 291d56bcd868a37229c2ff65d8b26abd53e46488 (DIRTY)
+  config    : B
+  no_turbo  : 0   governor: powersave
+  pkg temp  : 42.0 C at start
+
+==============================================================================
+t10  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 16000 over 160 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0    8000    46.848   14.634     3694
+     1   4294967295    8000    38.765   22.436     2890
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  45.22  44.79  39.60  41.19  46.63  49.39  51.16  49.34  50.25  50.91
+    cond 1:  29.07  29.31  28.71  34.41  39.87  43.73  47.01  40.49  43.46  51.60
+    within-condition span: cond 0 11.557 W, cond 1 22.886 W
+
+  interleaving     : imbalance 0.093  (mean position cond 0 0.45, cond 1 0.55)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -8.0826 W  95% CI [-10.5268, -5.6424]  (-17.25% of baseline)
+  Cohen's d        : -0.4267  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.750 at n<=100
+      n=   1  acc=0.612  ########
+      n=   2  acc=0.642  ###########
+      n=   3  acc=0.637  ##########
+      n=   5  acc=0.629  ##########
+      n=   8  acc=0.661  ############
+      n=  13  acc=0.682  ##############
+      n=  21  acc=0.715  #################
+      n=  34  acc=0.723  #################
+      n=  55  acc=0.699  ###############
+      n=  89  acc=0.744  ###################
+      n= 100  acc=0.750  ####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+t18  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 16000 over 160 blocks
+  RAPL period      : 0.988 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0    8000    31.243   18.522     2706
+     1   4294967295    8000    28.409   16.327     2544
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  66.46  66.69  27.48  21.24  21.62  21.65  21.73  21.82  21.84  21.91
+    cond 1:  69.07  39.89  21.86  21.88  21.91  21.88  21.84  21.95  21.91  21.89
+    within-condition span: cond 0 45.448 W, cond 1 47.230 W
+
+  interleaving     : imbalance 0.093  (mean position cond 0 0.45, cond 1 0.55)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -2.8349 W  95% CI [-8.0900, +2.4493]  (-9.07% of baseline)
+  Cohen's d        : -0.1624  (per sample)
+  permutation p    : 0.29497  (10000 block relabelings)
+  detector         : best accuracy 0.484 at n<=100
+      n=   1  acc=0.474  
+      n=   2  acc=0.467  
+      n=   3  acc=0.467  
+      n=   5  acc=0.474  
+      n=   8  acc=0.451  
+      n=  13  acc=0.464  
+      n=  21  acc=0.477  
+      n=  34  acc=0.484  
+      n=  55  acc=0.461  
+      n=  89  acc=0.469  
+      n= 100  acc=0.465  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+aa_t18  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 16000 over 160 blocks
+  RAPL period      : 1.012 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295    8000    28.932   17.025     2555
+     1   4294967295    8000    26.108   13.705     2450
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  69.25  46.08  21.55  21.61  21.68  21.75  21.81  21.83  21.92  21.84
+    cond 1:  65.29  21.68  21.62  21.69  21.70  21.67  21.91  21.85  21.80  21.88
+    within-condition span: cond 0 47.701 W, cond 1 43.668 W
+
+  interleaving     : imbalance 0.093  (mean position cond 0 0.45, cond 1 0.55)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -2.8237 W  95% CI [-7.6917, +1.8640]  (-9.76% of baseline)
+  Cohen's d        : -0.1827  (per sample)
+  permutation p    : 0.24248  (10000 block relabelings)
+  detector         : best accuracy 0.503 at n<=100
+      n=   1  acc=0.499  
+      n=   2  acc=0.487  
+      n=   3  acc=0.486  
+      n=   5  acc=0.499  
+      n=   8  acc=0.469  
+      n=  13  acc=0.493  
+      n=  21  acc=0.498  
+      n=  34  acc=0.503  
+      n=  55  acc=0.484  
+      n=  89  acc=0.500  
+      n= 100  acc=0.491  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+t4  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 16000 over 160 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0    8000    31.867   16.508     3081
+     1   4294967295    8000    30.527   16.539     2886
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  55.60  55.80  55.80  25.22  20.91  21.01  21.03  21.01  21.34  20.94
+    cond 1:  62.64  61.48  24.64  22.48  22.45  22.40  22.27  22.49  22.13  22.27
+    within-condition span: cond 0 34.895 W, cond 1 40.516 W
+
+  interleaving     : imbalance 0.093  (mean position cond 0 0.45, cond 1 0.55)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -1.3399 W  95% CI [-6.2972, +3.6952]  (-4.20% of baseline)
+  Cohen's d        : -0.0811  (per sample)
+  permutation p    : 0.60174  (10000 block relabelings)
+  detector         : best accuracy 0.519 at n<=100
+      n=   1  acc=0.505  
+      n=   2  acc=0.504  
+      n=   3  acc=0.513  #
+      n=   5  acc=0.515  #
+      n=   8  acc=0.493  
+      n=  13  acc=0.501  
+      n=  21  acc=0.519  #
+      n=  34  acc=0.516  #
+      n=  55  acc=0.510  
+      n=  89  acc=0.510  
+      n= 100  acc=0.512  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+t18  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 16000 over 160 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0            0    8000    21.703    1.211     2348
+     1   4294967295    8000    21.938    1.167     2297
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  21.37  21.38  21.62  21.62  21.54  21.80  21.88  21.90  21.92  21.99
+    cond 1:  21.84  21.94  21.84  21.98  21.92  21.91  21.95  21.97  22.02  22.02
+    within-condition span: cond 0 0.619 W, cond 1 0.177 W
+
+  interleaving     : imbalance 0.045  (mean position cond 0 0.48, cond 1 0.52)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2352 W  95% CI [+0.1693, +0.3089]  (+1.08% of baseline)
+  Cohen's d        : +0.1979  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.765 at n<=100
+      n=   1  acc=0.526  ##
+      n=   2  acc=0.529  ##
+      n=   3  acc=0.512  
+      n=   5  acc=0.536  ##
+      n=   8  acc=0.562  #####
+      n=  13  acc=0.598  #######
+      n=  21  acc=0.607  ########
+      n=  34  acc=0.633  ##########
+      n=  55  acc=0.628  ##########
+      n=  89  acc=0.723  #################
+      n= 100  acc=0.765  #####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+aa_t18  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [4294967295, 4294967295]   << A/A CONTROL
+  samples          : 16000 over 160 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W      MHz
+     0   4294967295    8000    28.789   16.668     2588
+     1   4294967295    8000    26.747   14.306     2513
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  67.66  46.29  21.54  21.58  21.64  21.75  21.79  21.88  21.87  21.89
+    cond 1:  67.52  25.64  21.66  21.68  21.74  21.76  21.84  21.84  21.89  21.90
+    within-condition span: cond 0 46.117 W, cond 1 45.860 W
+
+  interleaving     : imbalance 0.045  (mean position cond 0 0.48, cond 1 0.52)  [OK]
+
+  --- condition 0 vs 1 ---
+  mean difference  : -2.0424 W  95% CI [-6.7882, +2.7075]  (-7.09% of baseline)
+  Cohen's d        : -0.1315  (per sample)
+  permutation p    : 0.37506  (10000 block relabelings)
+  detector         : best accuracy 0.524 at n<=100
+      n=   1  acc=0.519  #
+      n=   2  acc=0.503  
+      n=   3  acc=0.515  #
+      n=   5  acc=0.523  #
+      n=   8  acc=0.482  
+      n=  13  acc=0.513  #
+      n=  21  acc=0.512  
+      n=  34  acc=0.522  #
+      n=  55  acc=0.505  
+      n=  89  acc=0.524  #
+      n= 100  acc=0.518  #
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260903-132837-phase2_tier2_feasibility/figures
+
+==============================================================================
+Validity gates
+==============================================================================
+  t10                          zero_ticks       PASS
+  t10                          interleaving     PASS
+  t18                          zero_ticks       PASS
+  t18                          interleaving     PASS
+  aa_t18                       zero_ticks       PASS
+  aa_t18                       interleaving     PASS
+  aa_t18                       aa_0v1           PASS
+  t4                           zero_ticks       PASS
+  t4                           interleaving     PASS
+  t18                          zero_ticks       PASS
+  t18                          interleaving     PASS
+  aa_t18                       zero_ticks       PASS
+  aa_t18                       interleaving     PASS
+  aa_t18                       aa_0v1           PASS
