@@ -1,11 +1,11 @@
 # A Covert Channel Out of Operand Power
 
-*Draft — Phase 2 chapter, **partial**. This covers tier 1 (RAPL) only. The two
-unprivileged receiver tiers that make the chapter a security result rather than an
-instrument reading are built into the plan but not yet built into the repository; §9
-says exactly what is missing and what it would take. Every number here is reproducible
-from `results/` plus the run manifests, cited inline as a run directory. All
-measurements are Config-A (turbo disabled, frequency pinned) unless stated otherwise.*
+*Draft — Phase 2 chapter, **partial**. Tiers 1 (RAPL, privileged) and 2
+(`scaling_cur_freq`, unprivileged) are measured; tier 3 and the placement matrix are
+not, and §9 says what is missing. Every number here is reproducible from `results/`
+plus the run manifests, cited inline as a run directory. Tier-1 measurements are
+Config-A (turbo disabled, frequency pinned); tier-2 measurements are necessarily
+Config-B, and §9 explains why that makes them not directly comparable.*
 
 ## 1. What this chapter asks
 
@@ -31,16 +31,23 @@ Three things have to be true, and each is a place the result could fail:
 
 The results, in order of how much they constrain the rest:
 
-1. The channel works. It runs error-free at 83 bit/s and reaches 500 bit/s at a bit-error
-   rate of 0.037 (§5). That is an order of magnitude above the expectation this project
-   set out with, which was "low tens of bits/s".
-2. The error rate is set by a single quantity, the per-chip separation d′, and follows
-   the Gaussian prediction Q(d′/√2) closely (§6).
-3. The run-to-run variation in that error rate is the *instrument*, not the channel — and
-   the artifact responsible was one the measurement chapter had recorded as harmless
+1. The channel works. Under a privileged receiver it runs error-free at 83 bit/s and
+   reaches 500 bit/s at a bit-error rate of 0.037 (§5). That is an order of magnitude
+   above the expectation this project set out with, which was "low tens of bits/s".
+2. **It also works with no privilege at all.** A receiver reading only world-readable
+   `scaling_cur_freq` decodes at 2 bit/s with a bit-error rate of 0.083 and no errors
+   after a majority vote (§8.1). That is the result the security claim rests on, and it
+   costs two and a half orders of magnitude of rate.
+3. The error rate is set by a single quantity — but not the one that first suggests
+   itself. What predicts it is the separation of the *within-symbol difference* the
+   decision actually uses, not the marginal separation of a chip (§6). The two agree only
+   when chip noise is white, and tier 2 is precisely where they do not.
+4. The run-to-run variation in tier 1's error rate is the *instrument*, not the channel —
+   and the artifact responsible was one the measurement chapter had recorded as harmless
    (§7). It is harmless to a mean difference and not to a per-symbol decision.
-4. The ceiling on rate is the RAPL update period low-passing the modulation, not any
-   limit of the transmitter (§8).
+5. The ceiling on each tier's rate is its receiver's integration behaviour — RAPL's ~1 ms
+   update for tier 1, the governor's control loop for tier 2 — not any limit of the
+   transmitter, which held its schedule at every rate tested (§8).
 
 ## 2. Threat model
 
@@ -49,14 +56,27 @@ memory and needs no capability a normal user process lacks — no root, no MSR a
 elevated scheduling priority, no special mapping. In the intended scenario it is code
 that has been induced to run inside a confidentiality boundary and has data it wants out.
 
-The receiver, **in this chapter**, is privileged: it reads `MSR_PKG_ENERGY_STATUS`
-through `/dev/cpu/N/msr`, which requires root. This is a deliberately weak threat model
-and it is the chapter's principal limitation. A root receiver can already read the
-transmitter's memory directly, so tier 1 on its own demonstrates the mechanism rather
-than an attack. Its purpose is to establish the ceiling — what the channel can carry when
-the receiver is as capable as it can be — against which the unprivileged tiers of §9 are
-measured. The claim that this is a security result rests on those tiers, and this draft
-does not yet make it.
+The receiver comes in tiers, and the difference between them is the whole argument.
+
+**Tier 1** reads `MSR_PKG_ENERGY_STATUS` through `/dev/cpu/N/msr`, which requires root.
+A root receiver can already read the transmitter's memory directly, so tier 1 on its own
+demonstrates a mechanism rather than an attack. Its purpose is to establish the ceiling —
+what the channel carries when the receiver is as capable as it can be.
+
+**Tier 2** reads `/sys/devices/system/cpu/cpuN/cpufreq/scaling_cur_freq`, which is
+world-readable, and nothing else. No MSR, no `perf`, no root, no shared memory. This is
+the receiver the security claim rests on, and §8.1 measures it. Its mechanism is one step
+longer than tier 1's: the operand changes the victim's power draw, the extra power forces
+a clock reduction *if something is limiting*, and the reduction shows up in the frequency
+the kernel reports. That conditional is load-bearing — §8.2 is about what happens when
+nothing is limiting.
+
+Because tier 2 is dropped to an ordinary user in the experiment harness rather than
+merely described as unprivileged, the claim is enforced rather than asserted: the runner
+runs it under the invoking user's uid, and a tier-2 receiver left running as root would
+demonstrate nothing.
+
+**Tier 3**, self-timing in the manner of Hertzbleed, is not built. See §9.
 
 The two processes share no memory, no files and no IPC. They do share the invariant TSC,
 which any process can read, and the receiver's recording is timestamped in it. This is a
@@ -208,6 +228,21 @@ A Manchester decision differences two chips. If per-chip power carries noise of 
 deviation σ and the two states are separated by Δ, the difference carries σ√2 and the
 error rate should be Q(d′/√2) with d′ = Δ/σ. Both quantities are measurable per run.
 
+**That reasoning contains an assumption worth making explicit, because it fails later in
+this chapter.** The difference carries σ√2 only if the noise on the two chips is
+independent. What the decision really depends on is the spread of the difference itself,
+so the general statistic is
+
+  d′_paired = |mean(P₀ − P₁)| / sd(P₀ − P₁)
+
+taken over symbols, with the error rate Q(d′_paired). When chip noise is white this is
+just d′/√2 and the two forms agree — which is why the simpler one fits everything in this
+section. When the noise is dominated by drift slower than a symbol, differencing cancels
+it, sd(P₀ − P₁) falls far below σ√2, and the marginal form understates the channel
+badly. Tier 2 in §8.1 is exactly that case: it decodes at BER 0.09 while its marginal d′
+reads 0.08, a value the marginal model would call chance. Both are reported, and it is
+the paired one to compare against BER.
+
 They are measured on the *true* chip grid rather than the recovered one, which matters:
 a run whose sync failed has every window misaligned, and measuring there would collapse Δ
 to zero and report a dead channel where there is a live one the receiver merely failed to
@@ -323,33 +358,117 @@ ceiling on tier 1, it is a property of the instrument rather than of the leakage
 is why 500 bit/s rather than some higher number is where the table stops.
 
 Two consequences worth carrying forward. A receiver willing to average over repeated
-transmissions buys back error rate but not bandwidth. And the unprivileged tiers of §9 are
-not bound by this particular limit — `scaling_cur_freq` and self-timing have entirely
-different bandwidths and entirely different noise — so tier 1 being the most privileged
-receiver does not automatically make it the fastest.
+transmissions buys back error rate but not bandwidth. And the unprivileged tier is not
+bound by this particular limit — `scaling_cur_freq` has entirely different bandwidth and
+entirely different noise — so being the most privileged receiver does not automatically
+make tier 1 the fastest. It does, as it turns out, make it the fastest by a wide margin,
+but for a different reason.
+
+### 8.1 The unprivileged receiver
+
+`experiments/phase2_tier2_covert.json` runs the same transmitter against tier 2 under
+Config-B (`results/20260903-143109-phase2_tier2_covert`, 6 conditions × 3 repeats, zero
+late chips). The receiver holds no privilege: it polls `scaling_cur_freq` every 200 µs
+and has no other input.
+
+| symbol | bit/s | BER | SD | after vote | p vs chance |
+|---|---|---|---|---|---|
+| 32 ms | 31.2 | 0.516 | 0.037 | 0.563 | 0.82 |
+| 64 ms | 15.6 | 0.492 | 0.059 | 0.510 | 0.40 |
+| 128 ms | 7.8 | 0.500 | 0.165 | 0.479 | 0.53 |
+| 256 ms | 3.9 | 0.365 | 0.118 | 0.250 | 5 × 10⁻³ |
+| **512 ms** | **2.0** | **0.083** | **0.018** | **0** | **2 × 10⁻¹⁸** |
+| A/A, 256 ms | 3.9 | 0.490 | 0.018 | 0.542 | 0.46 |
+
+**An unprivileged process recovers the message at 2 bit/s with no errors after a
+four-frame majority vote**, and the control at the same load and rate sits at chance. The
+channel falls off a cliff above that: usable at 3.9 bit/s, indistinguishable from chance
+at 7.8 and beyond. Tier 2 is therefore slower than tier 1 by a factor of about 40 on raw
+rate, and that gap — not the existence of the channel — is the honest headline.
+
+The rate ceiling here is not RAPL's integration window but the governor's control loop.
+A 512 ms symbol gives each state a 256 ms chip to settle a clock decision that the
+platform makes on its own schedule, and halving that is enough to destroy the channel.
+
+**Where the receiver looks matters.** An attacker need not know which cores the victim
+occupies, so the receiver watched two: its own core and one of the victim's. Decoding the
+victim's core is strictly better — BER 0.229 at 3.9 bit/s and 0.297 at 7.8, where its own
+core is at chance — so the channel extends about one rate step further when the attacker
+guesses right. Both readings are in the run's `summary.txt`; the table above is the
+conservative one. Polling another core's `scaling_cur_freq` costs 0.35 µs and issues no
+inter-processor interrupt, so watching the victim does not perturb it.
+
+This is also the section where §6's caveat pays off. Tier 2's marginal per-chip d′ is
+0.08 — a number the simple model calls a dead channel — while the paired statistic reads
+1.07 and predicts BER 0.14 against the 0.09 observed. The frequency trace carries
+hundreds of MHz of slow wander on top of a ~50 MHz signal, and Manchester differencing
+removes it. The line code was chosen in §3 for exactly this reason, against thermal
+drift; here it is doing the same work against governor drift, and without it there would
+be no tier-2 channel to report.
+
+### 8.2 The channel exists only while the part is throttling
+
+Tier 2 needs something to be limiting. This machine reports PL1 = 200 W and PL2 = 80 W
+against a four-thread victim drawing about 16 W at around 50 °C, so at Phase 1's standard
+placement nothing limits, nothing throttles, and there is no frequency response to read.
+Every tier-2 run above therefore uses **ten** victim threads across the P-cores rather
+than four. That is a real precondition of the attack rather than a tuning detail: an
+otherwise-idle machine does not carry this channel.
+
+The precondition was established the hard way, and the record is worth keeping.
+`experiments/phase2_tier2_feasibility.json` sweeps the thread count under Config-B and
+measures the frequency difference between operands directly
+(`results/20260903-134424-phase2_tier2_feasibility`). Against its own A/A control **no
+load is distinguishable**: |t| ≤ 1.56 at every thread count, and the control itself reads
+−48 MHz with the sign flipping across repeats. An interrupted first pass of that sweep
+had produced a single run reading −804 MHz with a tight within-run confidence interval,
+which looked like a strong effect and was not: that run's die climbed from 42 °C to 77 °C
+while it was measured. It is the failure mode the measurement chapter documents — a
+single run's interval is optimistic, worst for large effects, and never an error bar —
+reproduced here at full size.
+
+That leaves an apparent contradiction with §8.1, and it resolves rather than stands. The
+feasibility sweep tested a *mean difference* over interleaved 0.1 s blocks; the channel
+needs a 256 ms chip. The proxy was underpowered for the thing that turned out to work,
+not evidence against it. Two lessons, both worth more than the measurement: a null on a
+proxy is not a null on the mechanism, and the decisive experiment was the one that ran
+the actual receiver rather than something correlated with it.
 
 ## 9. What this chapter does not yet cover
 
 This is a partial draft, and the gaps are not incidental.
 
-**Tiers 2 and 3 do not exist yet.** The plan specifies a receiver ladder, and it is the
-ladder rather than tier 1 that constitutes the security result: tier 2 reads
-world-readable `scaling_cur_freq` and needs no privilege at all, tier 3 times its own
-fixed workload and infers the transmitter's activity from frequency-induced dilation, in
-the manner of Hertzbleed. `frequency_cpufreq()` already exists and is already used, so
-tier 2 is cheap. **Both require Config-B**, because they observe the DVFS response that
-Config-A deliberately removes — every number in this chapter is Config-A and none of it
-transfers.
+**Tier 3 does not exist yet.** It times its own fixed workload and infers the
+transmitter's activity from frequency-induced dilation, in the manner of Hertzbleed. It
+is the one receiver that needs no filesystem interface at all, so it is the tier a
+container or a sandbox is least able to take away — which makes it the most interesting
+of the three and the largest remaining gap. §8.2's precondition should apply to it in the
+same form, since it observes the same throttling.
+
+**The two tiers are not measured under the same configuration**, and cannot be. Tier 1
+needs Config-A to isolate power leakage from DVFS; tier 2 needs Config-B because Config-A
+removes the response it reads. So the 83 bit/s and the 2 bit/s in §10 are not a
+controlled comparison of receivers — they are each tier measured where it works, on a
+machine in two different states. A fair comparison would run both under Config-B, which
+would cost tier 1 something unmeasured. That has not been done.
 
 **Only one placement is measured.** The plan asks for cross-core, cross-SMT-sibling,
-cross-P/E-core and cross-container. This chapter has cross-core between P-cores only.
+cross-P/E-core and cross-container. This chapter has cross-core between P-cores only. The
+container case matters most for tier 2, since `scaling_cur_freq` may or may not be
+visible inside one, and that is a one-command experiment nobody has run.
+
+**Tier 2's rate curve is coarse.** Five symbol periods, a factor of two apart, locate the
+cliff between 3.9 and 7.8 bit/s but do not resolve its shape. And the slowest rows carry
+few bits — 32 payload bits per run at 512 ms — so BER 0.083 rests on 96 bits in total.
+That is enough to establish the channel at p = 2 × 10⁻¹⁸ and nowhere near enough to
+quote a low error rate precisely.
 
 **No comparison to the literature.** Liu et al. (CCS'22) and Hertzbleed are the two
 obvious points of reference and neither is engaged.
 
-**No BER-versus-rate curve per tier, and no capacity figure worth quoting.** The decoder
-computes a binary-symmetric-channel capacity per run, but with one tier and one placement
-it is a number without a comparison.
+**No capacity figure worth quoting.** The decoder computes a binary-symmetric-channel
+capacity per run, but with two tiers under two configurations and one placement it is a
+number without a comparison.
 
 **Error correction is a majority vote.** The plan mentions repetition or Hamming coding;
 the vote reported in §5 is the former in its crudest form.
@@ -368,16 +487,31 @@ independent clock would need to, and nothing here measures how much that costs.
 - Under a root receiver the channel runs error-free at 83 bit/s over the bits transmitted,
   and carries 500 bit/s at BER 0.037. An order of magnitude above this project's stated
   expectation of low tens of bits/s.
-- Its error rate is quantitatively predicted by the per-chip separation d′ through the
-  Gaussian Q(d′/√2), with a log-log correlation of +0.895 and a median ratio of 0.91,
-  down to an unexplained error floor of a few times 10⁻³.
-- The transmitter is not the limit at any rate tested. The limit is the ~1 ms RAPL
-  integration window, which erodes the usable separation from 1.54 W to 0.64 W as the chip
-  shrinks from 4 ms to 1 ms.
+- **A receiver with no privilege at all recovers the message.** Reading only
+  world-readable `scaling_cur_freq`, it decodes at 2 bit/s with BER 0.083 and no errors
+  after a majority vote, against a control at chance. This is the security claim: the
+  leak is reachable by an ordinary process, not only by one that could already read the
+  victim's memory.
+- The unprivileged channel costs a factor of about 40 in rate and exists only while the
+  part is throttling. Four victim threads on this machine do not make it throttle; ten
+  do. An idle machine does not carry this channel.
+- The error rate of both tiers is predicted by the separation of the within-symbol
+  difference the decision uses, through Q(d′_paired). The marginal per-chip form is a
+  white-noise special case: it fits tier 1 with a log-log correlation of +0.895 and a
+  median ratio of 0.91, and it calls tier 2 dead at d′ 0.08 on a run decoding at BER
+  0.09. Both tiers bottom out on an unexplained error floor of a few times 10⁻³.
+- Manchester coding is doing more work than a line code usually does. It was chosen to
+  reject thermal drift; it turns out to be what makes tier 2 exist at all, by cancelling
+  a governor wander hundreds of MHz deep on a ~50 MHz signal.
+- The transmitter is not the limit at any rate on either tier. Tier 1's limit is the
+  ~1 ms RAPL integration window, which erodes the usable separation from 1.54 W to 0.64 W
+  as the chip shrinks from 4 ms to 1 ms; tier 2's is the governor's own control loop.
 - A measurement artifact that the previous chapter correctly established as harmless to a
   mean difference is *not* harmless to a per-symbol decision, and accounts for most of the
-  run-to-run variation in error rate. Validity gates are relative to an inferential use.
+  run-to-run variation in tier 1's error rate. Validity gates are relative to an
+  inferential use, and so are null results: §8.2's mean-difference proxy found nothing on
+  a channel that works.
 
-What it does not establish is the security claim, which needs an unprivileged receiver.
-Tier 1 bounds what is there to be extracted; §9 is the work that decides how much of it a
-process without privilege can actually reach.
+What remains is tier 3, the placement matrix, and a comparison against the published
+attacks — §9. The ladder's shape is now established at both ends, and what it says is
+that privilege buys rate rather than access.
