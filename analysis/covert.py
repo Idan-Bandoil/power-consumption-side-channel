@@ -210,11 +210,20 @@ def decode_run(entry, csv_path, sync_span=None):
     # Per-chip separation, which is what actually sets the error rate. A
     # Manchester decision compares two chips, so with per-chip noise sd the
     # difference carries sd*sqrt(2) and BER should track Q(d_prime/sqrt(2)).
-    # Measured against the transmitted chips, so it describes the channel
-    # even on a run where sync failed.
+    #
+    # Measured on the *true* chip grid rather than the recovered one. Sync
+    # failure would otherwise misalign every window and collapse the
+    # separation to zero, reporting a dead channel where there is a live one
+    # the receiver merely failed to find -- which is precisely the
+    # distinction these numbers exist to draw. Like sync_error_chips this
+    # reads ground truth, so it is a diagnostic and not something a real
+    # receiver could compute.
     truth_chips = np.tile(bits_to_chips(preamble + payload, code), frames)
-    flat = chip_power.reshape(-1)
-    on, off = flat[truth_chips > 0], flat[truth_chips < 0]
+    true_edges = tx["tsc_start"] + np.arange(len(truth_chips) + 1) * chip_tsc
+    if true_edges[0] < trace.start or true_edges[-1] > trace.end:
+        raise ValueError(f"{csv_path}: trace does not cover the transmission")
+    true_power = trace.window_power(true_edges)
+    on, off = true_power[truth_chips > 0], true_power[truth_chips < 0]
     noise_sd = float(np.sqrt(0.5 * (on.var() + off.var())))
     delta_w = float(on.mean() - off.mean())
     d_prime = delta_w / noise_sd if noise_sd > 0 else float("nan")
