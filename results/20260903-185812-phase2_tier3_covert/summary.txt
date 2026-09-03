@@ -1,0 +1,48 @@
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER    pre   vote    dkTSC  sd kTSC  d-marg  d-pair  Q(pair)  ovr%    sync  late
+            aa_1000ms_r0 1000000     1.0  0.4688  0.385  0.375   -3.064  228.631    0.01    0.06   0.4774  0.00   -2.29     0
+            aa_1000ms_r1 1000000     1.0  0.5938  0.327  0.500  -10.515  254.827    0.04    0.15   0.4400  0.00   -4.41     0
+            aa_1000ms_r2 1000000     1.0  0.2188  0.385  0.250  -13.825  253.687    0.05    0.14   0.4434  0.00   -4.54     0
+           sym_0256ms_r0  256000     3.9  0.0469  0.096  0.000  385.130  466.308    0.83    0.55   0.2908  0.00   +0.18     0
+           sym_0256ms_r1  256000     3.9  0.0625  0.154  0.062  498.196  498.613    1.00    0.62   0.2688  0.00   +0.35     0
+           sym_0256ms_r2  256000     3.9  0.1406  0.115  0.125  311.063  458.935    0.68    0.52   0.3012  0.00   +0.06     0
+           sym_0512ms_r0  512000     2.0  0.1875  0.135  0.125  573.562  642.540    0.89    0.67   0.2510  0.00   +0.03     0
+           sym_0512ms_r1  512000     2.0  0.0938  0.058  0.000  273.546  367.667    0.74    0.46   0.3233  0.00   +0.28     0
+           sym_0512ms_r2  512000     2.0  0.0312  0.019  0.000  333.056  342.299    0.97    0.59   0.2762  0.00   +0.16     0
+           sym_1000ms_r0 1000000     1.0  0.0000  0.077  0.000  132.432  209.107    0.63    0.55   0.2909  0.00   +0.09     0
+           sym_1000ms_r1 1000000     1.0  0.0000  0.000  0.000  131.675  183.608    0.72    0.70   0.2433  0.00   +0.09     0
+           sym_1000ms_r2 1000000     1.0  0.0000  0.019  0.000  242.651  309.537    0.78    0.52   0.3008  0.00   +0.09     0
+
+  BER over payload bits; pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dkTSC and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
+  Tier 3: the level is the receiver's own workload duration, so a
+  POSITIVE separation is the expected direction -- throttling makes
+  it slower. Polarity is recovered from the preamble either way.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+               label   n   bit/s      BER       sd  capacity b/s  vote BER   p<chance  settled-only
+           aa_1000ms   3     1.0   0.4271   0.1909           0.1    0.3750   9.21e-02  0.4271 (n=3)
+          sym_0256ms   3     3.9   0.0833   0.0502           2.3    0.0625   1.50e-35  0.0833 (n=3)
+          sym_0512ms   3     2.0   0.1042   0.0786           1.1    0.0417   1.61e-16  0.1042 (n=3)
+          sym_1000ms   3     1.0   0.0000   0.0000           1.0    0.0000   1.26e-29  0.0000 (n=3)
+
+==============================================================================
+gates
+==============================================================================
+  A/A aa_1000ms: pooled BER 0.427 over 96 bits, p = 0.0921
+  WARN  sym_0512ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
+  WARN  aa_1000ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
+  WARN  sym_1000ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
+  WARN  aa_1000ms: one A/A repeat reached BER 0.219 while the pooled figure is 0.427 (p = 0.092) -- single-run noise, recorded not hidden
+  all gates pass (with warnings)

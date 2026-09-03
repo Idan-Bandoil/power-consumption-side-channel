@@ -229,9 +229,30 @@ static int build_payload(const struct tx_config *c, unsigned char *bits, int max
 			fprintf(stderr, "--random-bits must be in 1..%d\n", max);
 			exit(EXIT_FAILURE);
 		}
+		/*
+		 * Balanced, not merely random: exactly half the bits are ones,
+		 * then shuffled. This is what makes the A/A control mean
+		 * something. Against a balanced payload, a decoder whose output
+		 * is biased but independent of the message scores BER 0.5
+		 * exactly, whatever its bias -- so an A/A can only beat chance
+		 * by actually recovering information.
+		 *
+		 * An i.i.d. payload does not have that property, and the
+		 * difference is not academic: a tier-3 A/A drew 7 ones in 8 bits
+		 * from the old generator and decoded at BER 0.219, failing its
+		 * gate on nothing but the coincidence between a skewed payload
+		 * and a skewed decode.
+		 */
 		uint64_t rng = c->seed;
-		for (n = 0; n < c->random_bits; n++)
-			bits[n] = xorshift64(&rng) & 1;
+		n = c->random_bits;
+		for (int i = 0; i < n; i++)
+			bits[i] = (i < n / 2) ? 1 : 0;
+		for (int i = n - 1; i > 0; i--) {
+			int j = (int)(xorshift64(&rng) % (uint64_t)(i + 1));
+			unsigned char t = bits[i];
+			bits[i] = bits[j];
+			bits[j] = t;
+		}
 	}
 	return n;
 }

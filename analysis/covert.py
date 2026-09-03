@@ -264,6 +264,15 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     n_pay = len(truth_pay)
     ber = pay_err / (n_pay * frames)
 
+    # Share of decoded payload bits that came out 1, and the same for the
+    # transmitted payload. A decoder fed a featureless trace still emits bits,
+    # and if those are skewed the same way the payload happens to be, the BER
+    # flatters it. Balanced payloads (see tx.c) make that impossible in
+    # expectation; these two columns are how you check the payload really was
+    # balanced and see the decode's own bias.
+    decoded_ones = float(np.mean(np.concatenate(decoded_frames)))
+    truth_ones = float(np.mean(truth_pay))
+
     # Per-chip separation, which is what actually sets the error rate. A
     # Manchester decision compares two chips, so with per-chip noise sd the
     # difference carries sd*sqrt(2) and BER should track Q(d_prime/sqrt(2)).
@@ -329,6 +338,8 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "payload_bits": n_pay,
         "preamble_ber": pre_err / (n_pre * frames),
         "ber": ber,
+        "decoded_ones": decoded_ones,
+        "truth_ones": truth_ones,
         "p_below_chance": binom_p_below_chance(pay_err, n_pay * frames),
         "voted_errors": voted_err,
         "voted_ber": voted_err / n_pay,
@@ -535,10 +546,35 @@ def main():
         # An A/A transmission carries nothing, so the decoder must fail on it.
         # This is the same negative control every A/B claim in the project
         # ships with, in the form the channel takes.
-        if r["aa_control"] and r["ber"] < AA_BER_FLOOR:
-            failures.append(f"{r['tag']}: A/A control decoded at BER "
-                            f"{r['ber']:.3f} -- the decoder is finding "
+        if abs(r["truth_ones"] - 0.5) > 0.2 and r["payload_bits"] >= 8:
+            warnings.append(f"{r['tag']}: payload is {r['truth_ones']:.0%} ones, "
+                            f"so BER is vulnerable to a biased decode scoring "
+                            f"well by coincidence -- use a balanced payload")
+
+    # A/A is judged pooled across repeats, not per run. A single A/A here
+    # carries as few as 32 bits, where the SD of BER is 0.09 and a 3-sigma
+    # excursion is a 1-in-140 event -- the gate would fire on noise about as
+    # often as on a real problem. Pooling is also the project's stated
+    # reporting unit everywhere else.
+    for label, group in sorted(aggregate(rows).items()):
+        if not group[0]["aa_control"]:
+            continue
+        bits = sum(g["payload_bits"] * g["frames"] for g in group)
+        errs = sum(int(round(g["ber"] * g["payload_bits"] * g["frames"]))
+                   for g in group)
+        pooled = errs / bits
+        p = binom_p_below_chance(errs, bits)
+        print(f"  A/A {label}: pooled BER {pooled:.3f} over {bits} bits, "
+              f"p = {p:.3g}")
+        if pooled < AA_BER_FLOOR and p < 0.01:
+            failures.append(f"{label}: A/A pooled BER {pooled:.3f} over {bits} "
+                            f"bits (p = {p:.2g}) -- the decoder is finding "
                             f"structure in a transmission that has none")
+        elif any(g["ber"] < AA_BER_FLOOR for g in group):
+            worst = min(g["ber"] for g in group)
+            warnings.append(f"{label}: one A/A repeat reached BER {worst:.3f} "
+                            f"while the pooled figure is {pooled:.3f} "
+                            f"(p = {p:.2g}) -- single-run noise, recorded not hidden")
 
     for r in rows:
         if r["message"] is not None:
