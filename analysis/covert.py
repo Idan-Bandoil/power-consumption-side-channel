@@ -315,6 +315,47 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     else:
         d_prime_paired = d_prime / math.sqrt(2)
 
+    # --- acquisition versus demodulation ----------------------------------
+    #
+    # A decode can fail two ways and they need different fixes: the receiver
+    # never found the frame (acquisition), or it found it and could not tell
+    # the chips apart (demodulation). The free-running BER above conflates
+    # them, and in this sweep they are not evenly mixed -- runs land either
+    # within a chip of the truth or hundreds of chips away, with nothing in
+    # between, so a failed acquisition contributes a BER of exactly chance and
+    # says nothing about whether the channel carried the bits.
+    #
+    # Demodulating on the *true* chip grid separates them at no extra cost:
+    # true_power is already computed above for the d' diagnostics. Like those,
+    # it reads ground truth, so it is a diagnostic and not something a real
+    # receiver could do -- it answers "would the bits have been there if sync
+    # had landed", which is exactly what the free-running BER cannot.
+    oracle_pol = 1.0 if float(np.dot(true_power - true_power.mean(),
+                                     truth_chips)) >= 0 else -1.0
+    oracle_err = 0
+    for f in range(frames):
+        chunk = true_power[f * frame_chips:(f + 1) * frame_chips]
+        bits = demodulate(chunk, code, polarity=oracle_pol)
+        oracle_err += int(np.sum(bits[n_pre:] != truth_pay))
+    ber_oracle = oracle_err / (n_pay * frames)
+
+    # Whether acquisition actually succeeded (ground truth), and the statistic
+    # a receiver could use to decide that for itself. A real attacker has no
+    # sync_error_chips; what it has is the height of the peak it found.
+    #
+    # The obvious candidate -- peak over best sidelobe -- does not work, and
+    # that is worth recording rather than dropping. Over this sweep it reads
+    # 1.00-1.19 for failed acquisitions and 1.04-1.43 for successful ones,
+    # completely overlapping, because with ~10^5 candidate offsets the largest
+    # noise peak sits just under the largest peak of any kind. The *absolute*
+    # normalised correlation does separate them (0.26-0.71 failed against
+    # 0.64-1.00 acquired), so that is the one reported.
+    acquired = abs((t_sync - tx["tsc_start"]) / chip_tsc) <= 0.5
+    runner = runner_up(scores, best, SYNC_OVERSAMPLE)
+    sync_margin = (abs(scores[best]) / abs(runner)
+                   if runner and np.isfinite(runner) and abs(runner) > 0
+                   else float("inf"))
+
     # Majority vote across the repeated frames: the cheapest possible ECC,
     # and the honest way to show what repetition buys against the raw BER.
     stacked = np.stack(decoded_frames)
@@ -323,6 +364,11 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
 
     symbol_s = float(tx["symbol_us"]) / 1e6
     raw_bps = 1.0 / symbol_s
+    # A majority vote across F frames costs a factor F in rate, because the F
+    # frames carry one payload between them. Quoting "zero errors after the
+    # vote" against the raw rate charges nothing for the repetition; this is
+    # what the vote actually delivers.
+    voted_bps = raw_bps / frames
 
     return {
         "label": entry.get("label", entry["tag"]),
@@ -335,7 +381,12 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "aa_control": tx["on_selector"] == tx["off_selector"],
         "late_chips": int(tx["late_chips"]),
         "frames": frames,
+        # payload_bits is the number of *distinct* bits the message carries.
+        # Each is transmitted `frames` times, so the two counts differ by that
+        # factor and a bound quoted over the larger one is not a bound over
+        # independent truths -- see the bit-count note in main().
         "payload_bits": n_pay,
+        "transmitted_bits": n_pay * frames,
         "preamble_ber": pre_err / (n_pre * frames),
         "ber": ber,
         "decoded_ones": decoded_ones,
@@ -343,7 +394,11 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "p_below_chance": binom_p_below_chance(pay_err, n_pay * frames),
         "voted_errors": voted_err,
         "voted_ber": voted_err / n_pay,
+        "voted_bps": voted_bps,
         "capacity_bps": raw_bps * bsc_capacity(ber),
+        "ber_oracle_sync": ber_oracle,
+        "acquired": bool(acquired),
+        "sync_margin": float(sync_margin),
         "sync_corr": float(np.nanmean(frame_corr)),
         "sync_peak": float(scores[best]),
         "sync_runner_up": runner_up(scores, best, SYNC_OVERSAMPLE),
@@ -474,19 +529,33 @@ def main():
         scale, unit = 1.0, "W"
 
     print(hr("per-run decode"))
-    print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'pre':>6} "
-          f"{'vote':>6} {'d' + unit:>8} {'sd ' + unit:>8} {'d-marg':>7} "
+    print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'BER|snc':>8} "
+          f"{'acq':>4} {'|pk|':>5} {'pre':>6} "
+          f"{'vote':>6} {'cap b/s':>8} {'d' + unit:>8} {'sd ' + unit:>8} {'d-marg':>7} "
           f"{'d-pair':>7} {'Q(pair)':>8} {'ovr%':>5} {'sync':>7} {'late':>5}")
     for r in sorted(rows, key=lambda r: (r["label"], r["repeat"])):
         print(f"  {r['tag']:>22} {r['symbol_us']:>7.0f} {r['raw_bps']:>7.1f} "
-              f"{r['ber']:>7.4f} {r['preamble_ber']:>6.3f} "
-              f"{r['voted_ber']:>6.3f} {r['delta_w'] * scale:>8.3f} "
+              f"{r['ber']:>7.4f} {r['ber_oracle_sync']:>8.4f} "
+              f"{('yes' if r['acquired'] else 'NO'):>4} "
+              f"{abs(r['sync_peak']):>5.2f} "
+              f"{r['preamble_ber']:>6.3f} "
+              f"{r['voted_ber']:>6.3f} {r['capacity_bps']:>8.1f} "
+              f"{r['delta_w'] * scale:>8.3f} "
               f"{r['noise_sd_w'] * scale:>8.3f} {r['d_prime']:>7.2f} "
               f"{r['d_prime_paired']:>7.2f} {r['ber_predicted']:>8.4f} "
               f"{r['overshoot_fraction'] * 100:>5.2f} "
               f"{r['sync_error_chips']:>+7.2f} {r['late_chips']:>5}"
               f"{'' if r['settled'] else '   << unsettled sampler'}")
-    print(f"\n  BER over payload bits; pre = preamble BER (a sync check);")
+    print(f"\n  BER over payload bits, decoded at the sync the receiver recovered.")
+    print(f"  BER|snc is the same decode on the TRUE chip grid, so it measures")
+    print(f"  demodulation with acquisition removed; acq says whether the recovered")
+    print(f"  sync landed within half a chip. A run with acq=NO has a BER at chance")
+    print(f"  whatever the channel did, so read BER and BER|snc together: they part")
+    print(f"  company exactly where the failure is acquisition and not noise. |pk| is")
+    print(f"  the winning correlation, the acquisition statistic a real receiver could")
+    print(f"  compute for itself -- it has no sync column to check. Peak over best")
+    print(f"  sidelobe, the obvious alternative, does not separate the two at all.")
+    print(f"  pre = preamble BER (a sync check);")
     print(f"  vote = BER after majority vote across frames; d{unit} and sd are")
     print(f"  the per-chip separation and noise, d-marg their ratio. d-pair is")
     print(f"  the same for the within-symbol difference the decision actually")
@@ -504,19 +573,36 @@ def main():
         print(f"  it slower. Polarity is recovered from the preamble either way.")
 
     print(hr("by condition (between-repeat spread is the error bar)"))
-    print(f"  {'label':>18} {'n':>3} {'bit/s':>7} {'BER':>8} {'sd':>8} "
-          f"{'capacity b/s':>13} {'vote BER':>9} {'p<chance':>10}  settled-only")
+    print("  THIS is the reporting unit. A single repeat is not quotable -- the")
+    print("  project's own rule everywhere else -- and at a given rate the repeats")
+    print("  here span far more than any one of them admits.")
+    print(f"\n  {'label':>18} {'n':>3} {'raw b/s':>8} {'BER':>8} {'SD':>8} "
+          f"{'acq':>5} {'BER|snc':>8} {'cap b/s':>8} {'vote BER':>9} {'vote b/s':>9} "
+          f"{'bits d/tx':>11} {'p<chance':>10}  settled-only")
+    zero_error = []
     for label, group in sorted(aggregate(rows).items()):
         bers = np.array([g["ber"] for g in group])
-        caps = np.array([g["capacity_bps"] for g in group])
         votes = np.array([g["voted_ber"] for g in group])
+        oracle = np.array([g["ber_oracle_sync"] for g in group])
+        acq = np.array([g["acquired"] for g in group])
         sd = bers.std(ddof=1) if len(bers) > 1 else float("nan")
-        # Pooled over repeats: the bits are independent across runs, so the
-        # exact test applies to their sum and is far stronger than any one run.
-        tot_bits = sum(g["payload_bits"] * g["frames"] for g in group)
-        tot_err = sum(int(round(g["ber"] * g["payload_bits"] * g["frames"]))
-                      for g in group)
+        raw = group[0]["raw_bps"]
+        # Capacity of the channel as *aggregated*, not the mean of the
+        # per-repeat capacities. 1 - H(p) is convex, so averaging per-run
+        # capacities is dominated by the best repeat and reintroduces exactly
+        # the selection this table exists to remove: at 500 bit/s the repeats
+        # give 0.0 / 0.0 / 385.6 b/s, whose mean of 128.6 describes no run and
+        # no channel. The per-repeat figures are in the table above.
+        cap = raw * bsc_capacity(float(bers.mean()))
+        # Distinct payload bits carried, and the number of transmissions of
+        # them. The p-value below is over the latter; see the note after the
+        # table for why that overstates the evidence.
+        n_distinct = sum(g["payload_bits"] for g in group)
+        tot_bits = sum(g["transmitted_bits"] for g in group)
+        tot_err = sum(int(round(g["ber"] * g["transmitted_bits"])) for g in group)
         pval = binom_p_below_chance(tot_err, tot_bits)
+        if tot_err == 0:
+            zero_error.append((label, n_distinct, tot_bits))
         # Both columns, always. Restricting to settled runs is a defensible
         # instrument-quality criterion -- the overshoot rate is measured by the
         # receiver and knows nothing about the decode -- but a filtered number
@@ -524,9 +610,35 @@ def main():
         # one stays next to it.
         keep = [g["ber"] for g in group if g["settled"]]
         note = (f"{np.mean(keep):.4f} (n={len(keep)})" if keep else "none settled")
-        print(f"  {label:>18} {len(group):>3} {group[0]['raw_bps']:>7.1f} "
-              f"{bers.mean():>8.4f} {sd:>8.4f} {caps.mean():>13.1f} "
-              f"{votes.mean():>9.4f} {pval:>10.2e}  {note}")
+        print(f"  {label:>18} {len(group):>3} {raw:>8.1f} "
+              f"{bers.mean():>8.4f} {sd:>8.4f} "
+              f"{str(int(acq.sum())) + '/' + str(len(acq)):>5} {oracle.mean():>8.4f} "
+              f"{cap:>8.1f} "
+              f"{votes.mean():>9.4f} {raw / group[0]['frames']:>9.1f} "
+              f"{str(n_distinct) + '/' + str(tot_bits):>11} {pval:>10.2e}  {note}")
+
+    print("\n  acq       : repeats whose recovered sync landed within half a chip.")
+    print("  BER|snc   : mean BER demodulated on the true chip grid. Where this is")
+    print("              far below BER, the rate was limited by acquisition and not")
+    print("              by per-chip noise, and the remedy is a better preamble")
+    print("              rather than a slower symbol.")
+    print("  cap b/s   : raw rate x (1 - H(BER)), the BSC capacity at the aggregated")
+    print("              BER. This is the rate/reliability figure to quote and compare")
+    print("              against the literature; BER at a rate is not one number.")
+    print("  vote b/s  : raw / frames, the rate actually delivered after the majority")
+    print("              vote, since the F frames carry one payload between them.")
+    print("  bits d/tx : distinct payload bits / times they were transmitted. p<chance")
+    print("              is a binomial over the second, which assumes every")
+    print("              transmission is an independent truth. It is not: a decoder")
+    print("              biased but independent of the message errs the same way on")
+    print("              every repeat of a bit, so the effective n is the first")
+    print("              number. Read p as an upper bound on the evidence.")
+    if zero_error:
+        print("\n  zero errors bounds BER only as well as the bit count allows (rule of")
+        print("  three, 95%): over transmissions, and over distinct bits --")
+        for label, n_distinct, tot_bits in zero_error:
+            print(f"    {label:>18}  <= {3 / tot_bits:.1e} over {tot_bits} tx"
+                  f"   |  <= {3 / n_distinct:.1e} over {n_distinct} distinct")
 
     # --- gates ------------------------------------------------------------
     print(hr("gates"))

@@ -1,0 +1,76 @@
+==============================================================================
+RAPL update period: the part, or the estimator?
+==============================================================================
+  runs                : 322 edge-sampled
+  reported period     : 1.0002 ms  (SD 0.0070, range 0.9816-1.0431)
+  datasheet 2^-10 s   : 0.9766 ms  (+2.42% vs reported)
+  overshoot fraction  : 0.0060  (range 0.0000-0.0453)
+
+  corr(overshoot, period) = -0.009   R^2 = 0.000
+  period_ms ~ 1.0002 + -0.0059 * overshoot_fraction
+    intercept 1.0002 ms is the period extrapolated to a
+    zero-overshoot sampler; datasheet is 0.9766 ms
+    (+2.42% from it, against +2.42% for the raw mean)
+
+  contamination model : estimate = T * (1 + overshoot) predicts
+                        slope/intercept = 1.00; measured -0.01
+
+  VERDICT: no material dependence on overshoot rate; the reported
+  period is not explained by estimator contamination.
+
+==============================================================================
+Achieved victim throughput across the corpus
+==============================================================================
+  victim              n  mean GB/s       SD      min      max
+  ws_l1_x8            5      739.3      5.1    733.1    744.5
+  ws_l1_x4            5      664.2     16.6    641.7    682.5
+  ws_l1_x2            5      405.3     27.3    384.6    440.0
+  ws_l2_x8            4      339.2     21.3    321.4    368.0
+  ws_l1_x1            5      213.8     12.9    206.3    236.7
+  ws_l3_x8_ab64       3      147.6      1.0    146.4    148.3
+  ws_op_mov           4      147.3      0.9    146.2    148.1
+  ws_l3_x8_ab        24      146.3      2.6    140.1    150.9
+  ws_op_fma           4      146.3      0.8    145.7    147.5
+  ws_op_mul           4      145.7      0.7    144.7    146.4
+  ws_op_vnni          4      144.8      3.5    139.9    148.0
+  ws_op_xor           4      144.4      4.2    138.3    148.1
+  ws_op_shift         4      142.6      2.2    139.4    144.7
+  ws_op_or            4      141.0      0.7    140.4    142.0
+  ws_op_add           4      140.0      1.3    138.9    141.9
+  ws_op_and           8      139.8      1.2    138.4    141.6
+  ws_l3_x8          147      139.3     20.6     59.6    196.2
+  ws_dram_x8         15       40.9      2.6     37.0     43.7
+
+  A victim whose spread is wide across the corpus was not run at one
+  operating point, so a characterisation from one session does not
+  necessarily transfer to another that used the same name.
+
+==============================================================================
+Bias admitted by the interleaving gate, in watts
+==============================================================================
+  290 runs with raw data on disk
+
+   bias mW  imbal  span W  |eff| mW      x  run
+    4425.1  0.093  47.701    2823.7    0.6  phase2_tier2_feasibility/aa_t18 (A/A)
+    4381.4  0.093  47.230    2834.9    0.6  phase2_tier2_feasibility/t18
+    3758.6  0.093  40.516    1339.9    0.4  phase2_tier2_feasibility/t4
+    3550.9  0.093  38.278    2083.5    0.6  phase2_tier2_feasibility/t4_s2
+    3264.1  0.093  35.186    2602.2    0.8  phase2_tier2_feasibility/t10
+    3258.9  0.093  35.130    2371.8    0.7  phase2_tier2_feasibility/aa_t10 (A/A)
+    2982.4  0.093  32.149    2770.7    0.9  phase2_tier2_feasibility/t6
+    2701.4  0.093  29.120    1269.2    0.5  phase2_tier2_feasibility/t8
+    2123.1  0.093  22.886    8082.6    3.8  phase2_tier2_feasibility/t10
+    2095.6  0.045  46.117    2042.4    1.0  phase2_tier2_feasibility/aa_t18 (A/A)
+    1894.0  0.045  41.681    2291.3    1.2  phase2_tier2_feasibility/t6
+    1764.0  0.045  38.820    3926.2    2.2  phase2_tier2_feasibility/t4_s2
+    1677.9  0.045  36.924    1544.8    0.9  phase2_tier2_feasibility/aa_t10 (A/A)
+    1617.1  0.045  35.587    4381.9    2.7  phase2_tier2_feasibility/t10
+    1349.6  0.045  29.701     699.6    0.5  phase2_tier2_feasibility/t8
+
+  admitted bias : median 6.8 mW, max 4425.1 mW
+  effect / bias : median 104x, min 0.2x  (A/A runs excluded, they have no effect)
+
+  An effect smaller than its run's admitted bias is not separated from
+  drift by the design alone. The gate passes at imbalance <= 0.10, which
+  is loose; what saves the corpus is that achieved imbalance is far
+  inside it, not that the threshold is well chosen.

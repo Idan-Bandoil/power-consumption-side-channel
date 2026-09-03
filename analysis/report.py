@@ -72,6 +72,21 @@ def analyse_run(run, fig_dir, n_perm, n_boot):
           f"(mean position " + ", ".join(f"cond {c} {p:.2f}" for c, p in pos.items())
           + f")  [{'OK' if balanced else 'FAIL — conditions are temporally separated'}]")
 
+    # Imbalance on its own is a unitless number, and the 0.10 threshold has
+    # never been converted into the thing it is supposed to bound: how many
+    # watts of drift the design lets through as a condition effect. Drift over
+    # a run is already measured (the decile span above), and the two multiply
+    # -- a condition sitting a fraction f later in the run than the other picks
+    # up f of whatever the run drifted by. This is a first-order bound, not an
+    # exact bias, but it is in watts and so can be compared against the effect.
+    drift_span = max(spans.values()) if spans else float("nan")
+    admitted = imbalance * drift_span
+    out["admitted_bias_w"] = float(admitted)
+    print(f"  admitted bias    : {admitted * 1000:.1f} mW"
+          f"  (imbalance {imbalance:.3f} x drift span {drift_span:.3f} W)")
+    print(f"                     an effect smaller than this is not separated "
+          f"from drift by the design alone")
+
     conds = sorted(set(run.cond.tolist()))
     for b in conds[1:]:
         a = conds[0]

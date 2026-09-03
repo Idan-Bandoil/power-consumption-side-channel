@@ -23,7 +23,9 @@ The most useful result in this chapter is negative. The preliminary finding that
 motivated the project — a ~4% package-power difference between AVX multiplies on
 all-zero and all-ones operands — does not survive the corrected methodology in the form
 it was originally stated. Establishing that, and establishing *why*, is what made the
-much sharper result in the following chapter findable.
+much sharper result in the following chapter findable. §8 is careful about the division
+of labour there: the gates disposed of one of the two preliminary campaigns, and a
+controlled victim rather than a gate disposed of the other.
 
 ## 2. Platform and configurations
 
@@ -314,10 +316,25 @@ Stated rather than worked around:
 
 The pipeline reduced per-sample dispersion by roughly a factor of nine, removed a 9% class
 of corrupt samples entirely, made thermal drift common-mode by design, and put three
-mechanical gates between an experiment and a reported result. It also cost the project
-its headline preliminary finding, which is the strongest evidence available that the
-gates do something: the first result the corrected instrument was pointed at was the
-project's own, and it did not survive.
+mechanical gates between an experiment and a reported result.
+
+It is worth being precise about which of those did what, because the obvious summary —
+that the gates cost the project its headline preliminary finding — is not true and the
+accurate version is more interesting. The gates rejected `out-1207-2115` outright: its
+design is sequential, its imbalance is ~0.50, and the 31% "effect" it reports is thermal
+drift. But `out-1228-1527`, the run that actually motivated the project, passes the drift
+check — its deciles are flat to ±0.7% and its two conditions genuinely differ by 4.33%.
+No gate rejected it, and no gate could have. What dissolved that result was the rebuilt
+*victim*: the original was compiled at `-O0` and spilled its operands to memory every
+iteration, and the register-resident replacement does not. The preliminary finding was
+**mis-attributed rather than wrong**, and the next chapter recovers it in a sharper form
+by putting the traffic back.
+
+So the honest accounting is that the instrument earned its cost twice over, in two
+different ways. The gates rule out a class of experimental design, mechanically and in
+advance, and one of the two preliminary campaigns falls to them. Reproducing a result on
+a controlled victim is a separate discipline the gates cannot supply, and it is what
+relocated the other one.
 
 Everything reported after this chapter passes all three gates, ships with an A/A control,
 and is aggregated over at least three repeats with randomised run order.

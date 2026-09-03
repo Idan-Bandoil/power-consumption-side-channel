@@ -2,24 +2,58 @@
 ==============================================================================
 per-run decode
 ==============================================================================
-                     run  sym us   bit/s     BER    pre   vote     dW     sd  d-prime  ovr%    sync  late
-                 aa_16ms   16000    62.5  0.5078  0.346  0.594  0.061  5.955     0.01  0.21 +166.23     0
-                sym_16ms   16000    62.5  0.0156  0.000  0.000  1.575  0.487     3.24  0.30   +0.14     0
+                     run  sym us   bit/s     BER  BER|snc  acq  |pk|    pre   vote  cap b/s       dW     sd W  d-marg  d-pair  Q(pair)  ovr%    sync  late
+                 aa_16ms   16000    62.5  0.5469   0.4844   NO  0.27  0.346  0.656      0.4    0.058    0.796    0.07    0.09   0.4652  0.21 -132.77     0
+                sym_16ms   16000    62.5  0.0156   0.0312  yes  0.83  0.000  0.000     55.2    1.591    0.515    3.09    2.50   0.0062  0.30   +0.14     0
 
-  BER over payload bits; pre = preamble BER (a sync check);
-  vote = BER after majority vote across frames; dW and sd are the
-  per-chip separation and noise, d-prime their ratio; ovr% is the
-  share of RAPL edges seen late; sync = recovered start minus true
-  start, in chips.
+  BER over payload bits, decoded at the sync the receiver recovered.
+  BER|snc is the same decode on the TRUE chip grid, so it measures
+  demodulation with acquisition removed; acq says whether the recovered
+  sync landed within half a chip. A run with acq=NO has a BER at chance
+  whatever the channel did, so read BER and BER|snc together: they part
+  company exactly where the failure is acquisition and not noise. |pk| is
+  the winning correlation, the acquisition statistic a real receiver could
+  compute for itself -- it has no sync column to check. Peak over best
+  sidelobe, the obvious alternative, does not separate the two at all.
+  pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dW and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
 
 ==============================================================================
 by condition (between-repeat spread is the error bar)
 ==============================================================================
-               label   n   bit/s      BER       sd  capacity b/s  vote BER  settled-only
-             aa_16ms   1    62.5   0.5078      nan           0.0    0.5938  0.5078 (n=1)
-            sym_16ms   1    62.5   0.0156      nan          55.2    0.0000  0.0156 (n=1)
+  THIS is the reporting unit. A single repeat is not quotable -- the
+  project's own rule everywhere else -- and at a given rate the repeats
+  here span far more than any one of them admits.
+
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
+             aa_16ms   1     62.5   0.5469      nan   0/1   0.4844      0.4    0.6562      15.6      32/128   8.75e-01  0.5469 (n=1)
+            sym_16ms   1     62.5   0.0156      nan   1/1   0.0312     55.2    0.0000      15.6      32/128   2.43e-35  0.0156 (n=1)
+
+  acq       : repeats whose recovered sync landed within half a chip.
+  BER|snc   : mean BER demodulated on the true chip grid. Where this is
+              far below BER, the rate was limited by acquisition and not
+              by per-chip noise, and the remedy is a better preamble
+              rather than a slower symbol.
+  cap b/s   : raw rate x (1 - H(BER)), the BSC capacity at the aggregated
+              BER. This is the rate/reliability figure to quote and compare
+              against the literature; BER at a rate is not one number.
+  vote b/s  : raw / frames, the rate actually delivered after the majority
+              vote, since the F frames carry one payload between them.
+  bits d/tx : distinct payload bits / times they were transmitted. p<chance
+              is a binomial over the second, which assumes every
+              transmission is an independent truth. It is not: a decoder
+              biased but independent of the message errs the same way on
+              every repeat of a bit, so the effective n is the first
+              number. Read p as an upper bound on the evidence.
 
 ==============================================================================
 gates
 ==============================================================================
+  A/A aa_16ms: pooled BER 0.547 over 128 bits, p = 0.875
   all gates pass
