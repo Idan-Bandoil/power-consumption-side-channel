@@ -1,0 +1,43 @@
+{
+  "name": "phase2_tier1_rate",
+  "kind": "covert",
+  "config": "A",
+  "cooldown_s": 20,
+  "repeats": 3,
+  "shuffle_runs": true,
+  "_comment": [
+    "Tier-1 (RAPL) bit-error rate against symbol rate.",
+    "ws_l3_x8 is the transmitter because Phase 1 found it the most detectable",
+    "victim, not the one with the largest delta power: ws_dram_x8 moves more",
+    "energy per byte but needs n=13-89 samples per decision against n=1-8 here.",
+    "Symbol periods run from 2 ms (one RAPL sample per Manchester chip, the",
+    "floor the ~1 ms update rate imposes) to 32 ms. Payload sizes are chosen",
+    "to keep each run near 5-20 s while putting the most bits at the fast end,",
+    "where the errors are; a run with no errors bounds BER only as well as its",
+    "bit count allows, which is why the slow rows still carry 616 bits.",
+    "The A/A row transmits with on == off, so a decoder that reports anything",
+    "but chance on it is finding structure that was never sent."
+  ],
+  "tx": {
+    "victim": "ws_l3_x8",
+    "threads": 4,
+    "on": 4294967295,
+    "off": 0,
+    "code": "manchester",
+    "frames": 8,
+    "seed": 12345
+  },
+  "rx": { "core": 0, "mode": "edge" },
+  "runs": [
+    { "label": "sym_02ms", "symbol_us": 2000,  "random_bits": 256 },
+    { "label": "sym_03ms", "symbol_us": 3000,  "random_bits": 256 },
+    { "label": "sym_04ms", "symbol_us": 4000,  "random_bits": 256 },
+    { "label": "sym_06ms", "symbol_us": 6000,  "random_bits": 256 },
+    { "label": "sym_08ms", "symbol_us": 8000,  "random_bits": 256 },
+    { "label": "sym_12ms", "symbol_us": 12000, "random_bits": 128 },
+    { "label": "sym_16ms", "symbol_us": 16000, "random_bits": 128 },
+    { "label": "sym_24ms", "symbol_us": 24000, "random_bits": 64 },
+    { "label": "sym_32ms", "symbol_us": 32000, "random_bits": 64 },
+    { "label": "aa_08ms",  "symbol_us": 8000,  "random_bits": 256, "on": 0, "off": 0 }
+  ]
+}

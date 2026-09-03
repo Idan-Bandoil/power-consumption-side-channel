@@ -1,0 +1,45 @@
+{
+  "name": "phase0_refactor_check",
+  "description": [
+    "Regression check on the sampler/victim-pool extraction (util/sampler.c,",
+    "util/victim-pool.c). The driver's measurement loop moved out of",
+    "src/driver.c into shared modules so the covert-channel receiver could use",
+    "the same instrument rather than a copy of it. The move was mechanical, but",
+    "every Phase 0 and Phase 1 number depends on that loop, so it gets a",
+    "measurement, not an assurance.",
+    "",
+    "The anchor is the check that matters: ws_l3_x8 with selectors [0, 2^32-1]",
+    "at these exact driver settings has read +1.841, +1.904, +1.943 and +2.054 W",
+    "in four earlier sessions. A result inside that range means the extracted",
+    "sampler measures what the inline one did. The A/A confirms the rebuilt path",
+    "still cannot manufacture an effect."
+  ],
+  "config": "A",
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "repeats": 3,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 22360
+  },
+  "runs": [
+    {
+      "label": "anchor",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "comment": "Cross-session anchor. Expect +1.84 to +2.05 W."
+    },
+    {
+      "label": "aa_control",
+      "victim": "ws_l3_x8",
+      "selectors": [4294967295, 4294967295],
+      "comment": "A/A negative control: must land at chance."
+    }
+  ]
+}

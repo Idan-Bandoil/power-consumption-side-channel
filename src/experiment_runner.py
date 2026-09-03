@@ -140,6 +140,11 @@ def restore():
 
 MAX_START_LOAD = 2.0
 
+# Anything that spawns victims or holds an MSR open. A survivor from an older
+# run spins at 100% on a pinned core and quietly poisons every later
+# measurement, so a run refuses to start while one is alive.
+MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl")
+
 
 def load1():
     return float((_read("/proc/loadavg") or "0").split()[0])
@@ -155,13 +160,14 @@ def preflight():
     else the machine is doing, would corrupt the measurement just as well.
     """
     stray = []
-    for name in ("driver", "smoke"):
+    for name in MEASURING_PROCS:
         out = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True)
         if out.returncode == 0:
             stray += [f"{name}:{p}" for p in out.stdout.split()]
     if stray:
+        kill = "; ".join(f"pkill -9 -x {n}" for n in MEASURING_PROCS)
         raise SystemExit(f"refusing to start: stray measurement processes {stray}\n"
-                         f"  kill them with: pkill -9 -x driver; pkill -9 -x smoke")
+                         f"  kill them with: {kill}")
 
     load = load1()
     if load > MAX_START_LOAD:
@@ -295,6 +301,164 @@ def run_driver(run_spec, driver_opts, out_dir, tag, repeat=0):
 
 
 # ---------------------------------------------------------------------------
+# Covert channel (Phase 2)
+# ---------------------------------------------------------------------------
+
+TX_DEFAULTS = {
+    "victim": "ws_l3_x8",
+    "threads": 4,
+    "on": 4294967295,
+    "off": 0,
+    "symbol_us": 4000,
+    "code": "manchester",
+    "random_bits": 64,
+    "seed": 12345,
+    "frames": 8,
+    "preamble": "1111100110101",
+    "lead_ms": 300,
+    "tail_ms": 300,
+    "prewarm_ms": 600,
+    "tx_core": 12,
+    "victim_core_start": 2,
+    "victim_core_stride": 2,
+    "max_victim_core": 11,
+}
+
+TX_FLAGS = {
+    "victim": "--victim",
+    "threads": "--threads",
+    "on": "--on",
+    "off": "--off",
+    "symbol_us": "--symbol-us",
+    "code": "--code",
+    "random_bits": "--random-bits",
+    "seed": "--seed",
+    "frames": "--frames",
+    "preamble": "--preamble",
+    "lead_ms": "--lead-ms",
+    "tail_ms": "--tail-ms",
+    "prewarm_ms": "--prewarm-ms",
+    "tx_core": "--tx-core",
+    "victim_core_start": "--victim-core-start",
+    "victim_core_stride": "--victim-core-stride",
+    "max_victim_core": "--max-victim-core",
+}
+
+RX_DEFAULTS = {"core": 0, "mode": "edge"}
+RX_FLAGS = {"core": "--core", "mode": "--mode"}
+
+# Seconds the receiver keeps recording past the transmitter's last symbol.
+RX_MARGIN_S = 2.0
+# Seconds the receiver runs before the transmitter starts, so the trace opens
+# on an idle baseline the decoder can measure a false-sync rate against.
+RX_LEAD_S = 1.0
+
+
+def tx_bits_per_frame(opts):
+    payload = len(opts["message"]) * 8 if opts.get("message") else int(opts["random_bits"])
+    return len(str(opts["preamble"])) + payload
+
+
+def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
+    """One transmission, recorded by an independent receiver process.
+
+    The two are separate processes on purpose: the transmitter shares no
+    memory with the receiver, so everything the decoder recovers has come
+    through the power. The transmitter also drops to the invoking user --
+    running it as root would quietly undercut the claim that it needs no
+    privilege.
+    """
+    csv_path = out_dir / f"{tag}.rx.csv"
+
+    opts = dict(TX_DEFAULTS)
+    opts.update(tx_opts)
+    opts.update({k: v for k, v in run_spec.items() if k in TX_FLAGS or k == "message"})
+    ropts = dict(RX_DEFAULTS)
+    ropts.update(rx_opts)
+    ropts.update({k: v for k, v in run_spec.items() if k in RX_FLAGS})
+
+    tx_cmd = [str(BIN / "tx")]
+    for key, flag in TX_FLAGS.items():
+        tx_cmd += [flag, str(opts[key])]
+    if opts.get("message"):
+        tx_cmd += ["--message", str(opts["message"])]
+
+    # The receiver is told how long to record, and nothing else about the
+    # transmission -- not the symbol period, not the preamble, not the payload.
+    bits = tx_bits_per_frame(opts) * int(opts["frames"])
+    tx_s = ((float(opts["prewarm_ms"]) + float(opts["lead_ms"]) + float(opts["tail_ms"])) / 1000.0
+            + bits * float(opts["symbol_us"]) / 1e6)
+    rx_s = RX_LEAD_S + tx_s + RX_MARGIN_S
+
+    rx_cmd = [str(BIN / "rx_rapl"), "--duration", f"{rx_s:.3f}", "--out", str(csv_path)]
+    for key, flag in RX_FLAGS.items():
+        rx_cmd += [flag, str(ropts[key])]
+
+    uid = int(os.environ.get("SUDO_UID", 0))
+    gid = int(os.environ.get("SUDO_GID", 0))
+
+    logger.info("running %s: %s symbol=%sus %d bits (%.1fs tx, %.1fs rx)",
+                tag, opts["victim"], opts["symbol_us"], bits, tx_s, rx_s)
+    before = system_state()
+    started = time.time()
+
+    rx_proc = subprocess.Popen(rx_cmd, cwd=SRC, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True)
+    try:
+        time.sleep(RX_LEAD_S)
+        tx_kwargs = {"user": uid, "group": gid} if uid else {}
+        tx_proc = subprocess.run(tx_cmd, cwd=SRC, capture_output=True, text=True,
+                                 **tx_kwargs)
+    except BaseException:
+        rx_proc.kill()
+        rx_proc.wait()
+        raise
+    rx_out, rx_err = rx_proc.communicate()
+    elapsed = time.time() - started
+
+    if tx_proc.returncode != 0:
+        logger.error("tx failed (%d):\n%s", tx_proc.returncode, tx_proc.stderr[-2000:])
+        raise SystemExit(tx_proc.returncode)
+    if rx_proc.returncode != 0:
+        logger.error("rx failed (%d):\n%s", rx_proc.returncode, rx_err[-2000:])
+        raise SystemExit(rx_proc.returncode)
+
+    try:
+        tx_summary = json.loads(tx_proc.stdout)
+        rx_summary = json.loads(rx_out)
+    except json.JSONDecodeError:
+        logger.error("covert run produced no JSON summary:\ntx: %s\nrx: %s",
+                     tx_proc.stdout[-1000:], rx_out[-1000:])
+        raise SystemExit(1)
+
+    after = system_state()
+    # A late chip means the transmitter could not hold its own schedule, so a
+    # bit-error rate from this run would describe the transmitter rather than
+    # the channel. Loud, because it invalidates the run rather than degrading it.
+    if tx_summary["late_chips"]:
+        logger.warning("  %d late chips (max %.1f us) -- symbol period too short",
+                       tx_summary["late_chips"], tx_summary["max_late_us"])
+    logger.info("  %s rx samples in %.1fs, RAPL period %.3f ms, %d late chips",
+                rx_summary["samples_written"], elapsed,
+                rx_summary["rapl_period_ms"], tx_summary["late_chips"])
+
+    return {
+        "tag": tag,
+        "repeat": repeat,
+        "label": run_spec.get("label", tag),
+        "victim": opts["victim"],
+        "csv": csv_path.name,
+        "elapsed_s": elapsed,
+        "tx": tx_summary,
+        "rx": rx_summary,
+        "tx_argv": tx_cmd,
+        "rx_argv": rx_cmd,
+        "state_before": before,
+        "state_after": after,
+    }
+
+
+# ---------------------------------------------------------------------------
 
 def _raise_interrupt(signum, frame):
     """Turn a termination signal into the exception the cleanup path expects."""
@@ -320,10 +484,10 @@ def main():
             raise SystemExit("must run as root to change turbo state")
         # Config-A leaves no_turbo=1. A run killed before its finally block
         # leaves the machine pinned at base clock indefinitely.
-        live = subprocess.run(["pgrep", "-x", "driver"], capture_output=True)
-        if live.returncode == 0:
-            raise SystemExit("a driver is still running; refusing to change "
-                             "turbo state mid-experiment")
+        for name in MEASURING_PROCS:
+            if subprocess.run(["pgrep", "-x", name], capture_output=True).returncode == 0:
+                raise SystemExit(f"a {name} is still running; refusing to change "
+                                 f"turbo state mid-experiment")
         restore()
         give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
         return
@@ -376,7 +540,9 @@ def main():
         time.sleep(2)
 
         repeats = int(spec.get("repeats", 1))
-        base_seed = int(spec.get("driver", {}).get("seed", 12345))
+        covert = spec.get("kind") == "covert"
+        section = spec.get("tx", {}) if covert else spec.get("driver", {})
+        base_seed = int(section.get("seed", 12345))
         order_rng = random.Random(spec.get("run_order_seed", 20260822))
 
         for rep in range(repeats):
@@ -388,18 +554,23 @@ def main():
             if spec.get("shuffle_runs", repeats > 1):
                 order_rng.shuffle(runs)
             logger.info("--- repeat %d/%d: %s ---", rep + 1, repeats,
-                        " ".join(r.get("label", r["victim"]) for r in runs))
+                        " ".join(r.get("label", r.get("victim", "run")) for r in runs))
 
             for i, run_spec in enumerate(runs):
-                base = run_spec.get("label") or f"{run_spec['victim']}_{i}"
+                base = run_spec.get("label") or f"{run_spec.get('victim', 'run')}_{i}"
                 tag = f"{base}_r{rep}" if repeats > 1 else base
                 # A distinct block-order seed per repeat.
                 rs = dict(run_spec)
                 rs["seed"] = int(rs.get("seed", base_seed)) + 1000 * rep
 
                 cooldown(cool, spec.get("cooldown_target_c"))
-                manifest["runs"].append(
-                    run_driver(rs, spec.get("driver", {}), out_dir, tag, repeat=rep))
+                if covert:
+                    result = run_covert(rs, spec.get("tx", {}), spec.get("rx", {}),
+                                        out_dir, tag, repeat=rep)
+                else:
+                    result = run_driver(rs, spec.get("driver", {}), out_dir, tag,
+                                        repeat=rep)
+                manifest["runs"].append(result)
                 # Persist after every run so a crash still leaves usable metadata.
                 (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
@@ -418,7 +589,8 @@ def main():
         give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
 
     logger.info("results in %s", out_dir)
-    print(f"\nNext: ./venv/bin/python3 -m analysis.report {out_dir}")
+    entry = "analysis.covert" if spec.get("kind") == "covert" else "analysis.report"
+    print(f"\nNext: ./venv/bin/python3 -m {entry} {out_dir}")
 
 
 if __name__ == "__main__":
