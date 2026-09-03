@@ -1,11 +1,11 @@
 # A Covert Channel Out of Operand Power
 
-*Draft — Phase 2 chapter, **partial**. Tiers 1 (RAPL, privileged) and 2
-(`scaling_cur_freq`, unprivileged) are measured; tier 3 and the placement matrix are
-not, and §9 says what is missing. Every number here is reproducible from `results/`
-plus the run manifests, cited inline as a run directory. Tier-1 measurements are
-Config-A (turbo disabled, frequency pinned); tier-2 measurements are necessarily
-Config-B, and §9 explains why that makes them not directly comparable.*
+*Draft — Phase 2 chapter, **partial**. All three receiver tiers are measured; the
+placement matrix and the literature comparison are not, and §9 says what is missing.
+Every number here is reproducible from `results/` plus the run manifests, cited inline as
+a run directory. Tier-1 measurements are Config-A (turbo disabled, frequency pinned);
+tiers 2 and 3 are necessarily Config-B, and §9 explains why that makes them not directly
+comparable with tier 1.*
 
 ## 1. What this chapter asks
 
@@ -38,16 +38,22 @@ The results, in order of how much they constrain the rest:
    `scaling_cur_freq` decodes at 2 bit/s with a bit-error rate of 0.083 and no errors
    after a majority vote (§8.1). That is the result the security claim rests on, and it
    costs two and a half orders of magnitude of rate.
-3. The error rate is set by a single quantity — but not the one that first suggests
+3. **And it works for a receiver that reads nothing at all** — one that only times its
+   own workload, with no file to revoke and no interface to restrict. It matches the
+   file-reading receiver and beats it at 3.9 bit/s (§8.3). So the entire cost of the
+   ladder is the step from root to unprivileged; giving up the last interface costs
+   nothing. Any mitigation aimed at the interface rather than at the throttling is
+   therefore defeated before it starts.
+4. The error rate is set by a single quantity — but not the one that first suggests
    itself. What predicts it is the separation of the *within-symbol difference* the
    decision actually uses, not the marginal separation of a chip (§6). The two agree only
    when chip noise is white, and tier 2 is precisely where they do not.
-4. The run-to-run variation in tier 1's error rate is the *instrument*, not the channel —
+5. The run-to-run variation in tier 1's error rate is the *instrument*, not the channel —
    and the artifact responsible was one the measurement chapter had recorded as harmless
    (§7). It is harmless to a mean difference and not to a per-symbol decision.
-5. The ceiling on each tier's rate is its receiver's integration behaviour — RAPL's ~1 ms
-   update for tier 1, the governor's control loop for tier 2 — not any limit of the
-   transmitter, which held its schedule at every rate tested (§8).
+6. The ceiling on each tier's rate is its receiver's integration behaviour — RAPL's ~1 ms
+   update for tier 1, the governor's control loop for tiers 2 and 3 — not any limit of
+   the transmitter, which held its schedule at every rate tested (§8).
 
 ## 2. Threat model
 
@@ -76,7 +82,11 @@ merely described as unprivileged, the claim is enforced rather than asserted: th
 runs it under the invoking user's uid, and a tier-2 receiver left running as root would
 demonstrate nothing.
 
-**Tier 3**, self-timing in the manner of Hertzbleed, is not built. See §9.
+**Tier 3** reads *nothing*. It runs its own fixed instruction stream and times it with
+`rdtsc`, both of which any process can do anywhere. This matters because tier 2, for all
+that it needs no privilege, still depends on an interface: a container that does not
+mount sysfs, or a kernel built without cpufreq, takes it away. There is nothing here to
+revoke. §8.3 measures it.
 
 The two processes share no memory, no files and no IPC. They do share the invariant TSC,
 which any process can read, and the receiver's recording is timestamped in it. This is a
@@ -434,23 +444,92 @@ not evidence against it. Two lessons, both worth more than the measurement: a nu
 proxy is not a null on the mechanism, and the decisive experiment was the one that ran
 the actual receiver rather than something correlated with it.
 
+### 8.3 The receiver that reads nothing
+
+Tier 3 (`experiments/phase2_tier3_covert.json`,
+`results/20260903-194816-phase2_tier3_covert`, 5 conditions × 3 repeats) times a fixed
+chain of integer operations against the invariant TSC. The TSC ticks at a constant rate
+whatever the core clock does, so a workload that never touches memory takes a TSC
+duration inversely proportional to the core frequency: when the transmitter makes the
+part throttle, the receiver observes *itself* running slower. It never looks at the
+victim at all.
+
+Put beside tier 2 at matched rates:
+
+| bit/s | tier 2 (reads a file) | | tier 3 (reads nothing) | |
+|---|---|---|---|---|
+| | BER | after vote | BER | after vote |
+| 7.8 | 0.500 | 0.479 | — | — |
+| 3.9 | 0.365 | 0.250 | **0.237** | **0.115** |
+| 2.0 | 0.083 | 0.000 | 0.109 | 0.000 |
+| 1.0 | — | — | **0.000** | **0.000** |
+
+**The receiver that reads nothing performs as well as the one that reads a file**, and at
+3.9 bit/s rather better. Both A/A controls are dead at chance with real power behind them
+— pooled BER 0.500 over 384 bits (p = 0.52) and 0.516 over 192 bits (p = 0.69) — against
+per-chip separations of 0.4–4 kTSC on 260–430 kTSC of noise.
+
+The whole cost of the ladder, then, is in the step from root to unprivileged: 83 bit/s to
+about 2. Giving up the last readable interface costs nothing beyond that.
+
+That has a consequence for the mitigations chapter worth stating here, because this
+chapter is where the evidence for it lives. Restricting `scaling_cur_freq` is a real
+proposed defence against frequency side channels — it is the obvious response to tier 2 —
+and on this evidence it buys nothing, because tier 3 never reads it. Any mitigation
+aimed at the *interface* rather than at the throttling itself is defeated by a receiver
+that only needs a clock.
+
+Tier 3's separation grows with symbol period (15–32 kTSC at 256 ms, 35–62 at 512 ms,
+66–75 at 1000 ms). That is the throttle response needing time to settle, the same
+governor-timescale limit tier 2 runs into, and not a property of the receiver.
+
+### 8.4 A control that could not have caught anything
+
+Tier 3's first pass (`results/20260903-185812-phase2_tier3_covert`) decoded 1 bit/s at
+BER 0.000 in all three repeats and then failed its A/A gate at BER 0.219. The failure was
+real and the cause was in the experiment, not the channel.
+
+Payloads were drawn as i.i.d. bits. One repeat drew **seven ones in eight**, and those
+eight bits were repeated across four frames — so the run scored 32 comparisons against
+only 8 independent truths, badly skewed. A decoder handed a featureless trace still emits
+bits, and if those happen to lean the way the payload leans, the bit-error rate flatters
+it. Nothing was recovered; the coincidence was scored as though something had been.
+
+Payloads are now balanced by construction: exactly half ones, shuffled. The property that
+buys is the whole point of the control — against a balanced payload a decode that is
+biased but *independent of the message* scores BER 0.5 exactly, whatever its bias, so an
+A/A can only beat chance by actually recovering information. Every number in §8.3 is from
+the re-run under that generator.
+
+Two smaller corrections came with it. The decoder now reports the ones-fraction of the
+transmitted and decoded payloads and warns when a payload is skewed enough to matter. And
+the A/A gate judges the pooled figure across repeats rather than each run: a single A/A
+here carries as few as 32 bits, where the standard deviation of BER is 0.09 and a
+three-sigma excursion is a one-in-140 event, so a per-run gate fires on noise about as
+often as on a fault. A single repeat straying is now recorded as a warning rather than
+either failing the experiment or disappearing.
+
+The episode is worth keeping in the chapter rather than quietly fixing, because the
+failure mode generalises: a negative control is only as good as the null it is compared
+against, and an unbalanced payload silently weakens the null.
+
 ## 9. What this chapter does not yet cover
 
 This is a partial draft, and the gaps are not incidental.
 
-**Tier 3 does not exist yet.** It times its own fixed workload and infers the
-transmitter's activity from frequency-induced dilation, in the manner of Hertzbleed. It
-is the one receiver that needs no filesystem interface at all, so it is the tier a
-container or a sandbox is least able to take away — which makes it the most interesting
-of the three and the largest remaining gap. §8.2's precondition should apply to it in the
-same form, since it observes the same throttling.
-
-**The two tiers are not measured under the same configuration**, and cannot be. Tier 1
-needs Config-A to isolate power leakage from DVFS; tier 2 needs Config-B because Config-A
-removes the response it reads. So the 83 bit/s and the 2 bit/s in §10 are not a
+**Tier 1 is not measured under the same configuration as the other two**, and cannot be.
+It needs Config-A to isolate power leakage from DVFS; tiers 2 and 3 need Config-B because
+Config-A removes the response they read. So the 83 bit/s and the 2 bit/s in §10 are not a
 controlled comparison of receivers — they are each tier measured where it works, on a
-machine in two different states. A fair comparison would run both under Config-B, which
-would cost tier 1 something unmeasured. That has not been done.
+machine in two different states. A fair comparison would run tier 1 under Config-B as
+well, which would cost it something unmeasured. That has not been done. The tier-2
+against tier-3 comparison in §8.3 does *not* have this problem: same configuration, same
+load, same transmitter.
+
+**Tier 3's sweep found its ceiling but not its floor.** It was measured at 3.9, 2.0 and
+1.0 bit/s and decodes at all three, so nothing here says how slow it would have to run to
+be error-free at 2 bit/s, or whether it keeps improving below 1. The range was inherited
+from tier 2's results rather than chosen for tier 3.
 
 **Only one placement is measured.** The plan asks for cross-core, cross-SMT-sibling,
 cross-P/E-core and cross-container. This chapter has cross-core between P-cores only. The
@@ -492,26 +571,39 @@ independent clock would need to, and nothing here measures how much that costs.
   after a majority vote, against a control at chance. This is the security claim: the
   leak is reachable by an ordinary process, not only by one that could already read the
   victim's memory.
+- **A receiver that reads nothing at all does just as well.** Timing only its own
+  workload — no file, no interface, nothing a container can decline to mount — it decodes
+  error-free at 1 bit/s, matches the file-reading receiver at 2, and beats it at 3.9. The
+  entire cost of the ladder is the step from root to unprivileged; the last interface is
+  free to give up. Restricting `scaling_cur_freq`, the obvious defence against tier 2,
+  therefore buys nothing.
 - The unprivileged channel costs a factor of about 40 in rate and exists only while the
   part is throttling. Four victim threads on this machine do not make it throttle; ten
   do. An idle machine does not carry this channel.
-- The error rate of both tiers is predicted by the separation of the within-symbol
+- The error rate of every tier is predicted by the separation of the within-symbol
   difference the decision uses, through Q(d′_paired). The marginal per-chip form is a
   white-noise special case: it fits tier 1 with a log-log correlation of +0.895 and a
   median ratio of 0.91, and it calls tier 2 dead at d′ 0.08 on a run decoding at BER
-  0.09. Both tiers bottom out on an unexplained error floor of a few times 10⁻³.
+  0.09. Tier 1 bottoms out on an unexplained error floor of a few times 10⁻³.
 - Manchester coding is doing more work than a line code usually does. It was chosen to
   reject thermal drift; it turns out to be what makes tier 2 exist at all, by cancelling
   a governor wander hundreds of MHz deep on a ~50 MHz signal.
-- The transmitter is not the limit at any rate on either tier. Tier 1's limit is the
-  ~1 ms RAPL integration window, which erodes the usable separation from 1.54 W to 0.64 W
-  as the chip shrinks from 4 ms to 1 ms; tier 2's is the governor's own control loop.
+- The transmitter is not the limit at any rate on any tier. Tier 1's limit is the ~1 ms
+  RAPL integration window, which erodes the usable separation from 1.54 W to 0.64 W as
+  the chip shrinks from 4 ms to 1 ms; for tiers 2 and 3 it is the governor's own control
+  loop, which is why tier 3's separation grows from 15 to 75 kTSC as the symbol
+  lengthens from 256 ms to 1 s.
 - A measurement artifact that the previous chapter correctly established as harmless to a
   mean difference is *not* harmless to a per-symbol decision, and accounts for most of the
   run-to-run variation in tier 1's error rate. Validity gates are relative to an
   inferential use, and so are null results: §8.2's mean-difference proxy found nothing on
   a channel that works.
+- A negative control is only as good as the null it is compared against. An unbalanced
+  payload silently weakened one, and a control that could not have caught anything failed
+  anyway on a coincidence (§8.4). Payloads are balanced by construction now, which makes
+  the expected error rate exactly 0.5 for any decode independent of the message.
 
-What remains is tier 3, the placement matrix, and a comparison against the published
-attacks — §9. The ladder's shape is now established at both ends, and what it says is
-that privilege buys rate rather than access.
+What remains is the placement matrix and a comparison against the published attacks —
+§9. The ladder is now measured end to end, and what it says is that **privilege buys
+rate, not access**: root reads the channel forty times faster, and a process with no
+privilege and no interface at all still reads it.

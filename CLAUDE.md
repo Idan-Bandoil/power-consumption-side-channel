@@ -26,15 +26,15 @@ The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 
 
 **Phase 1's experiments are done.** Items 5–7 of the plan (width, core type, thread scaling) remain optional against the time budget; core type is the cheapest novelty of the three. `thesis/phase1-leakage.md` is a full first draft, 13 sections, no stubs.
 
-**Phase 2 (covert channel): tiers 1 and 2 both work.** `src/covert/tx.c` is the unprivileged transmitter, `src/covert/rx_rapl.c` the root tier-1 receiver, `src/covert/rx_freq.c` the **unprivileged** tier-2 receiver, and `analysis/covert.py` the decoder; `tests/test_covert_decode.py` pins the framing maths to synthetic traces. Tier 1 runs error-free at 83 bit/s (Config-A); tier 2 decodes at 2 bit/s reading only world-readable `scaling_cur_freq` (Config-B) — see *Findings so far*. Run either with the runner's `"kind": "covert"` mode and read it with `analysis.covert`.
+**Phase 2 (covert channel): all three receiver tiers work.** `src/covert/tx.c` is the unprivileged transmitter; `rx_rapl.c` (root, Config-A), `rx_freq.c` (unprivileged, Config-B) and `rx_timing.c` (**reads nothing at all**, Config-B) are the receivers; `analysis/covert.py` decodes and `tests/test_covert_decode.py` pins the framing maths to synthetic traces. Tier 1 runs error-free at 83 bit/s, tier 2 at 2 bit/s, tier 3 error-free at 1 bit/s and level with tier 2 at 2 — see *Findings so far*. Run any of them with the runner's `"kind": "covert"` mode (`rx.tier` picks the receiver) and read with `analysis.covert`.
 
 Next:
-1. **Tier 3** (`rx_timing.c`, Hertzbleed-style self-timing). The one receiver needing no filesystem interface, so the one a container is least able to take away — the most interesting remaining gap. Needs **Config-B**, and §8.2 of the chapter says it should need the same throttling precondition tier 2 does.
-2. **Placements**: cross-SMT-sibling, cross-P/E-core, cross-container. The container case matters most for tier 2, since `scaling_cur_freq` may not be visible inside one, and it is a one-command experiment.
-3. **Re-run `phase2_tier1_rate` with 4 repeats** now that the overshoot gate exists. The first sweep had 7 of 30 runs in the bad sampler regime, and at 2 ms and 4 ms that left only one usable repeat each, so the fast end of the curve rests on n=1.
+1. **Placements**: cross-SMT-sibling, cross-P/E-core, cross-container. The container case is now less about whether the channel survives (tier 3 needs no interface, so it should) than about confirming that, and it is a one-command experiment.
+2. **Re-run `phase2_tier1_rate` with 4 repeats** now that the overshoot gate exists. The first sweep had 7 of 30 runs in the bad sampler regime, and at 2 ms and 4 ms that left only one usable repeat each, so the fast end of the curve rests on n=1.
+3. **Tier 1 under Config-B**, so the tiers can be compared in one configuration. Today tier 1 is Config-A and tiers 2–3 Config-B, so 83 bit/s against 2 bit/s is each tier measured where it works rather than a controlled comparison.
 4. Then the comparison against Liu et al. (CCS'22) and Hertzbleed.
 
-Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts. `thesis/phase2-covert.md` is a **partial** draft covering tiers 1 and 2; its §9 lists what is missing (tier 3, the placement matrix, the literature comparison).
+Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts. `thesis/phase2-covert.md` is a **partial** draft covering all three tiers; its §9 lists what is missing (the placement matrix, the literature comparison, tier 1 under Config-B).
 
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
@@ -68,14 +68,14 @@ Chapter drafts live in `thesis/`, one per phase, written as the phase completes.
 
 ### Covert-channel runs
 
-A spec with `"kind": "covert"` runs the Phase 2 pair instead of the driver: keys under `tx` (any of `TX_FLAGS`) and `rx` set the transmitter and receiver, overridable per run exactly as `driver` keys are. `rx.tier` picks the receiver — `"rapl"` (default, root, Config-A) or `"freq"` (unprivileged, **Config-B only**), each with its own flag set in `RX_RECEIVERS`. The runner drops the unprivileged tiers to `SUDO_UID`, which is the point rather than a detail, and hands the output directory over before the first run so a dropped-privilege receiver can write its own CSV. The receiver's duration is computed from the transmission, not configured. Read one with `analysis.covert`, which is also what writes its `summary.txt`:
+A spec with `"kind": "covert"` runs the Phase 2 pair instead of the driver: keys under `tx` (any of `TX_FLAGS`) and `rx` set the transmitter and receiver, overridable per run exactly as `driver` keys are. `rx.tier` picks the receiver — `"rapl"` (default, root, Config-A), `"freq"` (unprivileged, **Config-B only**) or `"timing"` (reads nothing, **Config-B only**), each with its own flag set in `RX_RECEIVERS`. The runner drops the unprivileged tiers to `SUDO_UID`, which is the point rather than a detail, and hands the output directory over before the first run so a dropped-privilege receiver can write its own CSV. The receiver's duration is computed from the transmission, not configured. Read one with `analysis.covert`, which is also what writes its `summary.txt`:
 
 ```bash
 sudo -n src/experiment_runner.py experiments/phase2_tier1_rate.json
 r=results/<run_id>; ./venv/bin/python3 -m analysis.covert "$r" > "$r/summary.txt" 2>&1
 ```
 
-Both binaries also run by hand — `bin/tx` needs no root, `bin/rx_rapl` does. Start the receiver first and give it a duration covering the whole transmission; it records blind and has no idea what is being sent.
+The binaries also run by hand — `bin/tx`, `bin/rx_freq` and `bin/rx_timing` need no root, `bin/rx_rapl` does. Start the receiver first and give it a duration covering the whole transmission; it records blind and has no idea what is being sent.
 
 Two per-run self-checks decide whether a result means anything. `late_chips` must be zero: a non-zero count means the transmitter could not hold its own schedule, so the BER describes the transmitter rather than the channel. And the overshoot gate must pass, for the reason in *Methodology notes* below.
 
@@ -117,7 +117,7 @@ Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inp
 
 **`util/victim-pool.c`** — victim spawn/stop, shared by the driver and the transmitter. Keeps the two footguns that were already paid for once: a private `victim_args_t` per victim, and `PR_SET_PDEATHSIG` so an orphan cannot spin on a pinned core and poison later runs.
 
-**`src/covert/`** — Phase 2. `tx.c` is the transmitter and needs no root: it spawns victims and modulates `ctl->selector` on absolute TSC deadlines, counting any chip it misses. It pre-warms both operands before the frame, which matters because a working-set victim fills a buffer per distinct selector value and caches `WS_SLOTS` = 2 of them — with exactly two values that makes a symbol transition a pointer swap rather than a refill, so the modulation is a change of *operand* and not of how much work is being done. `rx_rapl.c` is the tier-1 receiver: root, pinned, and deliberately ignorant of the symbol period, preamble and payload. `rx_freq.c` is tier 2: unprivileged, polling world-readable `scaling_cur_freq` on a fixed grid (a level, not an accumulator, so there is no counter edge to lock onto), able to watch several CPUs at once since an attacker need not know where the victim runs. Every receiver is a separate process sharing no memory with the transmitter; the only thing they share is the invariant TSC, which any process can read.
+**`src/covert/`** — Phase 2. `tx.c` is the transmitter and needs no root: it spawns victims and modulates `ctl->selector` on absolute TSC deadlines, counting any chip it misses. It pre-warms both operands before the frame, which matters because a working-set victim fills a buffer per distinct selector value and caches `WS_SLOTS` = 2 of them — with exactly two values that makes a symbol transition a pointer swap rather than a refill, so the modulation is a change of *operand* and not of how much work is being done. `rx_rapl.c` is the tier-1 receiver: root, pinned, and deliberately ignorant of the symbol period, preamble and payload. `rx_freq.c` is tier 2: unprivileged, polling world-readable `scaling_cur_freq` on a fixed grid (a level, not an accumulator, so there is no counter edge to lock onto), able to watch several CPUs at once since an attacker need not know where the victim runs. `rx_timing.c` is tier 3: it reads nothing, timing its own fixed instruction stream against the invariant TSC, so throttling shows up as its own dilation. Its level is the raw workload duration, which inverts its polarity relative to tier 2 — higher means slower means throttled. Every receiver is a separate process sharing no memory with the transmitter; the only thing they share is the invariant TSC, which any process can read.
 
 **`src/driver.c`** — the monitor is the main thread (pinned, priority −20); victims are `clone(CLONE_VM | SIGCHLD)` children on 64 KB stacks, each with its own `victim_args_t`. Two things matter most:
 
@@ -143,6 +143,20 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 | p vs chance | 0.82 | 0.40 | 0.53 | 5e-3 | **2e-18** | 0.46 |
 
 Zero errors after a 4-frame majority vote at 2 bit/s, control at chance. Tier 2 is ~40× slower than tier 1, and that gap is the honest headline — privilege buys rate, not access. Watching a *victim's* core rather than the receiver's own extends it one step (BER 0.229 at 3.9 bit/s, 0.297 at 7.8, where own-core is at chance); both are in the run's `summary.txt`, and `--freq-column 1` selects the second watched CPU. Polling another core costs 0.35 µs and issues no IPI, so it does not perturb the victim.
+
+**A receiver that reads nothing at all does just as well.** Tier 3 (`src/covert/rx_timing.c`) times its own fixed instruction stream against the invariant TSC — no file, no MSR, nothing a container can decline to mount — and infers throttling from its own dilation (`experiments/phase2_tier3_covert.json`, `results/20260903-194816-phase2_tier3_covert`, 5 conditions × 3 repeats):
+
+| bit/s | tier 2 (reads a file) | | tier 3 (reads nothing) | |
+|---|---|---|---|---|
+| | BER | vote | BER | vote |
+| 7.8 | 0.500 | 0.479 | — | — |
+| 3.9 | 0.365 | 0.250 | **0.237** | **0.115** |
+| 2.0 | 0.083 | 0.000 | 0.109 | 0.000 |
+| 1.0 | — | — | **0.000** | **0.000** |
+
+Both A/A controls dead at chance with power behind them: pooled 0.500 over 384 bits (p = 0.52) and 0.516 over 192 (p = 0.69). **The whole cost of the ladder is the step from root to unprivileged** — 83 bit/s to ~2 — and giving up the last readable interface costs nothing. Carry this into Phase 4: restricting `scaling_cur_freq` is the obvious defence against tier 2 and buys nothing, because tier 3 never reads it. Any mitigation aimed at the *interface* rather than the throttling is defeated before it starts.
+
+**Balanced payloads, or the A/A means nothing.** Tier 3's first pass failed its A/A gate at BER 0.219 — not the channel, the payload. `--random-bits` drew i.i.d. bits, one repeat drew 7 ones in 8, those 8 bits repeated over 4 frames, and a decoder whose output leans the same way then scores well on a transmission carrying nothing. Payloads are balanced by construction now (exactly half ones, shuffled), which makes the expected BER exactly 0.5 for any decode that is biased but *independent of the message*. The decoder reports the ones-fraction of both transmitted and decoded payloads and warns on a skewed one. The A/A gate is now judged **pooled across repeats**: a single A/A can carry as few as 32 bits, where the SD of BER is 0.09 and a 3σ excursion is a 1-in-140 event, so a per-run gate fires on noise about as often as on a fault.
 
 **Tier 2 exists only while the part is throttling.** PL1 is 200 W and PL2 80 W here, against ~16 W for a four-thread victim at ~50 °C — nothing limits, so nothing clocks down and there is nothing to read. Ten P-core threads are needed. That is a precondition of the attack, not a tuning detail: an idle machine does not carry this channel.
 
@@ -326,7 +340,8 @@ An A/A control is just an experiment with the same selector in both conditions �
 |---|---|---|
 | `late_chips` | 0 | The transmitter missing its own deadlines, so the BER measures it and not the channel |
 | `zero_ticks` | ≤1% of samples | As above |
-| `aa_ber` | A/A decodes at BER ≥0.40 | The decoder finding structure in a transmission that carries none |
+| `aa_ber` | A/A **pooled** across repeats decodes at BER ≥0.40, or p ≥ 0.01 | The decoder finding structure in a transmission that carries none |
+| `payload_balance` (warn) | payload within 30–70% ones | A skewed payload letting a skewed decode score well by coincidence |
 | `overshoot` (warn) | ≤1% of edges seen late | The unsettled sampler regime, which smears adjacent chips and costs bits |
 
 The A/A here is a transmission with `--on` equal to `--off` — again no special code path, and again every claim should ship with one. The overshoot check warns rather than fails, because the run is still evidence about the channel; it is the *decode* that is degraded.
@@ -336,10 +351,12 @@ The A/A here is a transmission with `--on` equal to `--off` — again no special
 - **A "significant" result is not a real one.** A drift-confounded dataset will pass a permutation test with p<0.001 while having no true effect. The `interleaving` gate, not the p-value, is what rules that out.
 - **`isolcpus=0` only isolates the attacker core.** Victim cores 2,4,6,8,10 still take stray work. Extending to `isolcpus=0,2,4,6,8,10` needs a GRUB edit and reboot.
 - **`-O2` is safe only because every victim hot loop is inline asm.** Do not add a plain-C victim without making its result `volatile`, or the compiler will delete the work being measured.
-- **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while any of `driver`, `smoke`, `tx` or `rx_rapl` is still running.
+- **A killed run used to leave the laptop throttled and the results root-owned.** Ctrl-C was always fine; a plain `kill`, a closed terminal or a session teardown was not, because SIGTERM had no handler and skipped both `restore()` and `give_back()`. Fixed — see `tests/test_runner_cleanup.py` for the exact boundary. SIGKILL still cannot be caught by anything, so `sudo src/experiment_runner.py --restore-only` remains the recovery path: it re-enables turbo and hands ownership back, and refuses to touch turbo while any of `driver`, `smoke`, `tx`, `rx_rapl`, `rx_freq` or `rx_timing` is still running.
 - **Do not `git add -A` while an experiment is in flight.** The runner appends to `manifest.json` as each run finishes, so a commit made mid-run captures a partial manifest and the next commit shows a spurious several-thousand-line diff. Commit before launching, or stage explicit paths.
 - **`settle` is samples-per-block, not blocks-per-run.** It does not protect against a run-level startup transient, which large working sets do produce. Use `--warmup-blocks N` (`warmup_blocks` in an experiment spec) for that: it runs N whole blocks before recording starts, cycling every condition so each one's buffers are faulted in and filled first, and it excludes them from the throughput figure too. Cheap enough to set by default on any working-set victim.
 - **Config-A and Config-B are not interchangeable.** Pinning frequency removes the DVFS response that the Phase 2 tier-2/tier-3 receivers depend on entirely. A consequence worth stating in the chapter rather than hiding: tier 1's 83 bit/s and tier 2's 2 bit/s are each measured where that tier works, so they are not a controlled comparison of receivers.
+- **`rdtsc` is not serialising.** It has no dependency on the work you are timing, so the closing read executes while that work is still in flight. In `rx_timing.c` this reported 64 adds in ~6 TSC ticks — an implied 26 GHz — with a 32% CV that was pure artefact. `LFENCE` on both reads; the CV falls to 3%. Any new self-timing code needs the same.
+- **A chain of `add $1, reg` is not one cycle per add on this part.** It retires ~5 per core cycle (ALU width), verified at 12.8M adds in 480 µs against `CLOCK_MONOTONIC`. Harmless for a frequency probe — any fixed non-memory stream is proportional to 1/f_core however it issues — but do not attach a nominal cycle count to one.
 - **`frequency_cpufreq()` used to leak a descriptor per call** — its "open once" guard tested a local initialised to `NULL`, so it reopened every time and never closed. Nothing called it, so it never bit; a polling receiver would have run out of descriptors in seconds. Use `cpufreq_open`/`cpufreq_read` in any loop.
 - **AVX-VNNI must be assembled as VEX, not EVEX.** `vpdpbusd` exists in both AVX-VNNI (VEX) and AVX512-VNNI (EVEX); gas defaults to EVEX, which SIGILLs here. Hence the `%{vex%}` prefix in `util/victim-utils.c` — spelled with `%` escapes because bare braces mean dialect alternatives to GCC. Any new dual-encoded instruction needs the same treatment; verify with `objdump -d util/victim-utils.o` (VEX starts `c4`, EVEX `62`).
 - `legacy/` holds the superseded pipeline; see `legacy/README.md` for why it no longer runs. `src/data/` and `src/plot/` are pre-2026 outputs kept for provenance.
