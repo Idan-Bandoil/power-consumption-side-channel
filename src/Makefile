@@ -5,12 +5,25 @@ CC:= gcc
 # victims without making their results volatile.
 CFLAGS:= -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -Wextra -march=native -O2 -MMD -MP
 LIBS:= -lpthread -lrt -lm
-UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/victim-utils.o
+UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/victim-utils.o ../util/victim-pool.o ../util/sampler.o
 
-all: obj bin out data driver hybrid_detect
+all: obj bin out data driver hybrid_detect tx rx_rapl
 
 driver: obj/driver.o $(UTILS) | bin
 	$(CC) -o bin/$@ $^ $(LIBS)
+
+# Covert channel (Phase 2). tx is unprivileged -- it only runs AVX loads and
+# writes ctl->selector; rx_rapl needs root for the MSR. They are separate
+# binaries because they must be separate processes sharing no memory: the
+# channel is the power, not the address space.
+tx: obj/covert_tx.o $(UTILS) | bin
+	$(CC) -o bin/$@ $^ $(LIBS)
+
+rx_rapl: obj/covert_rx_rapl.o $(UTILS) | bin
+	$(CC) -o bin/$@ $^ $(LIBS)
+
+obj/covert_%.o: covert/%.c | obj
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 # Standalone diagnostic: reports per-CPU core type (P/E) via CPUID leaf 0x1A.
 hybrid_detect: obj/hybrid_detect.o | bin
