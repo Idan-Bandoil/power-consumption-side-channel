@@ -66,7 +66,7 @@ def run_case(sig, kill_after):
                ("RESULTS", "preflight", "build", "apply_config", "restore",
                 "give_back", "cooldown", "run_driver", "open_output_dir")}
         R.RESULTS = tmp / "results"
-        R.preflight = lambda: None
+        R.preflight = lambda **kw: None
         R.build = lambda: None
         R.apply_config = lambda c: None
         R.cooldown = lambda *a, **k: None

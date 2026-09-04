@@ -257,8 +257,50 @@ def main():
     report = [analyse_run(r, fig_dir, args.permutations, args.bootstrap, config)
               for r in runs]
 
+    print(hr("Platform power state"))
+    # A power measurement whose power *limit* moved underneath it. thermald
+    # lowers PL1 as the die heats and does it mid-run: the corpus has sessions
+    # going 200 W -> 15 -> 35 as the package crossed ~50 C. Nothing measured so
+    # far was distorted -- package power exceeded the nominal limit in those
+    # runs without being clamped -- but "it did not bind" is not "it cannot",
+    # and a session where it did would show only as a shrinking effect.
+    seen = {}
+    for e in manifest["runs"]:
+        for when in ("state_before", "state_after"):
+            st = e.get(when) or {}
+            key = (st.get("pl1_uw"), st.get("pl2_uw"),
+                   st.get("ac_online"), st.get("battery_status"))
+            if any(v is not None for v in key):
+                seen.setdefault(key, []).append(f"{e.get('tag')}/{when}")
+
+    def _w(uw):
+        return f"{float(uw) / 1e6:.1f} W" if uw else str(uw)
+
+    for (pl1, pl2, ac, bat), where in seen.items():
+        src = ("mains" if ac == "1" else "BATTERY" if ac == "0"
+               else "power source not recorded")
+        print(f"  PL1 {_w(pl1):<9} PL2 {_w(pl2):<9} {src:<28} "
+              f"{len(where):>4} snapshots")
+    if len(seen) > 1:
+        print("\n  first snapshot at each state:")
+        for k, where in seen.items():
+            print(f"    {where[0]}")
+
+    platform_stable = len(seen) <= 1
+    on_battery = any(k[2] == "0" for k in seen)
+    print(f"\n  platform power state: "
+          f"{'constant' if platform_stable else 'CHANGED DURING THE SESSION'}")
+    if on_battery:
+        print("  measured on battery, unlike the rest of the corpus")
+
     print(hr("Validity gates"))
     failed = []
+    if not platform_stable:
+        print(f"  {'(session)':<28} {'power_state':<16} FAIL")
+        failed.append("session/power_state")
+    if on_battery:
+        print(f"  {'(session)':<28} {'on_mains':<16} FAIL")
+        failed.append("session/on_mains")
     for r in report:
         for gate, ok in r["gates"].items():
             print(f"  {r['label']:<28} {gate:<16} {'PASS' if ok else 'FAIL'}")

@@ -46,6 +46,12 @@ Then, in Phase 2:
 
 Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts. `thesis/phase2-covert.md` is a **partial** draft covering all three tiers; its §9 lists what is missing (the placement matrix, a controlled cross-tier comparison, the literature comparison, the transmitter's real operating point, and the receiver's isolated core). `thesis/critique.md` is a standing review of all three drafts with a work order at its foot; items 1 and 2 are done and its *Outcomes* section records which findings survived checking.
 
+**`thermald` moves PL1 during a session, and PL1 was never checked.** Scanning every committed manifest: PL1 takes three values across the corpus — 200 W in 20 run directories, 35 W in 4, 15 W in 3 — and three sessions contain *more than one*, with the step landing **mid-run** as the package crosses ~50 °C. `20260824-213524-phase1_traffic_volume` (the depth ladder) goes 200 → 15 → 35 W; `20260901-213211-phase1_hamming_weight` (the +50.75 mW/bit slope) ran entirely at 15 and 35 W. The runner only ever read PL1, never wrote it: this is `thermald` (and `power-profiles-daemon`) reacting to die temperature. PL2 is 80 W throughout.
+
+**It did not distort anything, and the check is that package power was never clamped.** The natural experiment is `depth_l2`, which ran at PL1 200 W once and 15 W twice *in the same session*: +1.034 W at 200 W against +1.102 and +1.178 W at 15 W, with absolute power 13.3–15.3 W. Power exceeded the nominal 15 W limit without being clamped, and the low-limit runs show the *largest* effects, not compressed ones. Same in the Hamming-weight session, where package power runs 14.8–17.6 W at PL1 15/35 W. So no published number moves. But the platform was silently changing a power limit under a power measurement, which is not a state to measure in unknowingly — hence the `power_state` gate, and `--allow-battery` guarding the preflight.
+
+Do not conclude from this that the charger was in and out. The power *source* was never recorded (it is now), so that specifically cannot be recovered for old runs — but the signature here is thermald's, not a human's: the change lands mid-run, tracks temperature, and recovers upward (15 → 35 W), which unplugging a charger does not do. `systemctl stop thermald` before a session holds PL1 fixed; the preflight warns when it is running.
+
 Known gaps deliberately left open:
 - `isolcpus=0` only isolates the attacker core; victim cores 2,4,6,8,10 still take stray work. Extending it needs a GRUB edit and reboot, and has not been done.
 - `analysis/stats.py`'s detector is a mean threshold. It cannot see effects that live in variance rather than mean, which `avx2_load` briefly looked like it might have.
@@ -359,6 +365,8 @@ Methodology notes carried forward:
 |---|---|---|
 | `zero_ticks` | ≤1% of samples read zero energy | Sampler aliasing against the RAPL update interval (was 9.2%) |
 | `interleaving` | temporal imbalance ≤0.10 | Conditions measured at different times, letting drift pose as effect. A sequential design scores ~0.50 |
+| `power_state` | PL1, PL2 and the power source identical across every snapshot in the session | The platform changing a power *limit* underneath a power measurement. `thermald` does this mid-run |
+| `on_mains` | AC online in every snapshot | A session measured on battery, where the platform runs different limits, being compared against a corpus measured on mains |
 | `work_balance` | per-condition GB/s within 1% | A condition doing *more work* rather than moving a *different operand*. The assumption every operand claim rests on; argued architecturally until 2026-09-04, measured since |
 | `frequency_balance` | per-condition victim MHz within 1%, **Config-A only** | Config-A's premise failing per run. Not applied under Config-B, where a frequency difference between conditions is the tier-2 channel and not a fault |
 | `aa_*` | CI contains 0 **and** accuracy ≤0.60 | The whole measurement path manufacturing an effect from nothing |

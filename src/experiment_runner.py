@@ -68,16 +68,56 @@ def package_temp_c():
     return int(raw) / 1000.0 if raw else None
 
 
+def power_source():
+    """Mains online, and what the battery is doing.
+
+    Never recorded until 2026-09-04, which made an obvious question about the
+    corpus -- was the charger plugged in? -- unanswerable from the manifests.
+    It turned out not to be the variable that moved (see thermald_running),
+    but that could only be established indirectly, and it should not have had
+    to be.
+    """
+    ac, bat = None, None
+    for s in sorted(glob.glob("/sys/class/power_supply/*")):
+        kind = _read(f"{s}/type")
+        if kind == "Mains" and ac is None:
+            ac = _read(f"{s}/online")
+        elif kind == "Battery" and bat is None:
+            bat = _read(f"{s}/status")
+    return ac, bat
+
+
+def thermald_running():
+    """Whether a daemon that rewrites PL1 underneath the experiment is up.
+
+    thermald lowers constraint_0_power_limit_uw as the die heats, and it does
+    so *during* a run: the corpus contains sessions where PL1 went 200 W -> 15
+    -> 35 as the package crossed ~50 C, with the step landing mid-run. No
+    measurement here was distorted by it -- package power exceeded the
+    nominal limit in those runs without being clamped, and their effects were
+    if anything the largest of their group -- but the platform was silently
+    changing a power limit under a power measurement, which is not a state to
+    measure in without knowing.
+    """
+    out = subprocess.run(["pgrep", "-x", "thermald"], capture_output=True)
+    return out.returncode == 0
+
+
 def system_state():
     """Everything about the machine that could plausibly move the readings."""
     cpus = sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*/cpufreq"))
+    ac, bat = power_source()
     return {
         "no_turbo": _read(NO_TURBO),
         "governor": _read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"),
         "scaling_driver": _read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_driver"),
         "package_temp_c": package_temp_c(),
+        "ac_online": ac,
+        "battery_status": bat,
+        "platform_profile": _read("/sys/firmware/acpi/platform_profile"),
         "pl1_uw": _read(f"{RAPL_ROOT}/constraint_0_power_limit_uw"),
         "pl2_uw": _read(f"{RAPL_ROOT}/constraint_1_power_limit_uw"),
+        "pl1_window_us": _read(f"{RAPL_ROOT}/constraint_0_time_window_us"),
         "cur_freq_khz": {
             os.path.basename(os.path.dirname(c)): _read(f"{c}/scaling_cur_freq")
             for c in cpus[:20]
@@ -161,8 +201,8 @@ def load1():
     return float((_read("/proc/loadavg") or "0").split()[0])
 
 
-def preflight():
-    """Refuse to measure on a busy machine.
+def preflight(allow_battery=False):
+    """Refuse to measure on a busy machine, or in the wrong power state.
 
     Victims are cloned with CLONE_VM and spin on ctl->run; if a driver ever
     dies without clearing it the children survive at 100% CPU on their pinned
@@ -186,7 +226,36 @@ def preflight():
                          f"(limit {MAX_START_LOAD}).\n"
                          f"  Wait for the machine to go idle, or pass a higher "
                          f"limit if this is expected.")
-    logger.info("preflight ok (load %.2f, package %.1fC)", load, package_temp_c() or -1)
+
+    # Sessions have to be comparable to each other, and a laptop measured on
+    # battery is not the same instrument as one on mains: the platform lowers
+    # its power limits, and the whole thesis is a power measurement. Every
+    # committed session was recorded on mains, so that is the baseline.
+    ac, bat = power_source()
+    if ac == "0" and not allow_battery:
+        raise SystemExit(
+            f"refusing to start: running on battery (AC offline, battery "
+            f"{bat}).\n"
+            f"  Every committed session was measured on mains, and the "
+            f"platform lowers its power limits on battery, so a session run "
+            f"this way is not comparable to the rest of the corpus.\n"
+            f"  Plug the charger in, or pass --allow-battery if this is "
+            f"deliberate.")
+
+    # thermald rewrites PL1 while the experiment runs. It is a warning rather
+    # than a refusal because the corpus shows it did not distort anything --
+    # see thermald_running() -- and because stopping it changes the platform
+    # from the state every earlier session was measured in.
+    if thermald_running():
+        logger.warning("thermald is running and will move PL1 as the die "
+                       "heats; PL1 is recorded per run, and analysis.report "
+                       "fails the session if it moved. `systemctl stop "
+                       "thermald` before a session to hold it fixed.")
+
+    pl1 = _read(f"{RAPL_ROOT}/constraint_0_power_limit_uw")
+    logger.info("preflight ok (load %.2f, package %.1fC, AC %s, battery %s, "
+                "PL1 %.1f W)", load, package_temp_c() or -1, ac, bat,
+                (float(pl1) / 1e6) if pl1 else float("nan"))
 
 
 def cooldown(seconds, target_c=None):
@@ -541,6 +610,10 @@ def main():
                     help="override per-run cooldown seconds")
     ap.add_argument("--dry-run", action="store_true",
                     help="print the plan and exit")
+    ap.add_argument("--allow-battery", action="store_true",
+                    help="measure on battery. Refused by default: the "
+                         "platform lowers its power limits there, so the "
+                         "session is not comparable to the rest of the corpus")
     args = ap.parse_args()
 
     if args.restore_only:
@@ -598,7 +671,7 @@ def main():
     }
 
     try:
-        preflight()
+        preflight(allow_battery=args.allow_battery)
         build()
         apply_config(spec.get("config", "A"))
         # Let the frequency change settle before the first measurement.
