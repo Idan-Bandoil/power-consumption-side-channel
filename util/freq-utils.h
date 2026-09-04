@@ -43,4 +43,12 @@ uint32_t frequency_cpufreq(int cpu_id);
 int cpufreq_open(int cpu_id);
 uint32_t cpufreq_read(int fd);
 
+/*
+ * As cpufreq_open, but returns -1 rather than exiting when the file is
+ * missing. The driver reads a victim core's frequency as a per-run validity
+ * check and not as data, so a machine without cpufreq should lose the check,
+ * not the run.
+ */
+int cpufreq_try_open(int cpu_id);
+
 #endif

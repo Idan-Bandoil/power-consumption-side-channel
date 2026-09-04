@@ -73,16 +73,23 @@ uint32_t frequency_msr(int core_ID)
 /*
  * Gets the current CPU frequency from scaling_cur_freq (easier than the MSR)
  */
-int cpufreq_open(int cpu_id)
+int cpufreq_try_open(int cpu_id)
 {
 	char path[128];
 
 	snprintf(path, sizeof(path),
 		 "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", cpu_id);
 
-	int fd = open(path, O_RDONLY);
+	return open(path, O_RDONLY);
+}
+
+int cpufreq_open(int cpu_id)
+{
+	int fd = cpufreq_try_open(cpu_id);
+
 	if (fd < 0) {
-		fprintf(stderr, "open %s: %s\n", path, strerror(errno));
+		fprintf(stderr, "open cpu%d scaling_cur_freq: %s\n",
+			cpu_id, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	return fd;

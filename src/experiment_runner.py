@@ -154,7 +154,7 @@ MAX_START_LOAD = 2.0
 # Anything that spawns victims or holds an MSR open. A survivor from an older
 # run spins at 100% on a pinned core and quietly poisons every later
 # measurement, so a run refuses to start while one is alive.
-MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl", "rx_freq")
+MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl", "rx_freq", "rx_timing")
 
 
 def load1():
@@ -302,6 +302,12 @@ def run_driver(run_spec, driver_opts, out_dir, tag, repeat=0):
         "label": run_spec.get("label", run_spec["victim"]),
         "victim": run_spec["victim"],
         "selectors": selectors,
+        # A run whose expected difference is zero but whose selectors do not
+        # say so. The two-buffer A/A holds two different 64-bit selectors whose
+        # low halves match, giving two distinct buffers with identical
+        # contents -- the only A/A that can see the buffer-address confound.
+        # Carried through so analysis.report gates it as a control.
+        "control": run_spec.get("control"),
         "csv": csv_path.name,
         "elapsed_s": elapsed,
         "driver": summary,

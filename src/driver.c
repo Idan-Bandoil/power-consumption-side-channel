@@ -142,6 +142,35 @@ int main(int argc, char *argv[])
 	uint64_t work_tsc0 = _rdtsc();
 	uint64_t idx = 0;
 
+	/*
+	 * The same counters latched per block and summed per condition. The
+	 * pooled figure above cannot check the assumption every operand claim
+	 * rests on -- that switching the selector changes what is moved and not
+	 * how much -- because it averages the two conditions together. If a
+	 * condition ever ran the loop faster, that would appear as a power
+	 * difference and be attributed to the operand. Latching at the block
+	 * boundary keeps this off the sampling path entirely.
+	 */
+	uint64_t cond_bursts[MAX_SELECTORS] = {0};
+	uint64_t cond_tsc[MAX_SELECTORS] = {0};
+
+	/*
+	 * Config-A asserts that pinning the frequency removes DVFS, so that a
+	 * power difference is not a frequency response to one. The sampler's
+	 * APERF/MPERF pair describes the *attacker* core, which is idling in a
+	 * poll loop, so it cannot check that assertion. One world-readable
+	 * scaling_cur_freq read per block on a victim core can. It is a check,
+	 * not data: too coarse to sample a symbol, and absent it costs the
+	 * check rather than the run.
+	 */
+	int vfreq_fd = cpufreq_try_open(cfg.victim_core_start);
+	uint64_t cond_freq_khz[MAX_SELECTORS] = {0};
+	uint64_t cond_freq_n[MAX_SELECTORS] = {0};
+	if (vfreq_fd < 0)
+		fprintf(stderr, "warning: no scaling_cur_freq for cpu%d, "
+			"victim frequency will not be recorded\n",
+			cfg.victim_core_start);
+
 	fprintf(stderr, "victim=%s threads=%d conditions=%d blocks=%d samples/block=%" PRIu64
 		" warmup=%d\n",
 		cfg.victim_name, cfg.nthreads, num_conditions, total_blocks,
@@ -162,6 +191,9 @@ int main(int argc, char *argv[])
 		__sync_synchronize();
 		ctl->epoch++;
 
+		uint64_t blk_bursts = victims_bursts(&pool);
+		uint64_t blk_tsc = _rdtsc();
+
 		int keep = 0;
 		uint64_t wanted = cfg.settle_samples + cfg.samples_per_block;
 
@@ -180,6 +212,19 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		if (measuring) {
+			cond_bursts[cond] += victims_bursts(&pool) - blk_bursts;
+			cond_tsc[cond] += _rdtsc() - blk_tsc;
+			if (vfreq_fd >= 0) {
+				uint32_t khz = cpufreq_read(vfreq_fd);
+
+				if (khz > 0) {
+					cond_freq_khz[cond] += khz;
+					cond_freq_n[cond]++;
+				}
+			}
+		}
+
 		if (!measuring)
 			fprintf(stderr, "  warmup block %d/%d (cond %u, discarded)\n",
 				b + 1, warmup, cond);
@@ -194,6 +239,8 @@ int main(int argc, char *argv[])
 	double bursts_per_s = (double)(bursts1 - bursts0) / work_s;
 	double bytes_per_s = bursts_per_s * (double)pool.vargs[0].bytes_per_burst;
 
+	if (vfreq_fd >= 0)
+		close(vfreq_fd);
 	victims_stop(&pool);
 	rapl_sampler_close(&smp);
 	write_csv(cfg.out_path, log, idx);
@@ -228,6 +275,21 @@ int main(int argc, char *argv[])
 	printf("  \"victim_bursts\": %" PRIu64 ",\n", bursts1 - bursts0);
 	printf("  \"victim_bytes_per_burst\": %" PRIu64 ",\n", pool.vargs[0].bytes_per_burst);
 	printf("  \"victim_bytes_per_s\": %.6g,\n", bytes_per_s);
+	printf("  \"victim_bytes_per_s_by_cond\": [");
+	for (int i = 0; i < num_conditions; i++) {
+		double s = (double)cond_tsc[i] / smp.tsc_hz;
+		double bps = s > 0 ? (double)cond_bursts[i] / s
+			* (double)pool.vargs[0].bytes_per_burst : 0.0;
+		printf("%s%.6g", i ? ", " : "", bps);
+	}
+	printf("],\n");
+	printf("  \"victim_freq_khz_by_cond\": [");
+	for (int i = 0; i < num_conditions; i++)
+		printf("%s%.6g", i ? ", " : "",
+		       cond_freq_n[i] ? (double)cond_freq_khz[i] / (double)cond_freq_n[i] : 0.0);
+	printf("],\n");
+	printf("  \"victim_freq_core\": %d,\n",
+	       vfreq_fd >= 0 ? cfg.victim_core_start : -1);
 	printf("  \"out\": \"%s\"\n", cfg.out_path);
 	printf("}\n");
 

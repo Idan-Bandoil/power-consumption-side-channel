@@ -17,6 +17,9 @@ class Run:
     sample_mode: str
     rapl_period_ms: float
     bytes_per_s: float
+    bytes_per_s_by_cond: list
+    freq_khz_by_cond: list
+    freq_core: int
     block: np.ndarray
     cond: np.ndarray
     ticks: np.ndarray
@@ -47,9 +50,24 @@ class Run:
 
     @property
     def is_aa_control(self):
-        """True when every condition carries the same selector, i.e. the run
-        is an A/A negative control and must come out at chance."""
-        return len(set(self.selectors)) == 1
+        """True when the run's expected difference is zero, so it must come out
+        at chance.
+
+        Usually that is visible in the selectors: the same value in both
+        conditions is an A/A by construction. It cannot always be read off
+        them, though. The two-buffer A/A holds two *different* 64-bit selectors
+        whose low halves match, which gives two distinct buffers with identical
+        contents -- a control for buffer address, and the only kind of A/A that
+        can see that confound at all. A spec declares that case with
+        `"control": "aa"`."""
+        return (len(set(self.selectors)) == 1
+                or self.meta.get("control") == "aa")
+
+    @property
+    def declared_control(self):
+        """True when the null expectation came from the spec, not the selectors."""
+        return (self.meta.get("control") == "aa"
+                and len(set(self.selectors)) != 1)
 
     @property
     def zero_tick_fraction(self):
@@ -81,6 +99,11 @@ def load_run(csv_path, entry):
         sample_mode=d["sample_mode"],
         rapl_period_ms=d.get("rapl_period_ms", float("nan")),
         bytes_per_s=d.get("victim_bytes_per_s", float("nan")),
+        # Absent from every run written before the per-condition counters
+        # existed; the gates that read them skip rather than fail there.
+        bytes_per_s_by_cond=list(d.get("victim_bytes_per_s_by_cond", [])),
+        freq_khz_by_cond=list(d.get("victim_freq_khz_by_cond", [])),
+        freq_core=d.get("victim_freq_core", -1),
         block=raw[:, 0].astype(np.int64),
         cond=raw[:, 1].astype(np.int64),
         ticks=raw[:, 2].astype(np.float64),
