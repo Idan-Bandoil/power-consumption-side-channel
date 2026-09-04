@@ -125,7 +125,7 @@ The variants do not move data at equal rates — a DRAM-resident stream is an or
 magnitude slower than an L1-resident one — so watts are not the comparable quantity.
 Energy per byte is, and mW per GB/s is exactly picojoules per byte:
 
-| victim | working set | GB/s | Δ power | **pJ/byte** | detector |
+| victim | working set | GB/s | Δ power | **Δ pJ/byte** | detector |
 |---|---|---|---|---|---|
 | `ws_l1_x8` | 16 K (L1) | 741 | +0.23 W | **0.31** | 0.76 |
 | `ws_l2_x8` | 512 K (L2) | 330 | +1.10 W | **3.35** | 0.96 |
@@ -134,7 +134,18 @@ Energy per byte is, and mW per GB/s is exactly picojoules per byte:
 
 A 68× rise from L1-resident to DRAM-resident, monotone in depth, and reproduced across
 two sessions with different thermal histories and different shuffles (a partial sweep
-two days earlier gives 0.40 / 3.36 / 14.80 / 22.73 pJ/byte).
+two days earlier gives 0.40 / 3.36 / 14.80 / 22.73 Δ pJ/byte).
+
+**Δ pJ/byte, and the delta is not decoration.** This column is the *difference* in energy
+per byte between two operands, which is what the experiment measures: it contrasts an
+all-zero working set against an all-ones one and divides the power difference by the
+traffic. It is not the energy needed to move a byte, which is a much larger quantity that
+nothing in this project measures and which would require a contrast against not moving
+the byte at all. The distinction is easy to lose because published DRAM transport
+energies are quoted in the same units — 10–20 pJ/bit is a common figure — and the DRAM
+row's 21.02 sits invitingly close to them. They are not the same quantity and should not
+be compared. Every per-byte number in this chapter is a delta, and the tables and
+`analysis.aggregate`'s column header say so.
 
 The absolute watt difference peaks at **L3, not DRAM**, because throughput falls faster
 than per-byte cost rises. This is why the per-byte normalisation is the right frame, and
@@ -153,7 +164,7 @@ DDR5-4800). That is weaker than a hardware counter and is stated as such.
 
 The same sweep's second axis — loads per iteration, 1/2/4/8, at a fixed L1-resident
 working set — is **not** usable as a dose axis. It gives 0.50 / 1.10 / 1.05 / 0.31
-pJ/byte, non-monotone, because throughput saturates well before the instruction count
+Δ pJ/byte, non-monotone, because throughput saturates well before the instruction count
 does (217 → 741 GB/s across a nominal 8× increase). Volume of traffic at fixed distance
 is not a clean independent variable on this machine; depth is.
 
@@ -475,14 +486,14 @@ The loop is meant to be load-bound so that every variant moves operands at the s
 That mostly held — a pre-flight put all nine variants within 4% of the load-only
 baseline — but not exactly: over four repeats `vpand`, `vpor` and `vpaddd` settle at
 140 GB/s against 147 for loads alone, a systematic 5% (within-victim SD ≈ 1 GB/s). So the
-table is read in pJ/byte, the same normalisation §4 uses, and rows are compared *paired*
+table is read in Δ pJ/byte, the same normalisation §4 uses, and rows are compared *paired*
 — differenced against the reference row within each repeat — because every row carries
 the same ~2 W of load traffic and the unpaired spread is dominated by run-to-run
 variation in that shared term rather than by anything about the instruction
 (`results/20260902-230608-phase1_instruction_table`, 13 runs × 4 repeats, 112/112 gates
 pass; A/A −8.5 mW, sign flipping, accuracy 0.521).
 
-| victim | instruction | Δ power | pJ/byte | vs loads-only, paired | |
+| victim | instruction | Δ power | Δ pJ/byte | vs loads-only, paired | |
 |---|---|---|---|---|---|
 | `loads_only` | *(none)* | +1.943 W | 13.2 | — | reference |
 | `op_shift` | `vpsllvd` | +1.849 W | 13.0 | −0.21 [−0.76, +0.34] | indistinguishable |
@@ -499,7 +510,7 @@ Intervals are Student's *t* at three degrees of freedom, not the normal approxim
 which at four repeats would be optimistic by a third.
 
 **The instruction matters, and by much less than the movement does.** Seven of the nine
-rows sit above loads-only, but the whole spread of the table is 3.4 pJ/byte against the
+rows sit above loads-only, but the whole spread of the table is 3.4 Δ pJ/byte against the
 13.2 the loads alone already cost — so the choice of instruction moves the leak by 10–24%
 where the choice of *where the operand comes from* moved it by 68× (§4). A leakage model
 for this platform that captures operand movement and ignores the instruction is wrong by
@@ -508,9 +519,9 @@ almost everything.
 
 **The result Hamming weight explains none of it.** This was the contrast the family was
 built for, and it comes back negative twice over. `vpand` and `vpor`, whose results track
-the operand, sit +0.70 and +0.62 pJ/byte above `vpxor`, whose result is pinned at zero —
+the operand, sit +0.70 and +0.62 Δ pJ/byte above `vpxor`, whose result is pinned at zero —
 intervals [−2.35, +3.75] and [−1.26, +2.49], both comfortably containing zero. And
-`vpsllvd`, whose result is *also* pinned at zero, sits 2.66 pJ/byte **below** `vpxor`
+`vpsllvd`, whose result is *also* pinned at zero, sits 2.66 Δ pJ/byte **below** `vpxor`
 [−3.87, −1.45]. A result-driven account would have to put those two together, and the
 data separates them by more than it separates either from the operand-tracking pair. The
 ordering is a property of the instruction, not of what it produces — which is what §3
@@ -644,7 +655,7 @@ the slope by less than its own standard error.
 **The instruction table's rows are not perfectly traffic-matched.** The design intends
 the loop to be load-bound so that only the instruction varies, and it is within 5% — but
 `vpand`, `vpor` and `vpaddd` settle systematically at 140 GB/s against 147 for loads
-alone. §10 therefore reports pJ/byte rather than watts. The correction works against the
+alone. §10 therefore reports Δ pJ/byte rather than watts. The correction works against the
 finding rather than for it: those three rows move *less* data and still leak more, so
 normalising enlarges their excess. The one row the normalisation changes qualitatively is
 `vpsllvd`, which is 0.094 W below loads-only in raw watts and indistinguishable from it
@@ -668,8 +679,9 @@ A quantitative leakage model for operand movement on this platform:
   multiplies does not. Which instruction consumes the operand shifts the leak by 10–24%,
   against the 68× that the operand's *depth* shifts it — but the instruction term is not
   zero, and for `vpdpbusd` it survives with no memory traffic at all.
-- Cost per byte moved rises monotonically with the depth the operand is drawn from,
-  0.31 pJ/byte at L1 to 21.02 pJ/byte at DRAM. Absolute power difference peaks at L3.
+- The *operand-dependent* cost per byte moved rises monotonically with the depth the
+  operand is drawn from, 0.31 Δ pJ/byte at L1 to 21.02 at DRAM. Absolute power difference
+  peaks at L3. These are differences between two operands, not the cost of moving a byte.
 - Within a fixed victim, the difference is linear in the operand's Hamming weight at
   +50.75 mW per set bit per 32-bit word (R² = 0.967 over 18 operands from weight 1 to 32),
   on top of a **discontinuity of +349 mW between weight 0 and weight 1** that belongs to

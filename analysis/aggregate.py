@@ -71,7 +71,14 @@ def t95(df):
 
 
 def _value(e, per_byte):
-    """A run's effect, in watts or in pJ/byte. NaN if it cannot be normalised."""
+    """A run's effect, in watts or in delta-pJ/byte. NaN if unnormalisable.
+
+    Delta, and the name matters. This is the *difference* in energy per byte
+    between two operands, not the energy it costs to move a byte -- which is a
+    much larger quantity that nothing in this project measures. Reporting it
+    as "pJ/byte" invites comparison against published DRAM transport energies
+    of 10-20 pJ/bit, which are the other thing.
+    """
     if not per_byte:
         return e["diff"]
     gbs = e["bytes_per_s"] / 1e9
@@ -88,11 +95,11 @@ def paired_section(groups, reference, per_byte=False):
         return
 
     ref = {e["repeat"]: _value(e, per_byte) for e in groups[reference]}
-    unit = "pJ/B" if per_byte else "dW"
+    unit = "dpJ/B" if per_byte else "dW"
 
     print(f"\npaired against {reference} "
           f"(per-repeat difference, so the shared term cancels)"
-          + ("  [pJ/byte]" if per_byte else ""))
+          + ("  [delta pJ/byte]" if per_byte else ""))
     print(f"{'label':<20} {'n':>2} {'mean d' + unit:>9} {'SD':>8} {'SE':>8} "
           f"{'95% CI':>19}  verdict")
     print("-" * 88)
@@ -145,7 +152,7 @@ def main():
                 groups[run.label].append(e)
 
     print(f"{'label':<20} {'n':>2} {'mean dW':>9} {'between':>9} {'within':>9} "
-          f"{'ratio':>6} {'sign':>7} {'acc':>6} {'GB/s':>8} {'mW/GB/s':>8}")
+          f"{'ratio':>6} {'sign':>7} {'acc':>6} {'GB/s':>8} {'dpJ/B':>8}")
     print("-" * 100)
 
     for label in sorted(groups):
@@ -188,7 +195,12 @@ def main():
     print("ratio    : between/within. >1 means single-run CIs are optimistic")
     print("sign     : whether every repeat agrees on the direction of the effect")
     print("GB/s     : measured operand throughput summed over victim threads")
-    print("mW/GB/s  : leakage normalised to traffic rate")
+    print("dpJ/B    : mean dW normalised to traffic rate -- mW/(GB/s), which is")
+    print("           picojoules per byte. It is a DIFFERENCE between two operands,")
+    print("           not the energy needed to move a byte; that quantity is much")
+    print("           larger and is not measured anywhere in this project. The")
+    print("           distinction matters because published DRAM transport figures")
+    print("           of 10-20 pJ/bit are the other one.")
 
 
 if __name__ == "__main__":
