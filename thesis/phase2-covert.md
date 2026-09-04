@@ -34,7 +34,7 @@ The results, in order of how much they constrain the rest:
 
 1. The channel works. Under a privileged receiver it carries **241 bit/s of capacity** at
    a 3 ms symbol, and clears to zero observed errors after an eight-frame vote from
-   125 bit/s down (§5). That is an order of magnitude above the expectation this project
+   167 bit/s down (§5). That is an order of magnitude above the expectation this project
    set out with, which was "low tens of bits/s".
 2. **It also works with no privilege at all.** A receiver reading only world-readable
    `scaling_cur_freq` decodes at 2 bit/s with a bit-error rate of 0.083 and no errors
@@ -162,7 +162,7 @@ worth some refactoring — the sampling loop was lifted out of the driver into
 second copy of the instrument with its own noise floor to characterise. The extraction
 was checked by measurement rather than assumed: the cross-session anchor from the
 previous chapter reads +1.877 W (SD 0.120 over three repeats) against +1.841, +1.904,
-+1.943 and +2.054 W from four earlier sessions at identical settings, at 13.1 pJ/byte
++1.943 and +2.054 W from four earlier sessions at identical settings, at 13.1 Δ pJ/byte
 against 13.2 (`results/20260903-114606-phase0_refactor_check`, 18 of 18 gates passing).
 
 Decoding (`analysis/covert.py`) has three parts.
@@ -208,16 +208,16 @@ more than any one of them admits, and §7 is about why.
 
 | symbol | bit/s | BER (SD) | acq | BER given sync | **capacity** | vote BER | vote bit/s |
 |---|---|---|---|---|---|---|---|
-| 2 ms | 500.0 | 0.342 (0.264) | 1/3 | 0.251 | 36.8 | 0.335 | 62.5 |
-| 3 ms | 333.3 | 0.048 (0.057) | 3/3 | 0.057 | **241.2** | 0.004 | 41.7 |
-| 4 ms | 250.0 | 0.339 (0.286) | 1/3 | 0.151 | 19.1 | 0.337 | 31.2 |
-| 6 ms | 166.7 | 0.060 (0.097) | 3/3 | 0.064 | 111.8 | 0.004 | 20.8 |
+| 2 ms | 500.0 | 0.342 (0.264) | 1/3 | 0.251 | 36.8 | 0.333 | 62.5 |
+| 3 ms | 333.3 | 0.048 (0.057) | 3/3 | 0.057 | **241.2** | 0.003 | 41.7 |
+| 4 ms | 250.0 | 0.339 (0.286) | 1/3 | 0.151 | 19.1 | 0.340 | 31.2 |
+| 6 ms | 166.7 | 0.060 (0.097) | 3/3 | 0.064 | 111.8 | **0** | 20.8 |
 | 8 ms | 125.0 | 0.017 (0.022) | 3/3 | 0.020 | 109.6 | **0** | 15.6 |
 | 12 ms | 83.3 | 0.011 (0.017) | 3/3 | 0.011 | 76.2 | **0** | 10.4 |
 | 16 ms | 62.5 | 0.009 (0.009) | 3/3 | 0.010 | 58.1 | **0** | 7.8 |
 | 24 ms | 41.7 | 0.016 (0.014) | 3/3 | 0.015 | 36.7 | **0** | 5.2 |
 | 32 ms | 31.2 | 0.003 (0.005) | 3/3 | 0.002 | 30.4 | **0** | 3.9 |
-| A/A, 8 ms | 125.0 | 0.500 (0.012) | 0/3 | 0.507 | 0.0 | 0.504 | 15.6 |
+| A/A, 8 ms | 125.0 | 0.500 (0.012) | 0/3 | 0.507 | 0.0 | 0.497 | 15.6 |
 
 **The headline is the capacity, not a rate at which no errors happened.** A bit-error rate
 is only half of an operating point; the quantity that combines the two, and the one the
@@ -247,13 +247,33 @@ and it is corrected here — the honest claim is a capacity of 241 bit/s and a r
 around 1% at 83.
 
 **What the majority vote does and what it costs.** Voting across the eight repeated frames
-clears the channel to zero observed errors from 125 bit/s down. It is not free: eight
+clears the channel to zero observed errors from 167 bit/s down. It is not free: eight
 frames carry one payload between them, so the rate actually delivered is the raw rate
 divided by eight. The `vote bit/s` column above is that rate, and at 125 bit/s raw it is
 **15.6 bit/s**. Quoted honestly the vote is a repetition code of rate 1/8, and comparing
 its output against the raw rate — as the earlier draft did — charges nothing for the
 repetition. Against capacity it is also a poor code: 15.6 bit/s delivered where the
 uncoded channel at the same symbol period has 110 bit/s of capacity.
+
+**A note on how ties are resolved, because it moved published numbers.** Both frame counts
+used here are even, so a vote can split exactly — four frames saying 1 and four saying 0.
+The decoder used to compare the mean against 0.5 with a strict inequality, which sent
+every such split to 0. That is a systematic bias toward zero bits, applied to precisely
+the bits the vote was least certain about, and on a balanced payload it decides half of
+them wrongly by construction. Ties are now broken on the summed decision statistic across
+frames instead: the frames that voted 1 did so by some margin and the frames that voted 0
+by some other, and the larger total is the better guess. The change is small at eight
+frames (341 tied bits in 5760 across the tier-1 sweep) and large at four (157 in 408 for
+tier 2), and it moves individual figures in both directions — tier 1 at 167 bit/s goes to
+zero observed errors, tier 2 at 3.9 bit/s worsens from 0.250 to 0.375. Neither movement is
+resolvable: at 3.9 bit/s the vote is scored over 24 distinct bits, where the theoretical
+value under either rule is 0.14 and both readings sit inside the noise. Every headline is
+unchanged, since the rates that matter have no ties at all. What the change buys is that
+the number no longer depends on which way an arbitrary inequality happened to point.
+
+The tie count is now reported per run, and it is a diagnostic in its own right: frames only
+disagree this often when there is nothing for them to agree on. At 2 bit/s, where tiers 2
+and 3 both decode without errors, not one bit is tied.
 
 **What "zero observed errors" is and is not.** It bounds the error rate only as well as
 the bit count allows. At 125 bit/s the vote is scored over 256 distinct payload bits per
@@ -521,11 +541,11 @@ and has no other input.
 | symbol | bit/s | BER (SD) | acq | BER given sync | capacity | vote BER | vote bit/s |
 |---|---|---|---|---|---|---|---|
 | 32 ms | 31.2 | 0.516 (0.037) | 0/3 | 0.479 | 0.0 | 0.563 | 7.8 |
-| 64 ms | 15.6 | 0.492 (0.059) | 0/3 | 0.513 | 0.0 | 0.510 | 3.9 |
-| 128 ms | 7.8 | 0.500 (0.165) | 0/3 | **0.339** | 0.0 | 0.479 | 2.0 |
-| 256 ms | 3.9 | 0.365 (0.118) | 0/3 | 0.313 | 0.2 | 0.250 | 1.0 |
+| 64 ms | 15.6 | 0.492 (0.059) | 0/3 | 0.513 | 0.0 | 0.469 | 3.9 |
+| 128 ms | 7.8 | 0.500 (0.165) | 0/3 | **0.339** | 0.0 | 0.458 | 2.0 |
+| 256 ms | 3.9 | 0.365 (0.118) | 0/3 | 0.313 | 0.2 | 0.375 | 1.0 |
 | **512 ms** | **2.0** | **0.083 (0.018)** | **3/3** | 0.094 | **1.1** | **0** | 0.5 |
-| A/A, 256 ms | 3.9 | 0.490 (0.018) | 0/3 | 0.500 | 0.0 | 0.542 | 1.0 |
+| A/A, 256 ms | 3.9 | 0.490 (0.018) | 0/3 | 0.500 | 0.0 | 0.583 | 1.0 |
 
 **An unprivileged process recovers the message at 2 bit/s with no errors after a
 four-frame majority vote**, and the control at the same load and rate sits at chance. Its
@@ -604,6 +624,48 @@ not evidence against it. Two lessons, both worth more than the measurement: a nu
 proxy is not a null on the mechanism, and the decisive experiment was the one that ran
 the actual receiver rather than something correlated with it.
 
+**The precondition is now checked per run, and three runs in the tier-2 sweep fail it.**
+Ten loaded threads make the part throttle on average; they do not guarantee it did so
+during any particular run, and a run in which it did not carries no channel whatever
+symbol rate it was testing. The receiver's own trace answers this for free: the decoder
+now reports the 5th-to-95th-percentile band of the level it recorded over the
+transmission window, and warns when that band spans less than 10% of itself. Fifteen of
+the eighteen runs read 2400–3900 MHz, a band of 14–40%. The other three sat at their
+ceiling and never throttled:
+
+| run | band | span |
+|---|---|---|
+| `sym_256ms_r0` | 3840–3900 MHz | 1.5% |
+| `sym_032ms_r2` | 3820–3900 MHz | 2.0% |
+| `sym_032ms_r1` | 3768–3900 MHz | 3.4% |
+
+The gap between 3.4% and the next run at 14.3% is wide enough that this is a state the
+machine is in or is not, rather than a continuum being cut arbitrarily.
+
+This is worth more than tidiness, because it moves how two rows should be read. The
+3.9 bit/s row aggregates to a BER of 0.365 from repeats of 0.500, 0.313 and 0.281 — and
+the 0.500 is the un-throttled run. And **two of the three repeats at 31.2 bit/s never
+throttled**, so that row's 0.516 is very largely a measurement of an idle-ish machine
+rather than of the channel at 31.2 bit/s. Neither disturbs the headline, which is at
+2 bit/s where all three repeats throttled normally; what it means is that the fast rows
+are even less interpretable than §8.1 already says, and that a rate sweep on a
+throttling-dependent channel needs this gate to be readable at all.
+
+Recording also that the first reading of `sym_256ms_r0` was wrong, twice. Its per-chip
+noise is 7.87 MHz against 200–700 for every other run, a hundredfold outlier that reads
+like a parked or fixed-frequency CPU. It is not one — the raw trace takes 2064 distinct
+values with a lag-1 autocorrelation of 0.993. The small per-chip figure is the opposite of
+a fault: this run's frequency noise is *white*, so it averages down over a 256 ms chip,
+where every other run's noise is governor wander slow enough to survive the integration.
+A dispersion statistic cannot tell "nothing was moving" from "what was moving averaged
+away"; a percentile band can. The second error was measuring that band over the whole
+recording, which opens before the transmitter starts and closes after it stops. A watched
+*victim* core idles at 400 MHz outside the transmission, so over the full trace every
+watched core looks lively and the same run appears to throttle on cpu2 while not
+throttling on cpu0 — an appealing but false explanation for why watching a victim core
+decodes better. Restricted to the transmission itself, cpu2 reads 2.8% and agrees with
+cpu0: the part was not throttling, full stop.
+
 There is a second, independent reason that sweep could not have concluded anything, found
 after the fact and worth recording because it generalises. Under Config-B with the part
 free to throttle, its runs drift **29–48 W** within a condition — two orders of magnitude
@@ -625,15 +687,13 @@ duration inversely proportional to the core frequency: when the transmitter make
 part throttle, the receiver observes *itself* running slower. It never looks at the
 victim at all.
 
-Put beside tier 2 at matched rates:
-
 Put beside tier 2 at matched rates, three repeats each, capacity in bit/s:
 
 | bit/s | tier 2 (reads a file) | | | tier 3 (reads nothing) | | |
 |---|---|---|---|---|---|---|
 | | BER | cap | vote | BER | cap | vote |
-| 7.8 | 0.500 | 0.0 | 0.479 | — | — | — |
-| 3.9 | 0.365 | 0.2 | 0.250 | **0.237** | **0.8** | **0.115** |
+| 7.8 | 0.500 | 0.0 | 0.458 | — | — | — |
+| 3.9 | 0.365 | 0.2 | 0.375 | **0.237** | **0.8** | **0.198** |
 | 2.0 | 0.083 | 1.1 | 0.000 | 0.109 | 1.0 | 0.000 |
 | 1.0 | — | — | — | **0.000** | **1.0** | **0.000** |
 
@@ -799,7 +859,7 @@ independent clock would need to, and nothing here measures how much that costs.
   receiver recovers frame position from the signal itself.
 - Under a root receiver the channel carries **241 bit/s of capacity**, at a 3 ms symbol and
   a mean BER of 0.048 over three repeats; an eight-frame majority vote clears it to zero
-  observed errors from 125 bit/s down, delivering 15.6 bit/s. An order of magnitude above
+  observed errors from 167 bit/s down, delivering 20.8 bit/s. An order of magnitude above
   this project's stated expectation of low tens of bits/s. No rate is error-free when the
   repeats are aggregated: the raw BER at 83 bit/s is 0.011, not zero.
 - **A receiver with no privilege at all recovers the message.** Reading only

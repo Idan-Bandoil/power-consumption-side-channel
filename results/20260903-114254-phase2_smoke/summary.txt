@@ -2,9 +2,14 @@
 ==============================================================================
 per-run decode
 ==============================================================================
-                     run  sym us   bit/s     BER  BER|snc  acq  |pk|    pre   vote  cap b/s       dW     sd W  d-marg  d-pair  Q(pair)  ovr%    sync  late
-                 aa_16ms   16000    62.5  0.5469   0.4844   NO  0.27  0.346  0.656      0.4    0.058    0.796    0.07    0.09   0.4652  0.21 -132.77     0
-                sym_16ms   16000    62.5  0.0156   0.0312  yes  0.83  0.000  0.000     55.2    1.591    0.515    3.09    2.50   0.0062  0.30   +0.14     0
+                     run  sym us   bit/s     BER  BER|snc  acq  |pk|    pre   vote  ties  cap b/s       dW     sd W  d-marg  d-pair  Q(pair)  ovr%    sync  late
+                 aa_16ms   16000    62.5  0.5469   0.4844   NO  0.27  0.346  0.656 13/32      0.4    0.058    0.796    0.07    0.09   0.4652  0.21 -132.77     0
+                sym_16ms   16000    62.5  0.0156   0.0312  yes  0.83  0.000  0.000  0/32     55.2    1.591    0.515    3.09    2.50   0.0062  0.30   +0.14     0
+
+  ties: 13 of 64 voted bits split evenly across frames and were
+  decided on the summed decision margin rather than resolved to 0. An even
+  frame count is what makes that possible; a high tie rate is also a symptom,
+  since frames only disagree this much when there is nothing for them to agree on.
 
   BER over payload bits, decoded at the sync the receiver recovered.
   BER|snc is the same decode on the TRUE chip grid, so it measures

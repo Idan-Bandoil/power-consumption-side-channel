@@ -37,6 +37,18 @@ AA_BER_FLOOR = 0.40
 # sitting at either ~0.1% or ~4% for a whole run, so this threshold separates
 # the two regimes rather than cutting through a distribution.
 MAX_OVERSHOOT_FRACTION = 0.01
+# Distinct values a receiver trace must take before its BER means anything. A
+# CPU parked at a fixed frequency yields a handful; the runner already warns on
+# exactly zero changes, which is one value short of catching this.
+MIN_TRACE_VALUES = 8
+# Spread of the receiver's own level, (p95 - p5) / p95, below which a Config-B
+# run had no throttling to modulate. Tiers 2 and 3 exist only while the part is
+# throttling -- that is a precondition of the attack, not a tuning detail -- and
+# a run where it did not carries no channel for reasons that have nothing to do
+# with the rate being tested. Measured: the one run in the tier-2 sweep that
+# behaves this way reads 0.041 against 0.28-0.36 for every other, and tier 3
+# spans 0.40-0.48, so this sits an order of magnitude clear of both.
+MIN_LEVEL_RANGE = 0.10
 
 
 class Trace:
@@ -148,8 +160,12 @@ def sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames):
     return total / frames
 
 
-def demodulate(chips, code, nrz_window=16, polarity=1.0):
-    """Chip levels -> bits.
+def soft_margin(chips, code, nrz_window=16, polarity=1.0):
+    """Chip levels -> the signed decision statistic, one per bit.
+
+    Positive means the bit decodes as 1. The hard decision is its sign; the
+    magnitude is how far from the threshold it landed, which is what lets a
+    majority vote break an exact tie on something better than a coin.
 
     `polarity` is +1 when the ON operand reads high and -1 when it reads low.
     Tier 2 is the inverted case: the heavier operand draws more power, the
@@ -159,14 +175,19 @@ def demodulate(chips, code, nrz_window=16, polarity=1.0):
     chips = chips * polarity
     if code == "manchester":
         pairs = chips.reshape(-1, 2)
-        return (pairs[:, 0] > pairs[:, 1]).astype(np.int8)
+        return pairs[:, 0] - pairs[:, 1]
     # NRZ has no in-symbol reference, so it needs a running baseline. A
     # centred moving average is the cheapest one that tracks drift slower
     # than the window without tracking the symbols themselves.
     k = min(nrz_window, len(chips))
     pad = np.pad(chips, (k // 2, k - k // 2 - 1), mode="edge")
     baseline = np.convolve(pad, np.ones(k) / k, mode="valid")
-    return (chips > baseline).astype(np.int8)
+    return chips - baseline
+
+
+def demodulate(chips, code, nrz_window=16, polarity=1.0):
+    """Chip levels -> bits."""
+    return (soft_margin(chips, code, nrz_window, polarity) > 0).astype(np.int8)
 
 
 def decode_run(entry, csv_path, sync_span=None, freq_column=0):
@@ -187,14 +208,19 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         if freq_column >= len(watched):
             raise ValueError(f"{csv_path}: --freq-column {freq_column} but only "
                              f"{len(watched)} CPU(s) watched")
-        trace = Trace.from_levels(raw[:, 0], raw[:, 1 + freq_column], rx["tsc_hz"])
+        level = raw[:, 1 + freq_column]
+        trace = Trace.from_levels(raw[:, 0], level, rx["tsc_hz"])
         # Tier 3's level is the workload's own duration, not a frequency, and
         # runs the other way up: throttling makes it larger.
         unit = "kHz" if receiver == "freq" else "TSC"
     else:
         trace = Trace(tsc=raw[:, 0], ticks=raw[:, 1], dtsc=raw[:, 2],
                       energy_unit_j=rx["energy_unit_j"], tsc_hz=rx["tsc_hz"])
+        level = raw[:, 1]
         unit = "W"
+
+    trace_sd = float(np.std(level))
+    trace_unique = int(np.unique(level).size)
 
     code = tx["code"]
     chip_tsc = float(tx["chip_tsc"])
@@ -203,6 +229,35 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     frames, bits_per_frame = int(tx["frames"]), int(tx["bits_per_frame"])
     frame_chips = bits_per_frame * chips_per_bit
     frame_tsc = frame_chips * chip_tsc
+
+    # How far the receiver's own level moved, over the transmission itself.
+    # Tiers 2 and 3 read a throttling response, so a run in which the part
+    # never throttled carries no channel whatever the symbol rate -- and still
+    # produces a BER that lands in the table beside runs that measured
+    # something.
+    #
+    # Restricted to the transmission window because the recording is not: it
+    # opens before the transmitter starts and closes after it stops, and a
+    # *watched victim core* is idle at 400 MHz outside it. Over the whole
+    # trace that idle stretch dominates the 5th percentile and every watched
+    # core looks lively.
+    #
+    # Percentiles rather than an SD, because the two are not interchangeable
+    # here. sym_256ms_r0 in the tier-2 sweep has a per-chip SD of 7.87 MHz
+    # against 200-700 for every other run, which reads like a parked CPU. It
+    # is not one: its raw trace takes 2064 distinct values with a lag-1
+    # autocorrelation of 0.993. Its band is 3740-3900 MHz where every other
+    # run's is 2400-3900 -- the part stayed near its ceiling and never
+    # throttled, so there was nothing to modulate. Its chip SD is small
+    # because that noise is white and averages down over a 256 ms chip, where
+    # the other runs' governor wander does not. A dispersion statistic
+    # confuses "nothing moved" with "what moved averaged away"; a band does not.
+    tx_lo = float(tx["tsc_start"])
+    tx_hi = tx_lo + frames * frame_tsc
+    in_tx = (raw[:, 0] >= tx_lo) & (raw[:, 0] <= tx_hi)
+    active = level[in_tx] if in_tx.sum() >= 20 else level
+    p5, p95 = float(np.percentile(active, 5)), float(np.percentile(active, 95))
+    level_range = (p95 - p5) / abs(p95) if p95 else 0.0
 
     # --- sync: slide the preamble along the trace -------------------------
     pattern = bits_to_chips(preamble, code)
@@ -253,13 +308,15 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
     n_pre = len(truth_pre)
 
     pre_err = pay_err = 0
-    decoded_frames = []
+    decoded_frames, soft_frames = [], []
     for f in range(frames):
-        bits = demodulate(chip_power[f], code, polarity=polarity)
+        margin = soft_margin(chip_power[f], code, polarity=polarity)
+        bits = (margin > 0).astype(np.int8)
         pre_err += int(np.sum(bits[:n_pre] != truth_pre))
         pay = bits[n_pre:]
         pay_err += int(np.sum(pay != truth_pay))
         decoded_frames.append(pay)
+        soft_frames.append(margin[n_pre:])
 
     n_pay = len(truth_pay)
     ber = pay_err / (n_pay * frames)
@@ -358,9 +415,20 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
 
     # Majority vote across the repeated frames: the cheapest possible ECC,
     # and the honest way to show what repetition buys against the raw BER.
+    #
+    # An even frame count -- 4 for tiers 2 and 3, 8 for tier 1 -- can split
+    # exactly, and `mean > 0.5` resolves every such split to 0. That is a
+    # systematic bias toward zero bits in precisely the bits the vote was
+    # least sure about, and on a balanced payload it costs half of them.
+    # Ties go to the summed decision statistic instead, which is free: the
+    # frames that voted 1 did so by some margin and the frames that voted 0
+    # by some other, and the larger total is the better guess.
     stacked = np.stack(decoded_frames)
-    voted = (stacked.mean(axis=0) > 0.5).astype(np.int8)
+    votes = stacked.mean(axis=0)
+    soft_sum = np.sum(np.stack(soft_frames), axis=0)
+    voted = np.where(votes == 0.5, soft_sum > 0, votes > 0.5).astype(np.int8)
     voted_err = int(np.sum(voted != truth_pay))
+    voted_ties = int(np.sum(votes == 0.5))
 
     symbol_s = float(tx["symbol_us"]) / 1e6
     raw_bps = 1.0 / symbol_s
@@ -380,6 +448,20 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
         "raw_bps": raw_bps,
         "aa_control": tx["on_selector"] == tx["off_selector"],
         "late_chips": int(tx["late_chips"]),
+        # The check late_chips cannot make. late_chips asks whether the
+        # transmitter's control thread hit its deadlines -- a loop doing one
+        # store and a fence, which essentially cannot miss. missed_chips asks
+        # whether the victims observed the change, which is what actually
+        # modulates the die. None for runs written before tx counted it.
+        "missed_chips": (int(tx["missed_chips"])
+                         if "missed_chips" in tx else None),
+        "trace_sd": trace_sd,
+        "trace_unique": trace_unique,
+        "trace_unit": unit,
+        "level_range": level_range,
+        "level_p5": p5,
+        "level_p95": p95,
+        "voted_ties": voted_ties,
         "frames": frames,
         # payload_bits is the number of *distinct* bits the message carries.
         # Each is transmitted `frames` times, so the two counts differ by that
@@ -531,21 +613,31 @@ def main():
     print(hr("per-run decode"))
     print(f"  {'run':>22} {'sym us':>7} {'bit/s':>7} {'BER':>7} {'BER|snc':>8} "
           f"{'acq':>4} {'|pk|':>5} {'pre':>6} "
-          f"{'vote':>6} {'cap b/s':>8} {'d' + unit:>8} {'sd ' + unit:>8} {'d-marg':>7} "
+          f"{'vote':>6} {'ties':>5} {'cap b/s':>8} {'d' + unit:>8} {'sd ' + unit:>8} {'d-marg':>7} "
           f"{'d-pair':>7} {'Q(pair)':>8} {'ovr%':>5} {'sync':>7} {'late':>5}")
     for r in sorted(rows, key=lambda r: (r["label"], r["repeat"])):
+        ties = "{}/{}".format(r["voted_ties"], r["payload_bits"])
         print(f"  {r['tag']:>22} {r['symbol_us']:>7.0f} {r['raw_bps']:>7.1f} "
               f"{r['ber']:>7.4f} {r['ber_oracle_sync']:>8.4f} "
               f"{('yes' if r['acquired'] else 'NO'):>4} "
               f"{abs(r['sync_peak']):>5.2f} "
               f"{r['preamble_ber']:>6.3f} "
-              f"{r['voted_ber']:>6.3f} {r['capacity_bps']:>8.1f} "
+              f"{r['voted_ber']:>6.3f} {ties:>5} {r['capacity_bps']:>8.1f} "
               f"{r['delta_w'] * scale:>8.3f} "
               f"{r['noise_sd_w'] * scale:>8.3f} {r['d_prime']:>7.2f} "
               f"{r['d_prime_paired']:>7.2f} {r['ber_predicted']:>8.4f} "
               f"{r['overshoot_fraction'] * 100:>5.2f} "
               f"{r['sync_error_chips']:>+7.2f} {r['late_chips']:>5}"
               f"{'' if r['settled'] else '   << unsettled sampler'}")
+    tie_bits = sum(r["voted_ties"] for r in rows)
+    vote_bits = sum(r["payload_bits"] for r in rows)
+    if tie_bits:
+        print(f"\n  ties: {tie_bits} of {vote_bits} voted bits split evenly across "
+              f"frames and were\n  decided on the summed decision margin rather than "
+              f"resolved to 0. An even\n  frame count is what makes that possible; a "
+              f"high tie rate is also a symptom,\n  since frames only disagree this "
+              f"much when there is nothing for them to agree on.")
+
     print(f"\n  BER over payload bits, decoded at the sync the receiver recovered.")
     print(f"  BER|snc is the same decode on the TRUE chip grid, so it measures")
     print(f"  demodulation with acquisition removed; acq says whether the recovered")
@@ -647,6 +739,25 @@ def main():
             failures.append(f"{r['tag']}: {r['late_chips']} late chips -- the "
                             f"transmitter could not hold its schedule, so this "
                             f"run's BER is not a property of the channel")
+        if r["missed_chips"]:
+            failures.append(f"{r['tag']}: {r['missed_chips']} of "
+                            f"{r['payload_bits'] * r['frames']} bits' worth of "
+                            f"chips were never observed by a victim -- the "
+                            f"modulation was scheduled but did not reach the die")
+        if r["trace_unique"] < MIN_TRACE_VALUES:
+            failures.append(f"{r['tag']}: receiver trace takes only "
+                            f"{r['trace_unique']} distinct values -- there was "
+                            f"nothing there to decode, so its BER is not "
+                            f"evidence about the channel")
+        elif (r["receiver"] in ("freq", "timing")
+                and r["level_range"] < MIN_LEVEL_RANGE):
+            warnings.append(f"{r['tag']}: the receiver's level spans only "
+                            f"{r['level_range']:.1%} of itself "
+                            f"({r['level_p5']:.0f}-{r['level_p95']:.0f} "
+                            f"{r['trace_unit']}), so the part was not throttling "
+                            f"and there was nothing for the transmitter to "
+                            f"modulate -- this run's BER is about the machine's "
+                            f"state, not about the rate it was testing")
         if r["zero_tick_fraction"] > 0.01:
             failures.append(f"{r['tag']}: {r['zero_tick_fraction']:.1%} zero-tick "
                             f"samples -- the sampler is aliasing")
