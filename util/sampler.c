@@ -148,12 +148,29 @@ struct rapl_edge_t rapl_sampler_next(struct rapl_sampler_t *s)
 	e.dmperf = cur_f.mperf - s->prev_f.mperf;
 
 	if (s->mode == SAMPLE_EDGE) {
-		if (s->period_est == 0)
+		if (s->period_est == 0) {
 			s->period_est = e.dtsc;
-		else if (e.dtsc > s->period_est + s->period_est / 2)
+		} else if (e.dtsc > s->period_est + s->period_est / 2) {
+			/*
+			 * An edge seen this late spans about two update
+			 * intervals. Feeding it to the estimator would pull
+			 * the estimate up by roughly the overshoot rate, so
+			 * the reported period would partly measure the
+			 * sampler rather than the part -- and, since the
+			 * estimate sets the guard window, a longer estimate
+			 * moves the next poll closer to the following edge,
+			 * which is a feedback path with two fixed points.
+			 * Checked over 322 committed runs and it does not
+			 * operate (corr(overshoot, period) = -0.009), so this
+			 * corrects no published number. It costs one branch
+			 * and removes the coupling, so the question cannot
+			 * come back.
+			 */
 			s->overshoots++;
-		/* EWMA, 1/16 weight */
-		s->period_est += ((int64_t)e.dtsc - (int64_t)s->period_est) / 16;
+		} else {
+			/* EWMA, 1/16 weight */
+			s->period_est += ((int64_t)e.dtsc - (int64_t)s->period_est) / 16;
+		}
 		s->edges_seen++;
 	}
 

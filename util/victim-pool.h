@@ -39,4 +39,13 @@ void victims_stop(struct victim_pool_t *p);
 /* Total bursts completed across the pool -- the basis of the throughput figure. */
 uint64_t victims_bursts(const struct victim_pool_t *p);
 
+/*
+ * Fewest and most distinct ctl->epoch values any one victim observed. The
+ * spawner bumps epoch on every selector write, so `lo` against the number of
+ * writes is the check that the modulation reached the victims and was not
+ * merely scheduled -- the worst observer is the one that matters, since one
+ * victim missing a chip is enough to blunt the edge.
+ */
+void victims_epochs(const struct victim_pool_t *p, uint64_t *lo, uint64_t *hi);
+
 #endif

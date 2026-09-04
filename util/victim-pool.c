@@ -95,3 +95,23 @@ uint64_t victims_bursts(const struct victim_pool_t *p)
 		total += p->vargs[i].bursts;
 	return total;
 }
+
+void victims_epochs(const struct victim_pool_t *p, uint64_t *lo, uint64_t *hi)
+{
+	uint64_t mn = UINT64_MAX, mx = 0;
+
+	for (int i = 0; i < p->n; i++) {
+		uint64_t v = p->vargs[i].epochs_seen;
+
+		if (v < mn)
+			mn = v;
+		if (v > mx)
+			mx = v;
+	}
+	if (p->n == 0)
+		mn = 0;
+	if (lo)
+		*lo = mn;
+	if (hi)
+		*hi = mx;
+}

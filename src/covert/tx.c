@@ -371,6 +371,20 @@ int main(int argc, char *argv[])
 	usleep((useconds_t)(cfg.tail_ms * 1000.0));
 
 	uint64_t bursts = victims_bursts(&pool);
+	/*
+	 * The check late_chips cannot make. This loop stores one word and
+	 * fences per chip, so it essentially cannot miss its own deadline and
+	 * a clean late_chips says only that the schedule was kept -- not that
+	 * anything downstream saw it. Victims re-read ctl->selector once per
+	 * burst, so a chip shorter than a burst is coalesced away and the
+	 * modulation never reaches the die. Each victim counts the distinct
+	 * epochs it observed; the worst of them against the chips sent is the
+	 * number of chips that were scheduled but not delivered.
+	 */
+	uint64_t ep_lo = 0, ep_hi = 0;
+	victims_epochs(&pool, &ep_lo, &ep_hi);
+	uint64_t missed = (uint64_t)total_chips > ep_lo
+		? (uint64_t)total_chips - ep_lo : 0;
 	victims_stop(&pool);
 
 	/*
@@ -407,11 +421,16 @@ int main(int argc, char *argv[])
 	printf("  \"tx_core\": %d,\n", cfg.tx_core);
 	printf("  \"victim_bursts\": %" PRIu64 ",\n", bursts);
 	printf("  \"late_chips\": %" PRIu64 ",\n", late_chips);
-	printf("  \"max_late_us\": %.3f\n", 1e6 * (double)max_late_tsc / tsc_hz);
+	printf("  \"max_late_us\": %.3f,\n", 1e6 * (double)max_late_tsc / tsc_hz);
+	printf("  \"chips_sent\": %ld,\n", total_chips);
+	printf("  \"victim_epochs_min\": %" PRIu64 ",\n", ep_lo);
+	printf("  \"victim_epochs_max\": %" PRIu64 ",\n", ep_hi);
+	printf("  \"missed_chips\": %" PRIu64 "\n", missed);
 	printf("}\n");
 
-	fprintf(stderr, "tx: done, %ld chips, %" PRIu64 " late\n",
-		total_chips, late_chips);
+	fprintf(stderr, "tx: done, %ld chips, %" PRIu64 " late, %" PRIu64
+		" not observed by a victim\n",
+		total_chips, late_chips, missed);
 
 	free(chips);
 	free(pool.vargs);

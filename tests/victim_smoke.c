@@ -103,11 +103,28 @@ int main(int argc, char **argv)
 		if (c >= 0) { alive++; busy += c - c0[i]; }
 	}
 
+	/*
+	 * Whether the victims *observed* the retune, not merely that it was
+	 * written. Printing ctl->selector back only proves this process can
+	 * read its own store. One epoch was published above, so every victim
+	 * should have seen exactly one -- and a victim that sees none is one
+	 * whose operand never changed, which is the failure that would make a
+	 * covert transmission report a clean schedule and carry nothing.
+	 */
+	uint64_t ep_lo = UINT64_MAX, ep_hi = 0;
+	for (int i = 0; i < nthreads; i++) {
+		uint64_t v = va[i].epochs_seen;
+		if (v < ep_lo) ep_lo = v;
+		if (v > ep_hi) ep_hi = v;
+	}
+
 	printf("victim              : %s x%d\n", name, nthreads);
 	printf("threads alive       : %d/%d\n", alive, nthreads);
 	printf("victim CPU / wall   : %.2f  (expect ~%d)\n", busy / wall, nthreads);
 	printf("selector now        : %lu (epoch %lu)\n",
 	       (unsigned long)ctl->selector, (unsigned long)ctl->epoch);
+	printf("epochs observed     : %lu-%lu of 1 published\n",
+	       (unsigned long)ep_lo, (unsigned long)ep_hi);
 
 	double t_stop = now();
 	ctl->run = 0;
@@ -126,7 +143,7 @@ int main(int argc, char **argv)
 	printf("exit latency        : %.2f ms\n", exit_ms);
 
 	int ok = alive == nthreads && busy / wall > nthreads * 0.8
-		 && exit_ms < 50.0 && clean;
+		 && exit_ms < 50.0 && clean && ep_lo == 1;
 	printf("RESULT              : %s\n", ok ? "PASS" : "FAIL");
 	return ok ? 0 : 1;
 }

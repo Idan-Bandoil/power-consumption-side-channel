@@ -39,12 +39,23 @@ struct ctl_t {
  * `bursts` and `bytes_per_burst` let the driver report actual operand
  * throughput, which turns a watt difference into leakage per byte moved --
  * the quantity the traffic-volume sweep is really after.
+ *
+ * `epochs_seen` counts how many distinct ctl->epoch values this victim has
+ * observed. The driver and the transmitter bump epoch on every selector
+ * write, so it is the receiving end of that count: comparing the two says
+ * whether the victims actually saw each change. The transmitter's own
+ * late-chip counter cannot -- its control thread does one store and a fence
+ * per chip and essentially cannot miss a deadline, so it would report a clean
+ * transmission even if the victims coalesced two chips into one burst and the
+ * modulation never reached the die.
  */
 struct victim_args_t {
 	struct ctl_t *ctl;
 	int core_id;
 	volatile uint64_t bursts;
 	uint64_t bytes_per_burst;
+	volatile uint64_t epochs_seen;
+	uint64_t last_epoch;
 } __attribute__((aligned(64)));
 
 struct run_config_t {

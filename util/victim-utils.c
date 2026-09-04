@@ -21,6 +21,27 @@
 #define STR_(x) #x
 #define STR(x) STR_(x)
 
+/*
+ * One accounting step per burst, shared by every victim body.
+ *
+ * The burst count is the throughput figure. The epoch check is the receiving
+ * end of the driver's and transmitter's selector writes: it counts how many
+ * distinct epochs this victim actually observed, which is the only evidence
+ * that a modulation reached the die rather than merely being scheduled. Both
+ * fields live in the victim's own cache line, and ctl->epoch shares a line
+ * with ctl->selector, which the victim is about to read anyway -- so this
+ * costs a compare against a register.
+ */
+#define VICTIM_TICK(a, ctl)                                                   \
+	do {                                                                  \
+		(a)->bursts++;                                                \
+		uint64_t ep_ = (ctl)->epoch;                                  \
+		if (ep_ != (a)->last_epoch) {                                 \
+			(a)->last_epoch = ep_;                                \
+			(a)->epochs_seen++;                                   \
+		}                                                             \
+	} while (0)
+
 #define YMM_CLOBBERS \
 	"ymm0", "ymm1", "ymm2", "ymm3", "ymm4", \
 	"ymm5", "ymm6", "ymm7", "ymm8", "ymm9"
@@ -85,7 +106,7 @@
 		vec = _mm256_set1_epi32((int)(uint32_t)cached);               \
                                                                               \
 		while (ctl->run) {                                            \
-			a->bursts++;                                          \
+			VICTIM_TICK(a, ctl);                                  \
 			uint64_t s = ctl->selector;                           \
 			if (s != cached) {                                    \
 				cached = s;                                   \
@@ -119,7 +140,7 @@ static __attribute__((noinline)) int idle_victim(void *varg)
 	victim_pin(a->core_id);
 
 	while (ctl->run) {
-		a->bursts++;
+		VICTIM_TICK(a, ctl);
 		for (int i = 0; i < AVX_BURST * 8; i++)
 			_mm_pause();
 	}
@@ -135,7 +156,7 @@ static __attribute__((noinline)) int nop_victim(void *varg)
 	victim_pin(a->core_id);
 
 	while (ctl->run) {
-		a->bursts++;
+		VICTIM_TICK(a, ctl);
 		asm volatile(
 			"mov $" STR(AVX_BURST) ", %%rcx\n\t"
 			"1:\n\t"
@@ -165,7 +186,7 @@ static __attribute__((noinline)) int scalar_rol_victim(void *varg)
 	victim_pin(a->core_id);
 
 	while (ctl->run) {
-		a->bursts++;
+		VICTIM_TICK(a, ctl);
 		s = ctl->selector;
 		asm volatile(
 			"mov %[v], %%rax\n\t"
@@ -201,7 +222,7 @@ static __attribute__((noinline)) int scalar_imul_victim(void *varg)
 	victim_pin(a->core_id);
 
 	while (ctl->run) {
-		a->bursts++;
+		VICTIM_TICK(a, ctl);
 		s = ctl->selector;
 		/* Accumulators are re-seeded every burst so they cannot drift
 		 * to an absorbing value and decouple from the selector. */
@@ -332,7 +353,7 @@ DEFINE_VEC_VICTIM(avx2_vnni_victim, UNROLL8_3OP, "%{vex%} vpdpbusd", "ymm", ZERO
 			buf[i] = _mm256_set1_epi32((int)(uint32_t)cached);    \
                                                                               \
 		while (ctl->run) {                                            \
-			a->bursts++;                                          \
+			VICTIM_TICK(a, ctl);                                  \
 			uint64_t s = ctl->selector;                           \
 			if (s != cached) {                                    \
 				cached = s;                                   \
@@ -486,7 +507,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
-			a->bursts++;                                          \
+			VICTIM_TICK(a, ctl);                                  \
 			unsigned char *buf = ws_get(&cache, ctl->selector);   \
 			asm volatile(                                         \
 				"mov $" STR(AVX_BURST) ", %%rcx\n\t"          \
@@ -649,7 +670,7 @@ DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
-			a->bursts++;                                          \
+			VICTIM_TICK(a, ctl);                                  \
 			unsigned char *buf = ws_get(&cache, ctl->selector);   \
 			asm volatile(                                         \
 				zero                                          \
