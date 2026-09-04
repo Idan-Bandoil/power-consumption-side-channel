@@ -4,11 +4,13 @@
 `phase2-covert.md` at commit `218b474`. A list of what an examiner will find and what it
 would cost to close each item.*
 
-> **Status, 2026-09-04.** Items 1 and 2 of the work order are done — see *Outcomes* at the
-> foot of this document. Two of the findings below (B4, and C3's magnitude) were **refuted**
-> by the checks they prompted, and are struck through in place rather than deleted; three
-> others (A1, A3, D1) were confirmed and turned out to be larger than estimated. Remaining
-> items are unchanged.
+> **Status, 2026-09-04.** Items 1, 2 and 5 of the work order are done — see *Outcomes* at
+> the foot of this document. Three findings below (B4, C3's magnitude, and F's reading of
+> the degenerate tier-2 run) were **refuted** by the checks they prompted, and are struck
+> through in place rather than deleted; four others (A1, A3, D1, and F's tie-break) were
+> confirmed, three of them larger than estimated. Item 3's experiment is specified and
+> ready to launch as `experiments/phase1_depth_operand.json`; it needs about 90 minutes of
+> machine time. Remaining items are unchanged.
 
 Ground rule used throughout: a finding is only listed if there is a concrete experiment,
 gate, or reanalysis that would settle it. Items are ordered by how much of the thesis
@@ -186,7 +188,17 @@ Three corroborations exist or are nearly free:
 **Fix.** Do (2) once and cite it in Phase 0 §5 as an external check. Do (3) as a Phase 1
 addendum. Promote (1) into Phase 0.
 
-### B2. The recorded frequency is the monitor's, not the victim's
+### ~~B2. The recorded frequency is the monitor's, not the victim's~~ — DONE 2026-09-04
+
+> **Fixed.** The driver now opens `scaling_cur_freq` for the first victim core and reads
+> it once per measured block, accumulating per condition, and `analysis.report` prints
+> `MHz mon` and `MHz vic` side by side with a `frequency_balance` gate on the second. The
+> gate applies under Config-A only: under Config-B a frequency difference between
+> conditions is the tier-2 channel rather than a fault. Reading sysfs once per 128 ms
+> block keeps it off the sampling path entirely and needs no second MSR pread. Runs
+> written before this print `-` and skip the gate rather than failing.
+>
+> *Original finding:*
 
 `util/sampler.c:142` reads `frequency_msr_raw(s->core)` where `s->core` is
 `cfg.attacker_core`. So `daperf`/`dmperf` in every driver CSV — and the per-condition
@@ -209,7 +221,18 @@ Then add a `frequency_balance` gate: fail if the two conditions' mean victim fre
 differs by more than a stated bound. Cheap, and it converts the chapter's central
 assertion into a per-run check.
 
-### B3. Work rate is never measured per condition
+### ~~B3. Work rate is never measured per condition~~ — DONE 2026-09-04
+
+> **Fixed.** The driver latches `victims_bursts()` at each block boundary and sums per
+> condition, reporting `victim_bytes_per_s_by_cond` in the manifest. `analysis.report`
+> prints GB/s per condition and gates on a fractional imbalance above 1%, alongside the
+> watts a work difference could account for if all package power scaled with traffic — a
+> deliberate over-estimate, quoted so it can be compared against the effect rather than
+> taken on faith. The threshold is provisional: the burst counters are exact to about
+> 1e-4, so 1% is far above their noise and should only fire on something real. The first
+> session to carry it will say whether it is well placed.
+>
+> *Original finding:*
 
 `src/driver.c:141-195` latches `victims_bursts()` once at the start of the measured blocks
 and once at the end. `victim_bytes_per_s` in every manifest is therefore **pooled over both
@@ -603,7 +626,14 @@ Phase 3 and it belongs at the end of Phase 1, not the start of Phase 3. (b) An i
 at controlled mean bit density, checked against the constant-word slope, as a
 generalisation control.
 
-### E3. "pJ/byte" names a quantity the thesis did not measure
+### ~~E3. "pJ/byte" names a quantity the thesis did not measure~~ — DONE 2026-09-04
+
+> **Fixed.** Renamed to Δ pJ/byte throughout `phase1-leakage.md` §4, §10 and §13, and
+> `analysis.aggregate`'s column header is now `dpJ/B` with a legend saying what it is and
+> what it is not. §4 gains a paragraph stating the distinction explicitly and naming the
+> comparison it is meant to prevent.
+>
+> *Original finding:*
 
 `analysis/aggregate.py` computes `1000 × Δ_watts / GB_per_s`, which is the **difference** in
 energy per byte between two operands. §4 and §13 report it as *"Cost per byte moved rises
@@ -642,17 +672,28 @@ is a small change to `accuracy_vs_n` and makes Phase 1's output directly the qua
 
 ## F. Smaller, but load-bearing
 
-- **`late_chips` has no teeth.** `phase2` §3 calls it "a self-check with teeth", but
-  `tx.c:350-365` only checks whether the *control thread* reached each deadline — a loop
-  that does one store and a fence, so it essentially cannot be late. Nothing verifies that
-  the **victims** observed the selector change. `ctl->epoch` is incremented for this purpose
-  and read by nobody. *Fix:* have each victim count observed selector changes and compare
-  against chips sent; report the shortfall. That is the check §3 claims to have.
-- **No gate catches a degenerate receiver trace.** `sym_256ms_r0` in the tier-2 sweep has
-  `sd MHz = 7.87` against 200–700 for every other run — a 100× outlier, almost certainly a
-  parked or fixed-frequency CPU — and it silently drags the 3.9 bit/s row. *Fix:* a
-  dynamic-range / value-changes gate on the receiver trace (the runner already logs
-  `value_changes` and warns only on exactly zero).
+- ~~**`late_chips` has no teeth.**~~ **DONE 2026-09-04.** `phase2` §3 called it "a
+  self-check with teeth", but `tx.c` only checked whether the *control thread* reached each
+  deadline — a loop that does one store and a fence, so it essentially cannot be late.
+  Nothing verified that the **victims** observed the selector change; `ctl->epoch` was
+  incremented for this purpose and read by nobody. Each victim now counts the distinct
+  epochs it observed (`VICTIM_TICK` in `util/victim-utils.c`), `tx` reports
+  `missed_chips` = chips sent − worst observer, and `analysis.covert` fails on a non-zero
+  count. `make check` asserts it on all 30 victims unprivileged, which is where it belongs:
+  the mechanism can now be verified without an MSR.
+- ~~**No gate catches a degenerate receiver trace.**~~ **REFUTED in its diagnosis, and a
+  better gate exists.** `sym_256ms_r0`'s `sd MHz = 7.87` against 200–700 is real, but it is
+  not a parked CPU: the raw trace takes 2064 distinct values with lag-1 autocorrelation
+  0.993. Its noise is *white*, so it averages down over a 256 ms chip where every other
+  run's governor wander does not. What is actually wrong with the run is that the part
+  never throttled — its frequency band over the transmission is 3840–3900 MHz against
+  2400–3900 for the rest — so tier 2's documented precondition was absent. The gate is
+  therefore on the 5th-to-95th-percentile band of the receiver's own level, restricted to
+  the transmission window (the recording brackets it, and a watched victim core idles at
+  400 MHz outside it, which makes every column look lively over the full trace). It catches
+  **three** runs, not one: `sym_256ms_r0` at 1.5% and *two of the three repeats at
+  31.2 bit/s* at 2.0% and 3.4%, against 14–40% for the other fifteen. Recorded in `phase2`
+  §8.2.
 - **The cpu2 tier-2 result is quoted without noting its control.** §8.1 offers "BER 0.229 at
   3.9 bit/s" watching a victim core as strictly better. On that column the A/A pools to
   0.4375 with one repeat at 0.375, and the committed summary records a gate **FAIL** on it.
@@ -664,12 +705,17 @@ is a small change to `accuracy_vs_n` and makes Phase 1's output directly the qua
   one direction across every repeat is a finding, not agreement — most likely the paired
   statistic being computed over the Barker preamble as well as the payload, or non-Gaussian
   noise. *Fix:* compute d′_paired over payload chips only and re-check.
-- **The majority vote resolves ties toward 0.** `covert.py:321` uses `mean > 0.5` with an
-  even frame count. Small, systematic, and free to fix (odd frame counts, or break ties on
-  the summed chip difference).
-- **`MEASURING_PROCS` omits `rx_timing`** (`experiment_runner.py:157`), so neither preflight
-  nor `--restore-only` guards against a stray tier-3 receiver — contrary to what `CLAUDE.md`
-  states. A stray `rx_timing` spins a core at 100% and would poison the next run silently.
+- ~~**The majority vote resolves ties toward 0.**~~ **DONE 2026-09-04, and it was not
+  small.** Ties now go to the summed decision margin across frames. The tie rate is far
+  higher than "small, systematic" suggested — 157 of 408 voted bits in the tier-2 sweep,
+  341 of 5760 in tier 1 — because four frames split evenly 37.5% of the time on a channel
+  at chance. It moves published vote figures in both directions (tier 1 reaches zero
+  observed errors at 167 bit/s rather than 125; tier 2 at 3.9 bit/s worsens from 0.250 to
+  0.375), none of the movements resolvable at 24–96 distinct bits, and no headline
+  changes. The tie count is now a reported column and a useful diagnostic in its own
+  right: at every rate that decodes cleanly, no bit is tied. Recorded in `phase2` §5.
+- ~~**`MEASURING_PROCS` omits `rx_timing`**~~ **DONE 2026-09-04.** Added, so preflight and
+  `--restore-only` now guard against a stray tier-3 receiver as `CLAUDE.md` already claimed.
 - **Provenance drift between the drafts and the committed summaries.** Beyond C2's 2048/1024:
   §5's A/A sync offsets are given as "68, 176 and 564 chips" where the summary reads
   +302.14, −176.29, −68.32; its A/A BER is given as 0.496 where the summary aggregates to
@@ -694,10 +740,13 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
    an anchor and the new two-buffer A/A (C4). *Settles the §4/§8 contradiction and gives the
    combined model its interaction term.*
 4. **The sparsity mixture sweep** (E2a). *Phase 3's foundation. Belongs in Phase 1.*
-5. **Gates and instrumentation**: per-condition throughput (B3), victim-core frequency +
-   `frequency_balance` (B2), robust period estimator (B4.2), receiver-trace gate,
-   `late_chips` with teeth. *One afternoon of code, and it retires four classes of
-   objection permanently.*
+5. ~~**Gates and instrumentation**~~ **DONE 2026-09-04**: per-condition throughput (B3),
+   victim-core frequency + `frequency_balance` (B2), robust period estimator (B4.2),
+   receiver-trace gate (became a throttling gate, see F), `late_chips` with teeth.
+   Done ahead of item 3 deliberately, so that the depth × operand session carries the new
+   gates rather than needing a re-run to acquire them. Still outstanding from C3: gating
+   on `imbalance × drift_span` rather than only printing it, and a tighter imbalance
+   threshold for Config-B sessions than for Config-A ones.
 6. **The matched tier sweep under Config-B** (D4a) with balanced distinct-bit payloads (C1),
    plus the unpinned-receiver run (D2) and the thread-count/duty-cycle sweep (D3). *Turns
    the ladder into a controlled comparison and the threat model's weakest point into a
@@ -801,6 +850,88 @@ throttle. This belongs with item 5.
 **A receiver cannot tell it acquired from the peak-to-sidelobe ratio, but can from the
 absolute peak.** Recorded under A3 above; it was not anticipated and it is a threat-model
 result rather than a methodological one.
+
+---
+
+## Outcomes — item 5, and item 3 specified (2026-09-04)
+
+Item 5 was taken out of order, ahead of item 3's experiment, so that the depth × operand
+session records the new gates rather than needing to be re-run to acquire them. Also zero
+machine time: everything below is code plus reanalysis of committed CSVs.
+
+### The gates that now exist
+
+**B3, work balance.** The driver latches the burst counters per block and sums them per
+condition; `analysis.report` gates on a fractional throughput imbalance above 1%. This is
+the assumption every operand claim in the project rests on — that switching the selector
+changes what is moved, not how much — and it was argued architecturally and never
+measured. It now fails loudly if it is ever false.
+
+**B2, victim frequency.** One `scaling_cur_freq` read per measured block on a victim core,
+accumulated per condition, with a `frequency_balance` gate under Config-A. The `MHz` column
+the report has always printed is the *monitor's* clock, from an APERF/MPERF pair read on a
+core that is idling in a poll loop; it could not check Config-A's premise even in
+principle, and it was sitting in the table looking as though it did.
+
+**F, `late_chips` with teeth.** Victims count the distinct `ctl->epoch` values they
+observe, so the transmitter can report how many chips were scheduled but never reached the
+die. `make check` asserts it on all 30 victims with no privilege, which is the useful
+part: the modulation mechanism is now verifiable without an MSR.
+
+**B4.2, the period estimator.** Flagged edges are excluded from the EWMA. This corrects no
+published number — the contamination it would cause was checked over 322 runs and does not
+occur — but the feedback path existed in the code and now does not.
+
+### Refuted, again by the check it prompted
+
+**F's degenerate-trace bullet had the right run and the wrong reason.** `sym_256ms_r0`'s
+100× outlying per-chip noise is not a parked CPU. The raw trace takes 2064 distinct values
+with lag-1 autocorrelation 0.993; the small per-chip figure is white noise averaging down
+over a 256 ms chip, where every other run's governor wander survives the integration. The
+actual fault is that the part never throttled during it — 3840–3900 MHz against 2400–3900
+elsewhere — so tier 2's documented precondition was absent.
+
+**And the fix found more than the bullet claimed.** Gating on the level's percentile band
+over the transmission window catches **three** runs: `sym_256ms_r0`, and *two of the three
+repeats at 31.2 bit/s*. So the 31.2 bit/s row is very largely a measurement of a machine
+that was not limiting, rather than of the channel at that rate. The headline at 2 bit/s is
+untouched; the fast rows are less interpretable than §8.1 already said.
+
+A false step worth recording, since it nearly became a finding: measured over the *whole*
+recording rather than the transmission window, the same run appears to throttle on cpu2
+while not throttling on cpu0 — which is an appealing mechanism for why watching a victim
+core decodes better. It is an artifact. The recording brackets the transmission and a
+watched victim core idles at 400 MHz outside it, which drags the 5th percentile. Windowed,
+cpu2 reads 2.8% and agrees with cpu0.
+
+### Confirmed, and larger than "small, systematic"
+
+**The tie-break was not a rounding detail.** Four frames split evenly 37.5% of the time on
+a channel at chance, and the old rule sent every split to 0: 157 of 408 voted bits in the
+tier-2 sweep, 341 of 5760 in tier 1. Ties now go to the summed decision margin. Published
+vote figures move in both directions — tier 1 clears to zero observed errors at 167 bit/s
+rather than 125, tier 2 at 3.9 bit/s worsens from 0.250 to 0.375 — and none of the
+movements is resolvable at 24–96 distinct bits, where theory puts both rules at 0.14. No
+headline changes, because the rates that decode cleanly have no ties at all. That last
+fact makes the tie count a diagnostic worth printing.
+
+### Also done
+
+- **E3**, the Δ pJ/byte rename, in the drafts and in `aggregate.py`'s column header.
+- **`MEASURING_PROCS`** now includes `rx_timing`.
+- **`summary.cmd` + `analysis/regen-summary.sh`**, which is the process note below turned
+  into a mechanism: each run directory records the exact commands that build its
+  `summary.txt`, and the script refuses to guess for a directory that has none. The three
+  Phase 2 directories have theirs; the Phase 0/1 ones will get theirs when next
+  regenerated.
+
+### Item 3 is specified but not run
+
+`experiments/phase1_depth_operand.json` is written and validated: four depths × four
+Hamming weights, plus three A/A controls spanning L1 to DRAM, the two-buffer A/A from C4,
+a sham-B at effect scale (C4's second half), and the standard cross-session anchor. 22
+runs × 3 repeats, about 90 minutes. It settles A2, supplies E1's interaction term, and
+closes both halves of C4 in one session. It needs root and has not been run.
 
 ### Process note
 

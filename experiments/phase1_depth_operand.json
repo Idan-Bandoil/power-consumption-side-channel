@@ -1,0 +1,244 @@
+{
+  "name": "phase1_depth_operand",
+  "description": [
+    "Does the zero-operand step scale with how far the operand travels?",
+    "",
+    "This settles a contradiction between two results the chapter already",
+    "reports. Section 4's depth ladder says cost per byte rises ~68x from an",
+    "L1-resident working set to a DRAM-resident one. Section 8 says the all-zero",
+    "baseline is anomalously cheap, worth +349 mW, and that every delta quoted",
+    "against it carries that constant. Both were measured, but the step was",
+    "measured on ws_l3_x8 alone, and the two do not compose without knowing how",
+    "the step scales:",
+    "",
+    "  - If the step is a constant in WATTS, dividing it by throughputs spanning",
+    "    41-741 GB/s corrects each depth by a different amount per byte. The",
+    "    ladder collapses to ~5.5x, L3 and DRAM become indistinguishable, and",
+    "    the L1 row goes negative -- i.e. L1-resident movement would leak",
+    "    nothing beyond the zero anomaly.",
+    "  - If the step is a constant in pJ/BYTE, section 4 stands as published.",
+    "  - If the step scales with the effect at that depth, both readings are",
+    "    wrong and the step is not a baseline offset at all but part of the",
+    "    same depth-dependent transport term.",
+    "",
+    "Nothing measured so far distinguishes these, and they give opposite",
+    "headlines. Note the third is already the most likely: the constant-watt",
+    "reading needs a +349 mW step inside an L1 row whose entire HW-0-to-HW-32",
+    "effect is +228 mW, and the constant-pJ/byte reading needs +1.75 W there.",
+    "Both are arithmetically impossible, which is itself informative -- but a",
+    "measured intercept per depth is what the chapter has to quote.",
+    "",
+    "The same grid is the interaction term the combined leakage model needs.",
+    "Phase 1 so far delivers four characterisations -- depth, weight, distance,",
+    "instruction -- each with one factor varied and the others fixed, never",
+    "combined and never tested out of sample. Fitting dP = a(depth) + b(depth)*HW",
+    "here gives the first term of that model with its depth dependence measured",
+    "rather than assumed.",
+    "",
+    "DESIGN. Four depths x four Hamming weights, each run contrasting the test",
+    "operand against an all-zero working set exactly as the weight sweep did, so",
+    "the L3 column is directly comparable to it. Weights 1 and 2 sit below the",
+    "discontinuity's shoulder and pin the low-end level; 8 and 32 pin the slope.",
+    "That is a 2+2 design: the step at each depth is the gap between the low",
+    "pair and the high pair extrapolated back to zero, and it needs no",
+    "assumption that the curve is linear through the low end -- the low-end",
+    "sweep already showed it is not.",
+    "",
+    "Bit patterns are held identical across depths and reused from the earlier",
+    "sessions (0x00000008, 0x01000040, 0x0180D203, 0xFFFFFFFF), so a difference",
+    "between depths is a depth difference and not a placement difference, and",
+    "each L3 row has a published value to reproduce.",
+    "",
+    "ws_l2_x8 carries no A/A of its own; three controls spanning L1 to DRAM are",
+    "enough to bound the noise floor across the range, and aa_l3 is the session",
+    "gate. L1 gets one because it is the row whose corrected effect could go",
+    "negative, and its whole effect is only +228 mW; DRAM gets one because it is",
+    "the poorly-conditioned victim in the set and has failed this gate before.",
+    "",
+    "TWO-BUFFER A/A. Every ws_* contrast confounds condition with buffer",
+    "address: ws_init maps one buffer per slot and ws_get assigns a slot per",
+    "distinct selector, so conditions 0 and 1 read from different mappings.",
+    "A normal A/A cannot see that, because holding the same selector twice",
+    "yields one slot. But ws_get keys its cache on the full 64-bit selector",
+    "while ws_fill uses only the low 32 bits, so 0x00000000_5A5A5A5A and",
+    "0x00000001_5A5A5A5A allocate two distinct buffers with bit-identical",
+    "contents. Same data, different addresses, everything else equal. If that",
+    "reads non-zero, page colouring or slice mapping is contributing to every",
+    "A/B result in the project and the gate should fail loudly; it is declared",
+    "a control so that it does.",
+    "",
+    "SHAM-B. The existing A/A controls all sit at the harness's quiet noise",
+    "floor (between-run SD 4.6-10 mW) while the claims they certify sit at ~2 W,",
+    "where the between-run SD is ~100 mW. sham_l3_hw16 contrasts an operand",
+    "against its own complement -- both HW 16, both homogeneous, so both weight",
+    "and distance are matched and the expected difference is zero -- on top of",
+    "the full ~1.2 W of common signal. Its between-run spread is the noise floor",
+    "for large effects, which is the number the chapter currently does not have.",
+    "It is deliberately NOT declared a control: a non-zero result here is the",
+    "bit-placement finding, not an instrument failure.",
+    "",
+    "warmup_blocks is 8 throughout rather than 4, uniform across depths so the",
+    "comparison is not confounded by how much transient each row discarded.",
+    "ws_dram_x8 faults in 2 x 32 MB per thread under MAP_POPULATE and is the",
+    "reason the flag exists; 8 blocks is about a second of recording and costs",
+    "the session a minute in total.",
+    "",
+    "Roughly 66 runs at ~80 s each: about 90 minutes. Dropping the hw02 row",
+    "costs the low-end redundancy and saves ~16 minutes if that is needed."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 20260904,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 8,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 20260904
+  },
+  "runs": [
+    {
+      "label": "aa_l1",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 0],
+      "comment": "Noise floor at L1, where the whole effect is only +0.23 W."
+    },
+    {
+      "label": "l1_hw01",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 8],
+      "comment": "HW 1, 0x00000008."
+    },
+    {
+      "label": "l1_hw02",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 16777280],
+      "comment": "HW 2, 0x01000040."
+    },
+    {
+      "label": "l1_hw08",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 25219587],
+      "comment": "HW 8, 0x0180D203."
+    },
+    {
+      "label": "l1_hw32",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 4294967295],
+      "comment": "HW 32. Reproduces vol_x8 from the traffic-volume sweep (+0.228 W)."
+    },
+
+    {
+      "label": "l2_hw01",
+      "victim": "ws_l2_x8",
+      "selectors": [0, 8],
+      "comment": "HW 1, 0x00000008."
+    },
+    {
+      "label": "l2_hw02",
+      "victim": "ws_l2_x8",
+      "selectors": [0, 16777280],
+      "comment": "HW 2, 0x01000040."
+    },
+    {
+      "label": "l2_hw08",
+      "victim": "ws_l2_x8",
+      "selectors": [0, 25219587],
+      "comment": "HW 8, 0x0180D203."
+    },
+    {
+      "label": "l2_hw32",
+      "victim": "ws_l2_x8",
+      "selectors": [0, 4294967295],
+      "comment": "HW 32. Reproduces depth_l2 (+1.105 W)."
+    },
+
+    {
+      "label": "aa_l3",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 0],
+      "comment": "Session A/A gate, on the victim every other session used."
+    },
+    {
+      "label": "l3_hw01",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 8],
+      "comment": "HW 1. Predict +0.42 W from the weight sweep, +0.41 W pooled."
+    },
+    {
+      "label": "l3_hw02",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 16777280],
+      "comment": "HW 2. Predict +0.44 W from the low-end sweep."
+    },
+    {
+      "label": "l3_hw08",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 25219587],
+      "comment": "HW 8. Predict +0.71 W from the weight sweep."
+    },
+    {
+      "label": "l3_hw32",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "comment": "HW 32. Predict +1.90 W; also reproduces l3_forward (+1.841 W)."
+    },
+
+    {
+      "label": "aa_dram",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 0],
+      "comment": "DRAM is the poorly-conditioned victim and has failed this gate before (+15.4 mW, all three repeats positive)."
+    },
+    {
+      "label": "dram_hw01",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 8],
+      "comment": "HW 1, 0x00000008."
+    },
+    {
+      "label": "dram_hw02",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 16777280],
+      "comment": "HW 2, 0x01000040."
+    },
+    {
+      "label": "dram_hw08",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 25219587],
+      "comment": "HW 8, 0x0180D203."
+    },
+    {
+      "label": "dram_hw32",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 4294967295],
+      "comment": "HW 32. Reproduces depth_dram (+0.868 W)."
+    },
+
+    {
+      "label": "aa_l3_2buf",
+      "victim": "ws_l3_x8",
+      "selectors": [1515870810, 5810838106],
+      "control": "aa",
+      "comment": "0x00000000_5A5A5A5A vs 0x00000001_5A5A5A5A. ws_fill uses the low 32 bits, so both buffers hold 0x5A5A5A5A; ws_get keys on all 64, so they are different mappings. Same data, different addresses -- the address confound no ordinary A/A can see."
+    },
+    {
+      "label": "sham_l3_hw16",
+      "victim": "ws_l3_x8",
+      "selectors": [94757711, 4200209584],
+      "comment": "0x05A5E34F vs its complement 0xFA5A1CB0. Both HW 16, both homogeneous, so weight and distance are both matched and the expected difference is zero -- but it sits on ~1.2 W of common signal, so its between-run spread is the noise floor at effect scale. Not declared a control: a non-zero result is the placement finding, not an instrument failure."
+    },
+    {
+      "label": "anchor_hw16",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 94757711],
+      "comment": "Cross-session anchor. 0x05A5E34F, HW 16, read +1.133, +1.215 and +1.228 W in the three earlier sessions. Kept out of the per-depth fits so all four depths share one 4-point design."
+    }
+  ]
+}

@@ -28,7 +28,17 @@ The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 
 
 **Phase 2 (covert channel): all three receiver tiers work.** `src/covert/tx.c` is the unprivileged transmitter; `rx_rapl.c` (root, Config-A), `rx_freq.c` (unprivileged, Config-B) and `rx_timing.c` (**reads nothing at all**, Config-B) are the receivers; `analysis/covert.py` decodes and `tests/test_covert_decode.py` pins the framing maths to synthetic traces. Tier 1 carries 241 bit/s of capacity, tier 2 1.1 bit/s at 2 bit/s raw, tier 3 without observed errors at 1 bit/s and level with tier 2 at 2 — see *Findings so far*. Run any of them with the runner's `"kind": "covert"` mode (`rx.tier` picks the receiver) and read with `analysis.covert`.
 
-Next:
+**`thesis/critique.md` is the work order, and items 1, 2 and 5 of it are done.** Item 5 (gates and instrumentation) was taken ahead of item 3 deliberately, so the next measurement session records the new gates rather than needing a re-run to acquire them.
+
+**The next thing to run is item 3**, and it is written and validated but not executed: `experiments/phase1_depth_operand.json`, about 90 minutes.
+
+```bash
+sudo -n /home/idan/Desktop/power-consumption-side-channel/src/experiment_runner.py experiments/phase1_depth_operand.json
+```
+
+It settles a contradiction the chapter currently carries. §4 says cost per byte rises ~68× from L1 to DRAM; §8 says the all-zero baseline is anomalously cheap by +349 mW and that every Δ against it carries that constant. Those compose only if you know how the step scales with depth, and it was measured on `ws_l3_x8` alone: constant in watts collapses the ladder to ~5.5× and drives the L1 row negative, constant in Δ pJ/byte leaves §4 as published. Both are arithmetically impossible at L1 (whose whole effect is +228 mW against a +349 mW step, or +1.75 W if it scaled with throughput), so the likely answer is the third — the step scales with depth like the rest of the effect — but that has to be measured, not inferred. The same grid is E1's interaction term, and the session also carries the two-buffer A/A and the sham-B that C4 asks for.
+
+Then, in Phase 2:
 1. **Placements**: cross-SMT-sibling, cross-P/E-core, cross-container. The container case is now less about whether the channel survives (tier 3 needs no interface, so it should) than about confirming that, and it is a one-command experiment.
 2. **Re-run `phase2_tier1_rate` with 4 repeats** now that the overshoot gate exists. The first sweep had 7 of 30 runs in the bad sampler regime, and at 2 ms and 4 ms only 1 of 3 repeats acquired sync, so those two rows measure an acquisition probability rather than a channel. Worth pairing with a longer preamble, since acquisition — not integration — is what binds at the fast end.
 3. **Tier 1 under Config-B**, so the tiers can be compared in one configuration. Today tier 1 is Config-A at 4 threads/stride 2 with 8 frames and 256-bit payloads, and tiers 2–3 are Config-B at 10 threads/stride 1 with 4 frames and 8-bit payloads — five differences at once, so 241 bit/s against 1 is each tier measured where it works rather than a controlled comparison.
@@ -57,12 +67,18 @@ Experiments are declarative JSON in `experiments/`. Any key in `DRIVER_FLAGS` (`
 
 Each run writes `results/<timestamp>-<name>/` containing one CSV per run plus `manifest.json` (git commit, every driver argument, turbo/governor state, PL1/PL2, package temperature before and after, per-CPU frequencies). Ownership is handed back to `SUDO_UID` on exit.
 
-**Results provenance is tracked in git; the raw CSVs are not.** `.gitignore` excludes `results/**/*.csv` and nothing else under `results/`, so every run's `manifest.json`, selector files, figures and `summary.txt` are committed. After a run, regenerate the summary so the numbers survive without the CSVs:
+**Results provenance is tracked in git; the raw CSVs are not.** `.gitignore` excludes `results/**/*.csv` and nothing else under `results/`, so every run's `manifest.json`, selector files, figures and `summary.txt` are committed. After a run, write a `summary.cmd` beside the manifest recording exactly how its summary is built, then run it:
 
 ```bash
 r=results/<run_id>
-{ ./venv/bin/python3 -m analysis.report "$r"; ./venv/bin/python3 -m analysis.aggregate "$r"; } > "$r/summary.txt" 2>&1
+cat > "$r/summary.cmd" <<'EOF'
+./venv/bin/python3 -m analysis.report "$r"
+./venv/bin/python3 -m analysis.aggregate "$r"
+EOF
+bash analysis/regen-summary.sh "$r"
 ```
+
+**The `summary.cmd` is not ceremony.** Summaries are heterogeneous — some carry `analysis.hwfit` output, the instruction table carries two differently-flagged `aggregate` sections, the tier-2 sweep carries a second decode against a different watched CPU — and a uniform report+aggregate pass over all of them silently deletes that content. It did once, and was caught only because the diff came out net-negative. `regen-summary.sh` refuses to guess for a directory with no `summary.cmd`.
 
 Chapter drafts live in `thesis/`, one per phase, written as the phase completes. Every number in a draft cites the run directory it came from.
 
@@ -77,7 +93,7 @@ r=results/<run_id>; ./venv/bin/python3 -m analysis.covert "$r" > "$r/summary.txt
 
 The binaries also run by hand — `bin/tx`, `bin/rx_freq` and `bin/rx_timing` need no root, `bin/rx_rapl` does. Start the receiver first and give it a duration covering the whole transmission; it records blind and has no idea what is being sent.
 
-Two per-run self-checks decide whether a result means anything. `late_chips` must be zero: a non-zero count means the transmitter could not hold its own schedule, so the BER describes the transmitter rather than the channel. And the overshoot gate must pass, for the reason in *Methodology notes* below.
+Three per-run self-checks decide whether a result means anything. `late_chips` must be zero: a non-zero count means the transmitter could not hold its own schedule, so the BER describes the transmitter rather than the channel. `missed_chips` must also be zero, and it is the stronger of the two — victims count the distinct `ctl->epoch` values they observe, so it says whether the modulation reached the die rather than whether it was scheduled. And the overshoot gate must pass, for the reason in *Methodology notes* below.
 
 ### Driver by hand
 
@@ -95,13 +111,15 @@ sudo ./bin/driver --victim avx2_mul --threads 4 --blocks 100 --samples 100
 
 `./venv/bin/python3 tests/test_covert_decode.py` checks the covert decoder against synthetic traces with known answers — the framing, the Manchester convention, that sync is recovered rather than assumed, that an A/A decodes at chance, and that BER tracks Q(d′/√2). It needs numpy, so unlike the runner test it runs in the venv. A synthetic trace has a right answer; a real one does not, which is the whole point of having it.
 
-`cd src && make check` runs `tests/victim_smoke.c` against every victim — no root needed. It verifies each one actually spins, picks up a live `ctl->selector` write, and exits cleanly when `ctl->run` clears. This is the only pre-flight check that does not need MSR access, and it is what catches mis-assembled instructions (see the AVX-VNNI note below). The validity gates cover experiment correctness.
+`cd src && make check` runs `tests/victim_smoke.c` against every victim — no root needed. It verifies each one actually spins, **observes** a live `ctl->selector` write (it asserts every victim's `epochs_seen` reached the one epoch published, rather than reading the selector back and proving only that the test can read its own store), and exits cleanly when `ctl->run` clears. This is the only pre-flight check that does not need MSR access, and it is what catches mis-assembled instructions (see the AVX-VNNI note below). The validity gates cover experiment correctness.
 
 ## Architecture
 
 **`util/util.{c,h}`** — `struct ctl_t` is the shared control block, and the reason the design works: victims are cloned with `CLONE_VM`, so writing `ctl->selector` re-tunes every running victim within one burst (~0.6 µs) with no thread teardown. That is both the condition-interleaving mechanism and the covert-channel transmitter primitive Phase 2 needs. Also holds `parse_args` (getopt_long), selector-file parsing, and a seeded xorshift PRNG so block order is reproducible from the logged seed.
 
 **`util/victim-utils.c`** — every victim is a `DEFINE_VEC_VICTIM` macro instantiation wrapping an inline-asm loop, 8 independent destinations deep so the loop is throughput-bound rather than latency-bound. Victims re-read `ctl->selector` between bursts of `8 * AVX_BURST` instructions. Adding one is a single table edit; `NUM_VICTIMS` is computed from the table, so the old three-places-to-edit footgun is gone. `avx2_vnni` is guarded by `#ifdef __AVXVNNI__`.
+
+Every victim body opens with `VICTIM_TICK(a, ctl)`, which counts the burst *and* counts how many distinct `ctl->epoch` values this victim has observed. That second number is the receiving end of the driver's and transmitter's selector writes, and it is what gives `late_chips` teeth: without it, a transmitter whose control thread hits every deadline reports a clean transmission even if the victims coalesced two chips into one burst and nothing reached the die. Use `VICTIM_TICK` in any new victim; a bare `a->bursts++` silently opts out of the check.
 
 The `ws_*` working-set victims fill their buffer with one repeated 32-bit word, so the Hamming *distance* between consecutive transfers is zero by construction — which confounds the weight and switching models of leakage. The `ws_*_ab` variants split the 64-bit selector into two words and alternate them, so two words of equal weight hold the mean weight of the stream fixed while varying how many bits flip per transfer. `ws_l3_x8_ab` alternates every 32 bytes (every `ymm` load differs from the last); `ws_l3_x8_ab64` every 64 (every cache line differs, at half the load-to-load toggle rate). With both halves equal the fill is bit-identical to the single-word one, so `ws_l3_x8_ab` holding `A|A` *is* `ws_l3_x8` holding `A`.
 
@@ -123,6 +141,7 @@ Deliberate contrasts in the victim set: `vpand`/`vpor` are identity on equal inp
 
 - *Interleaving.* A run is `blocks_per_condition × conditions` short blocks in seeded-shuffled order, not one long block per condition. This makes thermal drift common-mode. Getting this wrong is what made `src/data/out-1207-2115` unusable.
 - *Edge-triggered sampling.* Rather than a fixed busy-wait window, the sampler idles for 7/8 of the estimated RAPL period then tight-polls until the counter changes, recording the exact energy increment and its TSC interval. Staying below 1.0 of the period means an edge can never be slept through. `--mode fixed` restores the old fixed-window sampler for comparison.
+- *Per-condition bookkeeping, at block boundaries only.* Bursts are latched per block and summed per condition (`victim_bytes_per_s_by_cond`), and a victim core's `scaling_cur_freq` is read once per block (`victim_freq_khz_by_cond`). These feed the `work_balance` and `frequency_balance` gates. Both are off the sampling path by construction; the sysfs read in particular must never migrate into the sample loop.
 
 TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analysis cannot convert energy per edge into watts. Progress goes to stderr, a JSON summary to stdout which the runner folds into the manifest.
 
@@ -139,7 +158,7 @@ TSC frequency is calibrated once against `CLOCK_MONOTONIC`; without it the analy
 | bit/s | 31.2 | 15.6 | 7.8 | 3.9 | **2.0** | A/A @ 3.9 |
 |---|---|---|---|---|---|---|
 | BER | 0.516 | 0.492 | 0.500 | 0.365 | **0.083** | 0.490 |
-| after vote | 0.563 | 0.510 | 0.479 | 0.250 | **0** | 0.542 |
+| after vote | 0.563 | 0.469 | 0.458 | 0.375 | **0** | 0.583 |
 | p vs chance | 0.82 | 0.40 | 0.53 | 5e-3 | **2e-18** | 0.46 |
 
 Zero errors after a 4-frame majority vote at 2 bit/s, control at chance. Tier 2's capacity is 1.1 bit/s against tier 1's 241 — privilege buys rate, not access. Watching a *victim's* core rather than the receiver's own extends it one step (BER 0.229 at 3.9 bit/s, 0.297 at 7.8, where own-core is at chance); both are in the run's `summary.txt`, and `--freq-column 1` selects the second watched CPU. Polling another core costs 0.35 µs and issues no IPI, so it does not perturb the victim. **Caveat on the victim-core column: its A/A pools to 0.4375 (one repeat at 0.375) against 0.4896 on the own-core column**, so that control has little power to confirm it; needs a longer A/A before it is a finding.
@@ -151,8 +170,8 @@ Zero errors after a 4-frame majority vote at 2 bit/s, control at chance. Tier 2'
 | bit/s | tier 2 (reads a file) | | | tier 3 (reads nothing) | | |
 |---|---|---|---|---|---|---|
 | | BER | cap | vote | BER | cap | vote |
-| 7.8 | 0.500 | 0.0 | 0.479 | — | — | — |
-| 3.9 | 0.365 | 0.2 | 0.250 | **0.237** | **0.8** | **0.115** |
+| 7.8 | 0.500 | 0.0 | 0.458 | — | — | — |
+| 3.9 | 0.365 | 0.2 | 0.375 | **0.237** | **0.8** | **0.198** |
 | 2.0 | 0.083 | 1.1 | 0.000 | 0.109 | 1.0 | 0.000 |
 | 1.0 | — | — | — | **0.000** | **1.0** | **0.000** |
 
@@ -161,6 +180,8 @@ Both A/A controls dead at chance with power behind them: pooled 0.500 over 384 b
 **Balanced payloads, or the A/A means nothing.** Tier 3's first pass failed its A/A gate at BER 0.219 — not the channel, the payload. `--random-bits` drew i.i.d. bits, one repeat drew 7 ones in 8, those 8 bits repeated over 4 frames, and a decoder whose output leans the same way then scores well on a transmission carrying nothing. Payloads are balanced by construction now (exactly half ones, shuffled), which makes the expected BER exactly 0.5 for any decode that is biased but *independent of the message*. The decoder reports the ones-fraction of both transmitted and decoded payloads and warns on a skewed one. The A/A gate is now judged **pooled across repeats**: a single A/A can carry as few as 32 bits, where the SD of BER is 0.09 and a 3σ excursion is a 1-in-140 event, so a per-run gate fires on noise about as often as on a fault.
 
 **Tier 2 exists only while the part is throttling.** PL1 is 200 W and PL2 80 W here, against ~16 W for a four-thread victim at ~50 °C — nothing limits, so nothing clocks down and there is nothing to read. Ten P-core threads are needed. That is a precondition of the attack, not a tuning detail: an idle machine does not carry this channel.
+
+**And ten threads make it throttle on average, not in every run.** `analysis.covert` now reports the p5–p95 band of the receiver's own level over the transmission window and warns below 10%. Three of the eighteen tier-2 runs sat at their ceiling and never throttled: `sym_256ms_r0` (3840–3900 MHz, 1.5%) and **two of the three repeats at 31.2 bit/s** (2.0% and 3.4%), against 14–40% for the other fifteen. So the 31.2 bit/s row is largely a measurement of a machine that was not limiting rather than of the channel at that rate, and the 3.9 bit/s row mixes one such run with two working ones (0.500 / 0.313 / 0.281). The 2 bit/s headline is untouched. Two traps here, both fallen into once: per-chip noise does **not** identify these runs — `sym_256ms_r0` reads 7.87 MHz against 200–700, which looks like a parked CPU and is actually white noise averaging down over a 256 ms chip — and the band must be taken over the transmission window, since the recording brackets it and a watched *victim* core idles at 400 MHz outside, which makes every column look lively.
 
 **A null on a proxy is not a null on the mechanism.** `experiments/phase2_tier2_feasibility.json` measured the frequency difference between operands directly and found **no load distinguishable from its A/A control** (|t| ≤ 1.56 at every thread count; the control itself reads −48 MHz with the sign flipping) — on a channel that demonstrably works. It compared means over interleaved 0.1 s blocks where the channel needs a 256 ms chip, so it was underpowered, not contradictory. An interrupted first pass of that sweep had shown a single run at −804 MHz with a tight within-run CI; that run's die climbed 42 → 77 °C while it was measured. Textbook instance of the rule this project already had: a single run's CI is optimistic, worst for large effects, never an error bar. **Run the real receiver, not something correlated with it.**
 
@@ -174,7 +195,9 @@ Both A/A controls dead at chance with power behind them: pooled 0.500 over 384 b
 | capacity b/s | 36.8 | **241** | 19.1 | 112 | 110 | 76 | 58 | 37 | 30 |
 | acquired | 1/3 | 3/3 | 1/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
 
-**No rate is error-free once aggregated** — at 83 bit/s the repeats read 0.030 / 0.002 / 0.000. Quote capacity, not "error-free at rate X". The 8-frame vote clears 125 bit/s and below to zero observed errors, but delivers raw/8 = 15.6 bit/s and below. The A/A control reads BER 0.500 (SD 0.012), and on the true chip grid still 0.507 — nothing there to find.
+**No rate is error-free once aggregated** — at 83 bit/s the repeats read 0.030 / 0.002 / 0.000. Quote capacity, not "error-free at rate X". The 8-frame vote clears 167 bit/s and below to zero observed errors, but delivers raw/8 = 20.8 bit/s and below. The A/A control reads BER 0.500 (SD 0.012), and on the true chip grid still 0.507 — nothing there to find.
+
+**The majority vote breaks ties on the summed margin, not toward zero.** Both frame counts are even, so a vote can split exactly, and `mean > 0.5` used to send every such split to 0 — a systematic bias toward zero bits, applied to exactly the bits the vote was least sure of. Four frames split evenly 37.5% of the time on a channel at chance, so this was not a rounding detail: 157 of 408 voted bits in the tier-2 sweep, 341 of 5760 in tier 1. Fixing it moves vote figures in both directions (tier 1 to zero errors at 167 rather than 125 bit/s; tier 2 at 3.9 bit/s from 0.250 to 0.375), none of the movements resolvable at 24–96 distinct bits where theory puts both rules at 0.14, and no headline changes. The tie count is now a reported column and a diagnostic in its own right: at every rate that decodes cleanly, no bit is tied.
 
 **The 2 ms and 4 ms rows are acquisition failures, not weak channels.** `analysis.covert` now reports `BER|snc`, the decode on the *true* chip grid: `sym_04ms_r1` reads 0.519 free-running and **0.087** with sync supplied. Across 30 runs sync lands either within a chip (23 runs, BER ≤ 0.17) or hundreds of chips away (7 runs, BER ≈ 0.5), with nothing between. A receiver can tell which happened from the absolute correlation peak (0.26–0.71 failed vs 0.64–1.00 acquired); peak-over-sidelobe does **not** separate them (1.00–1.19 vs 1.04–1.43). Same story on tier 2: 7.8 bit/s reads 0.500 free and 0.339 on the true grid, so its cliff is partly an acquisition cliff with headroom in a longer preamble.
 
@@ -336,6 +359,8 @@ Methodology notes carried forward:
 |---|---|---|
 | `zero_ticks` | ≤1% of samples read zero energy | Sampler aliasing against the RAPL update interval (was 9.2%) |
 | `interleaving` | temporal imbalance ≤0.10 | Conditions measured at different times, letting drift pose as effect. A sequential design scores ~0.50 |
+| `work_balance` | per-condition GB/s within 1% | A condition doing *more work* rather than moving a *different operand*. The assumption every operand claim rests on; argued architecturally until 2026-09-04, measured since |
+| `frequency_balance` | per-condition victim MHz within 1%, **Config-A only** | Config-A's premise failing per run. Not applied under Config-B, where a frequency difference between conditions is the tier-2 channel and not a fault |
 | `aa_*` | CI contains 0 **and** accuracy ≤0.60 | The whole measurement path manufacturing an effect from nothing |
 
 An A/A control is just an experiment with the same selector in both conditions — no special code path. Every A/B claim should ship with one.
@@ -345,6 +370,9 @@ An A/A control is just an experiment with the same selector in both conditions �
 | Gate | Threshold | Catches |
 |---|---|---|
 | `late_chips` | 0 | The transmitter missing its own deadlines, so the BER measures it and not the channel |
+| `missed_chips` | 0 | Chips the transmitter *scheduled* but no victim observed. `late_chips` cannot see this — the control thread does one store and a fence per chip and essentially cannot be late — so this is the check that the modulation reached the die |
+| `level_range` (warn) | receiver's p5–p95 band ≥10% of itself, over the transmission window, **freq/timing tiers only** | A Config-B run in which the part never throttled, so there was nothing to modulate whatever the rate. Caught three runs in the tier-2 sweep, including two of three repeats at 31.2 bit/s |
+| `trace_values` | ≥8 distinct values in the receiver trace | A genuinely dead trace, which still produces a BER |
 | `zero_ticks` | ≤1% of samples | As above |
 | `aa_ber` | A/A **pooled** across repeats decodes at BER ≥0.40, or p ≥ 0.01 | The decoder finding structure in a transmission that carries none |
 | `payload_balance` (warn) | payload within 30–70% ones | A skewed payload letting a skewed decode score well by coincidence |
