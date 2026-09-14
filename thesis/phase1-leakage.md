@@ -24,13 +24,16 @@ this chapter characterises operand *movement* instead.
 The results, in order of how much they constrain the rest of the thesis:
 
 1. Register-resident operands do not leak; operands that move do (§3).
-2. Leakage per byte scales with how far the operand travels — 68× from L1 to DRAM (§4).
+2. Leakage per byte scales with how far the operand travels — 55× from L1 to DRAM once
+   each depth's own zero-step is removed (§4, §8.1).
 3. The effect is a genuine operand effect, not a bias of the harness (§5).
 4. Leakage is linear in operand Hamming weight at +50.75 mW per set bit (§6), and that
    line is not an artifact of contrasting everything against zero (§7).
-5. The line does not pass through the origin: an all-zero operand is cheap by +349 mW
-   out of proportion to its weight, and the whole of that step sits at the boundary
-   between weight 0 and weight 1 (§8). This is the finding the ML chapter leans on.
+5. The line does not pass through the origin: an all-zero operand is cheap out of
+   proportion to its weight, by +349 mW at L3, and the whole of that step sits at the
+   boundary between weight 0 and weight 1 (§8). The step is not a platform constant —
+   it scales with the depth the operand is drawn from, and is absent at L1 (§8.1). This
+   is the finding the ML chapter leans on.
 6. Hamming *distance* leaks too, at +34.14 mW per flipped bit with weight held fixed
    (§9). The two classical models of data-dependent power are usually presented as
    competitors; on this platform both terms are present and of comparable size.
@@ -135,6 +138,31 @@ Energy per byte is, and mW per GB/s is exactly picojoules per byte:
 A 68× rise from L1-resident to DRAM-resident, monotone in depth, and reproduced across
 two sessions with different thermal histories and different shuffles (a partial sweep
 two days earlier gives 0.40 / 3.36 / 14.80 / 22.73 Δ pJ/byte).
+
+**These figures are uncorrected, and the correction is not a constant.** Every row here
+contrasts an all-zero operand against an all-ones one, and §8 shows that the all-zero
+operand is anomalously cheap — so each row carries a step that belongs to its baseline
+rather than to the distance travelled. That step was originally measured on `ws_l3_x8`
+alone and assumed to be common to the table, which is a safe assumption in watts and an
+unsafe one per byte, because dividing a fixed watt offset by throughputs spanning
+41–741 GB/s corrects each row by a different amount. §8.1 measures it separately at every
+depth and finds it depth-dependent: −60 mW at L1, +231 at L2, +194 at L3 and +52 at DRAM.
+Removing each depth's own step leaves the ladder
+
+| victim | GB/s | Δ pJ/byte uncorrected | Δ pJ/byte less its own step |
+|---|---|---|---|
+| `ws_l1_x8` | 723 | 0.225 | **0.319** |
+| `ws_l2_x8` | 339 | 3.150 | **2.454** |
+| `ws_l3_x8` | 143 | 12.427 | **10.971** |
+| `ws_dram_x8` | 41 | 18.514 | **17.598** |
+
+on the depth × operand session's own measurements of the same contrast
+(`results/20260904-103411-phase1_depth_operand`), which reproduce this table's shape at
+0.225 / 3.150 / 12.427 / 18.514 uncorrected. **The corrected ladder is 55×, still
+monotone, with L1 still positive and L3 still well clear of DRAM.** The conclusion of this
+section is therefore unchanged and its ratio is revised from 68× to 55×; what the
+correction removes is not the depth dependence but a baseline artifact that was largest in
+the middle of the range.
 
 **Δ pJ/byte, and the delta is not decoration.** This column is the *difference* in energy
 per byte between two operands, which is what the experiment measures: it contrasts an
@@ -334,11 +362,11 @@ That resolves the §7 disagreement in favour of the sweep. Pooled, `hw01 → hw0
 Two consequences follow, and the second matters more than the first.
 
 Every Δ in this chapter quoted against an all-zero baseline — the whole depth table of §4
-included — carries a constant ≈0.35 W that belongs to the *baseline* rather than to the
-test operand. Combined with §7, which found no per-contrast offset between two non-zero
-operands, the entire step sits at the 0 → 1 boundary and nowhere else. The rankings in §4
-are unaffected, since every row carries the same constant, but the absolute per-byte
-figures are overestimates of the marginal cost of a set bit by that amount.
+included — carries a step that belongs to the *baseline* rather than to the test operand.
+Combined with §7, which found no per-contrast offset between two non-zero operands, that
+step sits at the 0 → 1 boundary and nowhere else. How large it is at depths other than L3
+is a separate question, and §8.1 answers it; the figure of +349 mW above is a measurement
+on `ws_l3_x8` and not a platform constant.
 
 And a zero operand being disproportionately cheap is not a nuisance for this thesis; it
 is the mechanism the application chapter depends on. Post-ReLU activations in a quantized
@@ -347,6 +375,109 @@ times its marginal bit makes the *presence* of non-zero data far more visible th
 linear weight model would predict. Sparsity is exactly the property this leakage is best
 at reporting. No mechanism is claimed here — zero-detection or clock gating on the data
 path would produce this signature, but nothing in these measurements identifies which.
+
+### 8.1 The step scales with depth
+
+The step above was measured on `ws_l3_x8` and on nothing else, and §4's ladder is reported
+per byte. Those two facts do not compose on their own, and until they are made to, the
+chapter carries two results that point in opposite directions.
+
+If the step is a constant in **watts**, dividing it by throughputs spanning 41–741 GB/s
+corrects each of §4's rows by a different amount per byte: the ladder collapses from 68×
+to about 5.5×, L3 and DRAM become indistinguishable, and the L1 row goes *negative* — that
+is, L1-resident operand movement would leak nothing at all beyond the zero anomaly. If the
+step is a constant in **Δ pJ/byte**, §4 stands exactly as published. Both readings fit
+everything measured so far and they give opposite headlines.
+
+Both are also arithmetically impossible at L1, whose entire HW 0 → 32 effect is +228 mW
+against a step of +349 mW in the first reading, or +1.75 W in the second. That points at a
+third possibility — the step scales with depth, like the rest of the effect, and is not a
+baseline offset at all — but an argument from impossibility says only that the first two
+are wrong, not what the third is worth. It has to be measured.
+
+Crossing the two axes measures it. Four depths × four Hamming weights, every run
+contrasting the test operand against an all-zero working set exactly as §6's sweep did, so
+that the L3 column is directly comparable to it, and with the bit patterns held identical
+across depths so that a difference between depths is a depth difference and not a
+placement one (`results/20260904-103411-phase1_depth_operand`, 22 labels × 3 repeats).
+Weights 1 and 2 sit below the discontinuity's shoulder and pin the low-end level; 8 and 32
+pin the slope. The step at each depth is then the intercept of the line through those four
+points, which assumes nothing about the shape of the curve below HW 1 — a design the low-
+end sweep above showed to be necessary.
+
+| depth | HW 1 | HW 2 | HW 8 | HW 32 | intercept *a* | slope *b* | *b*·32 |
+|---|---|---|---|---|---|---|---|
+| L1 | −0.058 | −0.074 | +0.042 | +0.163 | **−60 mW** | +7.23 ± 2.97 mW/bit | 231 mW |
+| L2 | +0.265 | +0.295 | +0.413 | +1.068 | **+231 mW** | +25.99 ± 4.10 | 832 mW |
+| L3 | +0.270 | +0.319 | +0.515 | +1.775 | **+194 mW** | +48.96 ± 3.24 | 1567 mW |
+| DRAM | +0.037 | +0.085 | +0.296 | +0.759 | **+52 mW** | +22.52 ± 1.20 | 721 mW |
+
+Δ power in watts; error bars are the spread of one fit per repeat, which is this chapter's
+reporting unit throughout.
+
+**The step is depth-dependent, and it is the third reading.** At L1 it is absent and
+slightly negative — the all-zero operand is not cheap there at all. At L3 it is +194 mW,
+about 55% of the +349 mW that §8 established on that victim in a different session. At
+DRAM it is +52 mW, inside its own spread of zero. So the constant that §8 found is a
+property of the transport path the operand takes, not of the baseline value, and it cannot
+be lifted from one depth and applied to another.
+
+Removing each depth's own intercept gives the corrected ladder already quoted in §4:
+0.319 / 2.454 / 10.971 / 17.598 Δ pJ/byte, a **55× rise, monotone, L1 positive and L3
+clear of DRAM**. The collapse the first reading predicted does not happen, and §4 keeps
+its conclusion with its ratio revised.
+
+Three checks tie the session to the rest of the chapter. Its anchor reads +1.160 W against
++1.133, +1.215 and +1.228 W in the three earlier sessions; `l3_hw32` reads +1.775 W
+against +1.904 in §6 and +1.841 in §5's polarity control; and the fitted L3 slope of
++48.96 mW/bit reproduces the pooled +50.75 of §8 inside its error bar. The session is on
+the same footing as the corpus.
+
+**The grid is also the chapter's only interaction term.** §4, §6, §9 and §10 each vary one
+factor with the others held fixed, and none of them tests whether the coefficients
+multiply. Here the weight coefficient rises from 7.2 mW/bit at L1 to 49.0 at L3 and falls
+to 22.5 at DRAM — a factor of nearly seven across the range — so weight and depth are not
+separable and a combined model needs the product rather than a sum of independently
+fitted terms. Both the slope and the intercept peak at L3, where the absolute watt
+difference already did.
+
+### 8.2 What the same session says about the instrument
+
+Two controls in that grid were included to measure the measurement, and both returned
+something.
+
+**Two buffers holding bit-identical data differ by about 230 mW.** Every `ws_*` contrast
+confounds the condition with the buffer address, because `ws_init` maps one buffer per
+slot and `ws_get` assigns a slot per distinct selector — so conditions 0 and 1 always read
+from different mappings. An ordinary A/A cannot see this: holding the same selector twice
+yields one slot. But `ws_get` keys its cache on the full 64-bit selector while `ws_fill`
+uses only the low 32 bits, so `0x00000000_5A5A5A5A` and `0x00000001_5A5A5A5A` allocate two
+distinct buffers with identical contents, and the victim loop reads nothing but the
+pointer it is handed. That control **fails in all three repeats**, at −0.198, −0.354 and
+−0.128 W, same sign throughout, with detector accuracy 0.78–0.98. Achieved throughput
+moves with it — −1.08%, −0.27%, −0.60%, the second buffer always the slower — so part of
+the effect is placement acting through bandwidth. The single-buffer A/A in the same
+session is clean at −0.003 W and 0.02% throughput spread, so this is not the harness.
+
+It is not, however, a correction to apply to the results above, and the chapter already
+contains the evidence that bounds it. §5's polarity control ran this victim forward and
+reverse and gave `(fwd+rev)/2 = +0.7 ± 3.1 mW`; a fixed penalty of −227 mW attached to the
+second slot would have appeared there in full and did not. The placement term is therefore
+large for any one allocation and close to zero in the mean — a source of variance rather
+than of bias. That makes it the best candidate yet for the ~100 mW between-run spread that
+§12 attributes to a thermal and frequency state without naming a mechanism, and it is
+stated here as a candidate rather than a finding: distinguishing them needs a session that
+varies the mapping deliberately, with several allocations per condition.
+
+**There is now a noise floor measured at effect scale.** Every A/A control in this chapter
+sits at the harness's quiet floor, with a between-run SD of 4.6–10 mW, while the claims
+they certify sit at around 2 W where the between-run SD is nearer 100 mW. The `sham`
+control contrasts an operand against its own complement — both Hamming weight 16, both
+homogeneous, so weight and distance are matched and the expected difference is zero — on
+top of the full ~1.2 W of common load signal. It reads −0.174 W with a between-run SD of
+0.094. Everything in the grid above at HW 8 and HW 32 clears that comfortably; the HW 1
+and HW 2 rows at L1 and DRAM do not, and are not quoted individually anywhere in this
+chapter.
 
 ## 9. Weight, or distance?
 
@@ -450,7 +581,7 @@ on this platform both terms are present and of comparable size:
 
 | term | coefficient | intercept |
 |---|---|---|
-| static Hamming weight, on a constant stream | +50.75 mW per set bit | **+349 mW step at zero** |
+| static Hamming weight, on a constant stream | +50.75 mW per set bit | **+349 mW step at zero**, at L3 |
 | Hamming distance, at fixed weight | +34.14 mW per flipped bit | +48 ± 28 mW (through origin) |
 
 Neither can be reduced to the other. The weight slope was measured on a stream whose
@@ -512,7 +643,7 @@ which at four repeats would be optimistic by a third.
 **The instruction matters, and by much less than the movement does.** Seven of the nine
 rows sit above loads-only, but the whole spread of the table is 3.4 Δ pJ/byte against the
 13.2 the loads alone already cost — so the choice of instruction moves the leak by 10–24%
-where the choice of *where the operand comes from* moved it by 68× (§4). A leakage model
+where the choice of *where the operand comes from* moved it by 55× (§4). A leakage model
 for this platform that captures operand movement and ignores the instruction is wrong by
 about a fifth; one that captures the instruction and ignores the movement is wrong by
 almost everything.
@@ -585,6 +716,15 @@ Hamming weight is therefore a good predictor of this leakage but not a complete 
 honest statement is that a placement term exists, is of order 0.1 W against a 1.9 W full
 range, appears at some weights and not others, and is not modelled here.
 
+This is placement of bits *within the operand*, and it should not be confused with the
+placement of the *buffer in memory* reported in §8.2, which is a separate and larger
+effect. The two are hard to separate on the current victim, and the `sham` control makes
+the point: it contrasts an operand against its complement, matched in both weight and
+distance, so it ought to be a clean bit-placement measurement at HW 16 — and it reads
+−0.174 W, larger than anything in the table above. But its two conditions also occupy two
+different mappings, so that figure is an upper bound carrying both terms at once, and it
+is quoted in §8.2 as a noise floor rather than here as a placement result.
+
 ## 12. Threats to validity
 
 **A single run's confidence interval is optimistic, and worst for large effects.** The
@@ -602,6 +742,29 @@ the sign flipping, so the aggregate is clean. This is the documented failure mod
 previous paragraph rather than a new one, and it is why the reporting unit is
 `analysis.aggregate` over at least three repeats — but the failure is recorded here
 rather than waved away.
+
+**At DRAM depth the two conditions do not do quite the same amount of work.** Every
+operand claim in this chapter assumes the conditions differ in *which* bits move and not
+in how many bytes move, and until the depth × operand session that assumption was argued
+architecturally — the loop is the same loop, the buffer is the same size — rather than
+measured. It is now measured per condition, and at DRAM it is false: across that session's
+twelve DRAM runs the heavier operand achieves **+2.08% more throughput on average**, with
+eleven of the twelve outside the 1% gate and the sign never flipping. L1, L2 and L3 sit
+inside the gate. The affected rows are the ones with the highest Δ pJ/byte in the chapter,
+so the qualification matters where the numbers are largest: some unknown fraction of the
+DRAM effect is a work difference rather than an operand difference, bounded above by the
+throughput gap and almost certainly well below it, since package power does not scale
+one-for-one with achieved bandwidth. Resolving it properly needs a victim whose byte count
+is invariant to the operand by construction, which the current `ws_*` design does not
+guarantee. No claim in this chapter rests on the DRAM row alone; the depth ladder is
+monotone with or without it.
+
+The same gate caught one contaminated run. `l2_hw08_r2` was interrupted by a machine
+suspend and ran for 8595 s against 47.1 s for every other run in its session, with the
+stall landing in its all-zero condition; it reports 199% throughput imbalance. It is left
+in the session so the gate fails visibly rather than being deleted, and it is excluded
+from every figure quoted here — the L2 slope is +23.68 mW/bit over the two clean repeats
+against +25.99 over all three, which changes nothing in §8.1.
 
 **The interleaving gate bounds a unitless number, not a bias in watts.** It fails a run
 whose conditions sit more than 0.10 apart in mean chronological position, and that
@@ -677,16 +840,22 @@ A quantitative leakage model for operand movement on this platform:
 - The leaking element is primarily the movement of the operand, not the arithmetic
   performed on it. A victim doing only loads leaks; a victim doing only register-resident
   multiplies does not. Which instruction consumes the operand shifts the leak by 10–24%,
-  against the 68× that the operand's *depth* shifts it — but the instruction term is not
+  against the 55× that the operand's *depth* shifts it — but the instruction term is not
   zero, and for `vpdpbusd` it survives with no memory traffic at all.
 - The *operand-dependent* cost per byte moved rises monotonically with the depth the
-  operand is drawn from, 0.31 Δ pJ/byte at L1 to 21.02 at DRAM. Absolute power difference
-  peaks at L3. These are differences between two operands, not the cost of moving a byte.
+  operand is drawn from, 0.319 Δ pJ/byte at L1 to 17.598 at DRAM once each depth's own
+  zero-step is removed. Absolute power difference peaks at L3. These are differences
+  between two operands, not the cost of moving a byte.
 - Within a fixed victim, the difference is linear in the operand's Hamming weight at
   +50.75 mW per set bit per 32-bit word (R² = 0.967 over 18 operands from weight 1 to 32),
-  on top of a **discontinuity of +349 mW between weight 0 and weight 1** that belongs to
-  the operand rather than to the contrast. An all-zero operand is cheap out of proportion
-  to its weight; a single set bit per word costs eight times what the next bit costs.
+  on top of a **discontinuity between weight 0 and weight 1** that belongs to the operand
+  rather than to the contrast. An all-zero operand is cheap out of proportion to its
+  weight; at L3 a single set bit per word costs eight times what the next bit costs.
+- Weight and depth are not separable. The step at zero is +349 mW at L3 but −60 mW at L1
+  and +52 mW at DRAM, and the weight slope runs 7.2 / 26.0 / 49.0 / 22.5 mW per bit across
+  L1 / L2 / L3 / DRAM, so a combined model needs the product of the two terms and not
+  their sum. This is the chapter's only measured interaction; every other result varies
+  one factor with the rest held fixed.
 - With weight held fixed, the difference is also linear in the Hamming *distance* between
   consecutive transfers, at +34.14 mW per flipped bit (R² = 0.974) — and this line does
   pass through the origin. Neither term reduces to the other: each was measured in a
@@ -699,7 +868,11 @@ A quantitative leakage model for operand movement on this platform:
 - Register-resident leakage is instruction-dependent: null for `vpmuludq`, +0.045 W for
   `vfmadd231ps`, +0.200 W for `vpdpbusd` at detector accuracy 0.94. The more the
   execution unit does per operand bit, the more it leaks with no traffic at all.
-- A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled.
+- A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled,
+  and a second one is larger: two buffers holding bit-identical data at different
+  addresses differ by about 230 mW (§8.2). The polarity control bounds its mean at
+  +0.7 ± 3.1 mW, so it is a variance term rather than a bias, and it is the leading
+  candidate for the ~100 mW between-run spread this chapter reports throughout.
 
 For the chapters that follow, the operationally important number is not the largest
 effect but the best-conditioned one. `ws_l3_x8` under Config-A reaches 95% detector
