@@ -1,0 +1,3693 @@
+
+==============================================================================
+Run 20260904-103411-phase1_depth_operand
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : a24993e4911e554f98575724b2add15ecd77d66f (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 38.0 C at start
+
+==============================================================================
+sham_l3_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [94757711, 4200209584]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0     94757711   18000    17.088    0.974     2299     2300     141.6
+     1   4200209584   18000    16.809    1.059     2299     2300     143.3
+
+  work balance     : 1.194% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 202 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  17.21  17.01  17.00  17.18  17.05  16.94  17.02  17.24  17.20  17.03
+    cond 1:  16.88  16.83  16.70  16.94  16.64  16.62  16.89  16.92  16.90  16.77
+    within-condition span: cond 0 0.298 W, cond 1 0.317 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.3 mW  (imbalance 0.001 x drift span 0.317 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.2791 W  95% CI [-0.3385, -0.2194]  (-1.63% of baseline)
+  Cohen's d        : -0.2744  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.649 at n<=120
+      n=   1  acc=0.629  ##########
+      n=   2  acc=0.624  #########
+      n=   3  acc=0.622  #########
+      n=   5  acc=0.617  #########
+      n=   8  acc=0.649  ###########
+      n=  13  acc=0.621  #########
+      n=  21  acc=0.626  ##########
+      n=  34  acc=0.637  ##########
+      n=  55  acc=0.645  ###########
+      n=  89  acc=0.635  ##########
+      n= 120  acc=0.649  ###########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+anchor_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.441    3.024     2299     2300     145.5
+     1     94757711   18000    16.493    3.211     2299     2300     145.6
+
+  work balance     : 0.109% throughput spread  [OK]
+                     bounds a work-attributable difference at 17 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.37  15.37  15.43  15.49  15.48  15.45  15.46  15.46  15.46  15.43
+    cond 1:  16.38  16.44  16.51  16.51  16.52  16.49  16.52  16.53  16.53  16.51
+    within-condition span: cond 0 0.125 W, cond 1 0.146 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.146 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.0525 W  95% CI [+1.0346, +1.0706]  (+6.82% of baseline)
+  Cohen's d        : +0.3375  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.638  ###########
+      n=   2  acc=0.697  ###############
+      n=   3  acc=0.762  ####################
+      n=   5  acc=0.816  #########################
+      n=   8  acc=0.901  ################################
+      n=  13  acc=0.983  ######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=1.000  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 13  ->  76.9 bit/s raw
+  n for 99%        : 21  ->  47.6 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.733    0.599     2299     2300     144.8
+     1            0   18000    15.724    0.559     2300     2300     144.7
+
+  work balance     : 0.018% throughput spread  [OK]
+                     bounds a work-attributable difference at 3 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.64  15.70  15.71  15.75  15.78  15.81  15.78  15.75  15.74  15.67
+    cond 1:  15.65  15.68  15.71  15.76  15.77  15.77  15.77  15.75  15.73  15.66
+    within-condition span: cond 0 0.167 W, cond 1 0.122 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.2 mW  (imbalance 0.001 x drift span 0.167 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0086 W  95% CI [-0.0245, +0.0076]  (-0.05% of baseline)
+  Cohen's d        : -0.0149  (per sample)
+  permutation p    : 0.28597  (10000 block relabelings)
+  detector         : best accuracy 0.527 at n<=120
+      n=   1  acc=0.511  
+      n=   2  acc=0.491  
+      n=   3  acc=0.503  
+      n=   5  acc=0.517  #
+      n=   8  acc=0.525  #
+      n=  13  acc=0.518  #
+      n=  21  acc=0.523  #
+      n=  34  acc=0.527  ##
+      n=  55  acc=0.521  #
+      n=  89  acc=0.486  
+      n= 120  acc=0.486  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw02  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.861    0.937     2299     2300     144.2
+     1     16777280   18000    16.179    0.964     2299     2300     144.9
+
+  work balance     : 0.531% throughput spread  [OK]
+                     bounds a work-attributable difference at 85 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.54  15.60  15.74  15.98  15.91  15.98  16.12  15.91  15.87  15.96
+    cond 1:  15.91  15.93  16.14  16.26  16.08  16.29  16.26  16.28  16.38  16.24
+    within-condition span: cond 0 0.587 W, cond 1 0.472 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.6 mW  (imbalance 0.001 x drift span 0.587 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3177 W  95% CI [+0.2560, +0.3819]  (+2.00% of baseline)
+  Cohen's d        : +0.3343  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.666 at n<=120
+      n=   1  acc=0.631  ##########
+      n=   2  acc=0.640  ###########
+      n=   3  acc=0.642  ###########
+      n=   5  acc=0.627  ##########
+      n=   8  acc=0.625  ##########
+      n=  13  acc=0.622  #########
+      n=  21  acc=0.639  ###########
+      n=  34  acc=0.639  ###########
+      n=  55  acc=0.644  ###########
+      n=  89  acc=0.644  ###########
+      n= 120  acc=0.666  #############
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.974 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.433    1.721     2299     2300      40.6
+     1            0   18000    13.431    1.728     2299     2300      40.6
+
+  work balance     : 0.002% throughput spread  [OK]
+                     bounds a work-attributable difference at 0 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.40  13.37  13.36  13.36  13.49  13.53  13.45  13.45  13.48  13.45
+    cond 1:  13.46  13.33  13.36  13.34  13.50  13.52  13.45  13.45  13.46  13.44
+    within-condition span: cond 0 0.172 W, cond 1 0.191 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.2 mW  (imbalance 0.001 x drift span 0.191 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0013 W  95% CI [-0.0315, +0.0320]  (-0.01% of baseline)
+  Cohen's d        : -0.0008  (per sample)
+  permutation p    : 0.94351  (10000 block relabelings)
+  detector         : best accuracy 0.486 at n<=120
+      n=   1  acc=0.483  
+      n=   2  acc=0.471  
+      n=   3  acc=0.486  
+      n=   5  acc=0.475  
+      n=   8  acc=0.474  
+      n=  13  acc=0.469  
+      n=  21  acc=0.481  
+      n=  34  acc=0.469  
+      n=  55  acc=0.471  
+      n=  89  acc=0.476  
+      n= 120  acc=0.428  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw32  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.480    1.060     2299     2300      38.2
+     1   4294967295   18000    14.187    1.102     2299     2300      38.9
+
+  work balance     : 1.788% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 247 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.36  13.39  13.39  13.61  13.48  13.48  13.50  13.54  13.53  13.52
+    cond 1:  14.11  14.16  14.15  14.18  14.32  14.21  14.17  14.20  14.20  14.18
+    within-condition span: cond 0 0.254 W, cond 1 0.209 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.3 mW  (imbalance 0.001 x drift span 0.254 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7068 W  95% CI [+0.6583, +0.7493]  (+5.24% of baseline)
+  Cohen's d        : +0.6535  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.797  #######################
+      n=   2  acc=0.809  ########################
+      n=   3  acc=0.829  ##########################
+      n=   5  acc=0.859  ############################
+      n=   8  acc=0.884  ##############################
+      n=  13  acc=0.905  ################################
+      n=  21  acc=0.899  ###############################
+      n=  34  acc=0.904  ################################
+      n=  55  acc=0.972  #####################################
+      n=  89  acc=0.994  #######################################
+      n= 120  acc=0.995  #######################################
+  n for 95%        : 55  ->  18.0 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw01  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.091    1.254     2299     2300     735.0
+     1            8   18000    15.034    1.216     2299     2300     733.2
+
+  work balance     : 0.252% throughput spread  [OK]
+                     bounds a work-attributable difference at 38 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.98  14.98  14.94  15.40  15.08  15.13  15.11  15.03  15.15  15.12
+    cond 1:  14.87  15.00  14.92  14.93  15.30  15.07  15.07  15.06  15.05  15.09
+    within-condition span: cond 0 0.455 W, cond 1 0.427 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.5 mW  (imbalance 0.001 x drift span 0.455 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0568 W  95% CI [-0.1275, +0.0112]  (-0.38% of baseline)
+  Cohen's d        : -0.0460  (per sample)
+  permutation p    : 0.11789  (10000 block relabelings)
+  detector         : best accuracy 0.547 at n<=120
+      n=   1  acc=0.511  
+      n=   2  acc=0.507  
+      n=   3  acc=0.506  
+      n=   5  acc=0.520  #
+      n=   8  acc=0.517  #
+      n=  13  acc=0.518  #
+      n=  21  acc=0.510  
+      n=  34  acc=0.511  
+      n=  55  acc=0.500  
+      n=  89  acc=0.541  ###
+      n= 120  acc=0.547  ###
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.985 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.930    3.186     2299     2300     141.9
+     1            8   18000    16.109    3.207     2299     2300     141.1
+
+  work balance     : 0.584% throughput spread  [OK]
+                     bounds a work-attributable difference at 94 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.91  15.91  15.95  15.93  16.01  15.88  15.87  15.97  15.91  15.97
+    cond 1:  16.14  16.11  16.09  16.18  16.27  16.02  16.02  16.09  16.04  16.13
+    within-condition span: cond 0 0.139 W, cond 1 0.249 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.3 mW  (imbalance 0.001 x drift span 0.249 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1788 W  95% CI [+0.1368, +0.2199]  (+1.12% of baseline)
+  Cohen's d        : +0.0559  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.779 at n<=120
+      n=   1  acc=0.566  #####
+      n=   2  acc=0.537  ##
+      n=   3  acc=0.539  ###
+      n=   5  acc=0.542  ###
+      n=   8  acc=0.568  #####
+      n=  13  acc=0.579  ######
+      n=  21  acc=0.585  ######
+      n=  34  acc=0.575  #####
+      n=  55  acc=0.609  ########
+      n=  89  acc=0.711  ################
+      n= 120  acc=0.779  ######################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.632    1.117     2299     2300     138.6
+     1   4294967295   18000    17.272    1.169     2298     2300     138.7
+
+  work balance     : 0.081% throughput spread  [OK]
+                     bounds a work-attributable difference at 13 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.54  15.61  15.83  15.68  15.64  15.57  15.57  15.68  15.56  15.64
+    cond 1:  17.25  17.23  17.41  17.34  17.21  17.23  17.25  17.26  17.26  17.27
+    within-condition span: cond 0 0.289 W, cond 1 0.196 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.3 mW  (imbalance 0.001 x drift span 0.289 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6394 W  95% CI [+1.5790, +1.6955]  (+10.49% of baseline)
+  Cohen's d        : +1.4340  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.984 at n<=120
+      n=   1  acc=0.879  ##############################
+      n=   2  acc=0.911  ################################
+      n=   3  acc=0.928  ##################################
+      n=   5  acc=0.941  ###################################
+      n=   8  acc=0.947  ###################################
+      n=  13  acc=0.948  ###################################
+      n=  21  acc=0.951  ####################################
+      n=  34  acc=0.975  ######################################
+      n=  55  acc=0.984  ######################################
+      n=  89  acc=0.981  ######################################
+      n= 120  acc=0.971  #####################################
+  n for 95%        : 21  ->  47.8 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw01  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    18.567    4.208     2299     2300     364.7
+     1            8   18000    18.970    4.353     2299     2300     369.1
+
+  work balance     : 1.204% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 226 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 70 kHz (0.003%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  19.26  17.47  16.13  19.04  19.04  18.90  19.08  19.08  19.01  18.66
+    cond 1:  19.39  19.36  17.36  19.05  19.33  18.82  19.10  19.24  19.20  18.85
+    within-condition span: cond 0 3.129 W, cond 1 2.038 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 3.2 mW  (imbalance 0.001 x drift span 3.129 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4027 W  95% CI [+0.1228, +0.7058]  (+2.17% of baseline)
+  Cohen's d        : +0.0941  (per sample)
+  permutation p    : 0.00560  (10000 block relabelings)
+  detector         : best accuracy 0.540 at n<=120
+      n=   1  acc=0.511  
+      n=   2  acc=0.520  #
+      n=   3  acc=0.533  ##
+      n=   5  acc=0.521  #
+      n=   8  acc=0.528  ##
+      n=  13  acc=0.540  ###
+      n=  21  acc=0.531  ##
+      n=  34  acc=0.532  ##
+      n=  55  acc=0.533  ##
+      n=  89  acc=0.529  ##
+      n= 120  acc=0.531  ##
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw32  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.150    2.549     2297     2300     729.8
+     1   4294967295   18000    15.421    2.618     2297     2300     728.8
+
+  work balance     : 0.133% throughput spread  [OK]
+                     bounds a work-attributable difference at 20 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.37  15.11  15.30  15.21  15.26  15.31  15.23  14.97  14.87  14.87
+    cond 1:  15.67  15.52  15.37  15.46  15.44  15.53  15.54  15.33  15.19  15.17
+    within-condition span: cond 0 0.499 W, cond 1 0.505 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.5 mW  (imbalance 0.001 x drift span 0.505 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2710 W  95% CI [+0.1953, +0.3434]  (+1.79% of baseline)
+  Cohen's d        : +0.1049  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.697 at n<=120
+      n=   1  acc=0.560  ####
+      n=   2  acc=0.538  ###
+      n=   3  acc=0.556  ####
+      n=   5  acc=0.543  ###
+      n=   8  acc=0.559  ####
+      n=  13  acc=0.573  #####
+      n=  21  acc=0.580  ######
+      n=  34  acc=0.575  ######
+      n=  55  acc=0.602  ########
+      n=  89  acc=0.678  ##############
+      n= 120  acc=0.697  ###############
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l1  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.577    0.530     2299     2300     732.5
+     1            0   18000    14.578    0.513     2299     2300     732.4
+
+  work balance     : 0.013% throughput spread  [OK]
+                     bounds a work-attributable difference at 2 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.59  14.61  14.63  14.58  14.53  14.52  14.52  14.57  14.60  14.64
+    cond 1:  14.57  14.61  14.63  14.56  14.56  14.53  14.52  14.57  14.58  14.64
+    within-condition span: cond 0 0.121 W, cond 1 0.123 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.123 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0008 W  95% CI [-0.0144, +0.0158]  (+0.01% of baseline)
+  Cohen's d        : +0.0016  (per sample)
+  permutation p    : 0.90861  (10000 block relabelings)
+  detector         : best accuracy 0.514 at n<=120
+      n=   1  acc=0.508  
+      n=   2  acc=0.514  #
+      n=   3  acc=0.510  
+      n=   5  acc=0.510  
+      n=   8  acc=0.508  
+      n=  13  acc=0.510  
+      n=  21  acc=0.499  
+      n=  34  acc=0.484  
+      n=  55  acc=0.480  
+      n=  89  acc=0.469  
+      n= 120  acc=0.487  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw02  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.009 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.548    0.465     2299     2300     732.0
+     1     16777280   18000    14.499    0.473     2299     2300     730.9
+
+  work balance     : 0.146% throughput spread  [OK]
+                     bounds a work-attributable difference at 21 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.59  14.61  14.61  14.55  14.52  14.50  14.52  14.52  14.53  14.54
+    cond 1:  14.55  14.58  14.55  14.53  14.46  14.48  14.45  14.46  14.46  14.49
+    within-condition span: cond 0 0.113 W, cond 1 0.135 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.135 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0494 W  95% CI [-0.0637, -0.0352]  (-0.34% of baseline)
+  Cohen's d        : -0.1055  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.637 at n<=120
+      n=   1  acc=0.566  #####
+      n=   2  acc=0.592  #######
+      n=   3  acc=0.593  #######
+      n=   5  acc=0.606  ########
+      n=   8  acc=0.605  ########
+      n=  13  acc=0.601  ########
+      n=  21  acc=0.620  #########
+      n=  34  acc=0.608  ########
+      n=  55  acc=0.583  ######
+      n=  89  acc=0.623  #########
+      n= 120  acc=0.637  ##########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw01  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.353    0.604     2299     2300      41.8
+     1            8   18000    13.391    0.620     2299     2300      42.8
+
+  work balance     : 2.307% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 309 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.30  13.30  13.36  13.35  13.34  13.36  13.40  13.38  13.40  13.34
+    cond 1:  13.32  13.35  13.36  13.38  13.38  13.37  13.39  13.48  13.45  13.42
+    within-condition span: cond 0 0.103 W, cond 1 0.165 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.2 mW  (imbalance 0.001 x drift span 0.165 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0381 W  95% CI [+0.0240, +0.0527]  (+0.29% of baseline)
+  Cohen's d        : +0.0623  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.600 at n<=120
+      n=   1  acc=0.553  ####
+      n=   2  acc=0.541  ###
+      n=   3  acc=0.572  #####
+      n=   5  acc=0.565  #####
+      n=   8  acc=0.573  #####
+      n=  13  acc=0.569  #####
+      n=  21  acc=0.573  #####
+      n=  34  acc=0.585  ######
+      n=  55  acc=0.585  ######
+      n=  89  acc=0.585  ######
+      n= 120  acc=0.600  #######
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3_2buf  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [1515870810, 5810838106]   << A/A CONTROL (declared: same contents, different buffers)
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.954 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0   1515870810   18000    16.647    2.349     2299     2300     145.4
+     1   5810838106   18000    16.450    2.354     2299     2300     143.8
+
+  work balance     : 1.076% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 178 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.70  16.73  16.73  16.65  16.59  16.58  16.61  16.60  16.62  16.66
+    cond 1:  16.55  16.49  16.48  16.46  16.43  16.40  16.42  16.40  16.43  16.45
+    within-condition span: cond 0 0.150 W, cond 1 0.151 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.2 mW  (imbalance 0.001 x drift span 0.151 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.1975 W  95% CI [-0.2147, -0.1811]  (-1.19% of baseline)
+  Cohen's d        : -0.0840  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.902 at n<=120
+      n=   1  acc=0.618  #########
+      n=   2  acc=0.613  #########
+      n=   3  acc=0.628  ##########
+      n=   5  acc=0.644  ###########
+      n=   8  acc=0.658  ############
+      n=  13  acc=0.685  ##############
+      n=  21  acc=0.740  ###################
+      n=  34  acc=0.783  ######################
+      n=  55  acc=0.835  ##########################
+      n=  89  acc=0.885  ##############################
+      n= 120  acc=0.902  ################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : FAIL (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw08  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.372    0.417     2299     2300      41.9
+     1     25219587   18000    13.613    0.463     2300     2300      42.8
+
+  work balance     : 2.233% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 301 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.34  13.33  13.37  13.38  13.39  13.39  13.40  13.41  13.39  13.32
+    cond 1:  13.53  13.55  13.55  13.67  13.63  13.67  13.65  13.64  13.63  13.61
+    within-condition span: cond 0 0.087 W, cond 1 0.146 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.146 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2407 W  95% CI [+0.2244, +0.2576]  (+1.80% of baseline)
+  Cohen's d        : +0.5464  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.937 at n<=120
+      n=   1  acc=0.789  #######################
+      n=   2  acc=0.815  #########################
+      n=   3  acc=0.836  ##########################
+      n=   5  acc=0.851  ############################
+      n=   8  acc=0.884  ##############################
+      n=  13  acc=0.880  ##############################
+      n=  21  acc=0.904  ################################
+      n=  34  acc=0.913  #################################
+      n=  55  acc=0.926  ##################################
+      n=  89  acc=0.937  ##################################
+      n= 120  acc=0.922  #################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw08  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.222    0.555     2300     1900     340.1
+     1     25219587   18000    14.541    0.553     2300     1900     340.1
+
+  work balance     : 0.011% throughput spread  [OK]
+                     bounds a work-attributable difference at 2 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.16  14.19  14.20  14.23  14.26  14.24  14.23  14.21  14.25  14.26
+    cond 1:  14.50  14.51  14.50  14.54  14.52  14.56  14.57  14.56  14.58  14.56
+    within-condition span: cond 0 0.097 W, cond 1 0.076 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.097 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3190 W  95% CI [+0.3066, +0.3317]  (+2.24% of baseline)
+  Cohen's d        : +0.5760  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.825  #########################
+      n=   2  acc=0.866  #############################
+      n=   3  acc=0.906  ################################
+      n=   5  acc=0.942  ###################################
+      n=   8  acc=0.965  #####################################
+      n=  13  acc=0.978  ######################################
+      n=  21  acc=0.988  #######################################
+      n=  34  acc=0.990  #######################################
+      n=  55  acc=0.995  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  125.1 bit/s raw
+  n for 99%        : 34  ->  29.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw02  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.356    0.404     2300     2300      41.8
+     1     16777280   18000    13.431    0.433     2300     2300      42.9
+
+  work balance     : 2.475% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 332 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.28  13.30  13.34  13.37  13.37  13.38  13.38  13.39  13.37  13.37
+    cond 1:  13.38  13.40  13.39  13.44  13.44  13.45  13.43  13.44  13.45  13.49
+    within-condition span: cond 0 0.109 W, cond 1 0.110 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.110 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0744 W  95% CI [+0.0622, +0.0865]  (+0.56% of baseline)
+  Cohen's d        : +0.1775  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.824 at n<=120
+      n=   1  acc=0.605  ########
+      n=   2  acc=0.650  ###########
+      n=   3  acc=0.659  ############
+      n=   5  acc=0.688  ###############
+      n=   8  acc=0.715  #################
+      n=  13  acc=0.715  #################
+      n=  21  acc=0.763  #####################
+      n=  34  acc=0.775  ######################
+      n=  55  acc=0.786  ######################
+      n=  89  acc=0.824  #########################
+      n= 120  acc=0.803  ########################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw32  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.730    0.463     2300     1900     324.6
+     1   4294967295   18000    14.724    0.503     2300     1900     321.8
+
+  work balance     : 0.877% throughput spread  [OK]
+                     bounds a work-attributable difference at 125 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.72  13.73  13.72  13.70  13.74  13.75  13.73  13.72  13.74  13.73
+    cond 1:  14.68  14.68  14.65  14.71  14.76  14.75  14.76  14.78  14.73  14.74
+    within-condition span: cond 0 0.045 W, cond 1 0.126 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.001 x drift span 0.126 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.9946 W  95% CI [+0.9815, +1.0076]  (+7.24% of baseline)
+  Cohen's d        : +2.0565  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.930  ##################################
+      n=   2  acc=0.966  #####################################
+      n=   3  acc=0.985  ######################################
+      n=   5  acc=0.990  #######################################
+      n=   8  acc=0.991  #######################################
+      n=  13  acc=0.987  ######################################
+      n=  21  acc=0.988  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  500.3 bit/s raw
+  n for 99%        : 8  ->  125.1 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw08  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.611    0.526     2300     2300     143.6
+     1     25219587   18000    16.167    0.615     2300     2300     143.7
+
+  work balance     : 0.033% throughput spread  [OK]
+                     bounds a work-attributable difference at 5 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.57  15.59  15.64  15.64  15.68  15.71  15.61  15.55  15.57  15.55
+    cond 1:  16.13  16.13  16.17  16.20  16.22  16.48  16.10  16.09  16.06  16.09
+    within-condition span: cond 0 0.167 W, cond 1 0.417 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.4 mW  (imbalance 0.001 x drift span 0.417 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5561 W  95% CI [+0.5174, +0.6067]  (+3.56% of baseline)
+  Cohen's d        : +0.9715  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.999 at n<=120
+      n=   1  acc=0.874  #############################
+      n=   2  acc=0.924  #################################
+      n=   3  acc=0.944  ###################################
+      n=   5  acc=0.964  #####################################
+      n=   8  acc=0.980  ######################################
+      n=  13  acc=0.984  ######################################
+      n=  21  acc=0.991  #######################################
+      n=  34  acc=0.994  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=0.997  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 5  ->  199.5 bit/s raw
+  n for 99%        : 21  ->  47.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw02  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.427    0.527     2300     1900     316.3
+     1     16777280   18000    13.648    0.609     2300     1900     315.6
+
+  work balance     : 0.211% throughput spread  [OK]
+                     bounds a work-attributable difference at 29 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.18  13.16  13.17  13.16  13.15  13.61  13.71  13.69  13.71  13.72
+    cond 1:  13.37  13.35  13.39  13.39  13.35  13.71  13.96  13.99  13.99  13.98
+    within-condition span: cond 0 0.564 W, cond 1 0.642 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.7 mW  (imbalance 0.001 x drift span 0.642 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2209 W  95% CI [+0.1543, +0.2892]  (+1.65% of baseline)
+  Cohen's d        : +0.3879  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.541 at n<=120
+      n=   1  acc=0.541  ###
+      n=   2  acc=0.519  #
+      n=   3  acc=0.513  #
+      n=   5  acc=0.501  
+      n=   8  acc=0.481  
+      n=  13  acc=0.467  
+      n=  21  acc=0.479  
+      n=  34  acc=0.485  
+      n=  55  acc=0.478  
+      n=  89  acc=0.472  
+      n= 120  acc=0.459  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw08  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.634    0.496     2300     2300     735.8
+     1     25219587   18000    14.738    0.495     2300     2300     732.7
+
+  work balance     : 0.432% throughput spread  [OK]
+                     bounds a work-attributable difference at 63 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.56  14.59  14.61  14.65  14.68  14.71  14.69  14.66  14.62  14.57
+    cond 1:  14.74  14.71  14.74  14.77  14.78  14.76  14.77  14.70  14.70  14.70
+    within-condition span: cond 0 0.150 W, cond 1 0.087 W
+
+  interleaving     : imbalance 0.001  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.2 mW  (imbalance 0.001 x drift span 0.150 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1043 W  95% CI [+0.0904, +0.1181]  (+0.71% of baseline)
+  Cohen's d        : +0.2105  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.803 at n<=120
+      n=   1  acc=0.646  ###########
+      n=   2  acc=0.666  #############
+      n=   3  acc=0.676  ##############
+      n=   5  acc=0.696  ###############
+      n=   8  acc=0.727  ##################
+      n=  13  acc=0.728  ##################
+      n=  21  acc=0.748  ###################
+      n=  34  acc=0.760  ####################
+      n=  55  acc=0.779  ######################
+      n=  89  acc=0.787  #######################
+      n= 120  acc=0.803  ########################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+sham_l3_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [94757711, 4200209584]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.009 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0     94757711   18000    16.663    0.527     2300     2300     142.0
+     1   4200209584   18000    16.564    0.528     2300     2300     144.1
+
+  work balance     : 1.437% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 239 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.61  16.63  16.66  16.69  16.69  16.69  16.71  16.70  16.66  16.58
+    cond 1:  16.50  16.54  16.54  16.60  16.60  16.59  16.64  16.57  16.54  16.52
+    within-condition span: cond 0 0.127 W, cond 1 0.133 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.133 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0990 W  95% CI [-0.1137, -0.0844]  (-0.59% of baseline)
+  Cohen's d        : -0.1876  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.795 at n<=120
+      n=   1  acc=0.638  ###########
+      n=   2  acc=0.658  ############
+      n=   3  acc=0.678  ##############
+      n=   5  acc=0.697  ###############
+      n=   8  acc=0.722  #################
+      n=  13  acc=0.743  ###################
+      n=  21  acc=0.770  #####################
+      n=  34  acc=0.763  #####################
+      n=  55  acc=0.762  ####################
+      n=  89  acc=0.782  ######################
+      n= 120  acc=0.795  #######################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw08  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.346    0.394     2300     2300      41.9
+     1     25219587   18000    13.571    0.403     2300     2300      42.8
+
+  work balance     : 2.078% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 280 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.29  13.31  13.31  13.34  13.36  13.36  13.37  13.38  13.38  13.36
+    cond 1:  13.50  13.47  13.51  13.50  13.58  13.60  13.62  13.63  13.70  13.60
+    within-condition span: cond 0 0.094 W, cond 1 0.228 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.228 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2247 W  95% CI [+0.2078, +0.2417]  (+1.68% of baseline)
+  Cohen's d        : +0.5636  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.944 at n<=120
+      n=   1  acc=0.775  ######################
+      n=   2  acc=0.794  #######################
+      n=   3  acc=0.816  #########################
+      n=   5  acc=0.840  ###########################
+      n=   8  acc=0.874  #############################
+      n=  13  acc=0.889  ###############################
+      n=  21  acc=0.902  ################################
+      n=  34  acc=0.913  #################################
+      n=  55  acc=0.926  ##################################
+      n=  89  acc=0.944  ###################################
+      n= 120  acc=0.933  ##################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw01  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.114    0.426     2300     1900     340.2
+     1            8   18000    14.392    0.443     2300     1900     340.2
+
+  work balance     : 0.004% throughput spread  [OK]
+                     bounds a work-attributable difference at 1 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.11  14.12  14.11  14.09  14.11  14.10  14.13  14.13  14.11  14.13
+    cond 1:  14.36  14.36  14.36  14.39  14.40  14.39  14.42  14.41  14.42  14.42
+    within-condition span: cond 0 0.039 W, cond 1 0.060 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.060 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2779 W  95% CI [+0.2684, +0.2874]  (+1.97% of baseline)
+  Cohen's d        : +0.6398  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.994 at n<=120
+      n=   1  acc=0.833  ##########################
+      n=   2  acc=0.872  #############################
+      n=   3  acc=0.892  ###############################
+      n=   5  acc=0.928  ##################################
+      n=   8  acc=0.956  ####################################
+      n=  13  acc=0.974  #####################################
+      n=  21  acc=0.972  #####################################
+      n=  34  acc=0.972  #####################################
+      n=  55  acc=0.982  ######################################
+      n=  89  acc=0.991  #######################################
+      n= 120  acc=0.994  #######################################
+  n for 95%        : 8  ->  125.4 bit/s raw
+  n for 99%        : 89  ->  11.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw32  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.096    0.411     2300     1900     340.1
+     1   4294967295   18000    15.164    0.459     2300     1900     340.1
+
+  work balance     : 0.001% throughput spread  [OK]
+                     bounds a work-attributable difference at 0 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.14  14.08  14.08  14.09  14.08  14.08  14.09  14.11  14.10  14.12
+    cond 1:  15.18  15.09  15.12  15.15  15.17  15.17  15.17  15.20  15.19  15.21
+    within-condition span: cond 0 0.061 W, cond 1 0.112 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.112 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.0680 W  95% CI [+1.0578, +1.0786]  (+7.58% of baseline)
+  Cohen's d        : +2.4502  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.950  ####################################
+      n=   2  acc=0.979  ######################################
+      n=   3  acc=0.991  #######################################
+      n=   5  acc=0.993  #######################################
+      n=   8  acc=0.995  #######################################
+      n=  13  acc=0.994  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  999.7 bit/s raw
+  n for 99%        : 3  ->  333.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw08  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.607    0.447     2300     2300     732.5
+     1     25219587   18000    14.649    0.462     2300     2300     730.7
+
+  work balance     : 0.237% throughput spread  [OK]
+                     bounds a work-attributable difference at 35 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.57  14.56  14.57  14.58  14.59  14.63  14.65  14.63  14.64  14.64
+    cond 1:  14.56  14.56  14.58  14.62  14.69  14.71  14.71  14.71  14.68  14.67
+    within-condition span: cond 0 0.083 W, cond 1 0.155 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.155 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0424 W  95% CI [+0.0273, +0.0573]  (+0.29% of baseline)
+  Cohen's d        : +0.0932  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.675 at n<=120
+      n=   1  acc=0.561  ####
+      n=   2  acc=0.574  #####
+      n=   3  acc=0.571  #####
+      n=   5  acc=0.589  #######
+      n=   8  acc=0.608  ########
+      n=  13  acc=0.615  #########
+      n=  21  acc=0.629  ##########
+      n=  34  acc=0.646  ###########
+      n=  55  acc=0.675  ##############
+      n=  89  acc=0.675  #############
+      n= 120  acc=0.629  ##########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw02  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.317    0.390     2300     2300      41.8
+     1     16777280   18000    13.379    0.403     2300     2300      42.8
+
+  work balance     : 2.259% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 302 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.31  13.26  13.24  13.31  13.30  13.32  13.36  13.35  13.36  13.35
+    cond 1:  13.37  13.37  13.32  13.36  13.35  13.38  13.41  13.38  13.43  13.42
+    within-condition span: cond 0 0.122 W, cond 1 0.107 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.122 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0628 W  95% CI [+0.0499, +0.0758]  (+0.47% of baseline)
+  Cohen's d        : +0.1585  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.711 at n<=120
+      n=   1  acc=0.596  #######
+      n=   2  acc=0.609  ########
+      n=   3  acc=0.630  ##########
+      n=   5  acc=0.647  ###########
+      n=   8  acc=0.664  #############
+      n=  13  acc=0.685  ##############
+      n=  21  acc=0.695  ###############
+      n=  34  acc=0.697  ###############
+      n=  55  acc=0.708  ################
+      n=  89  acc=0.709  ################
+      n= 120  acc=0.711  ################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw08  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.871    0.439     2300     2300     139.0
+     1     25219587   18000    15.267    0.508     2300     2300     138.9
+
+  work balance     : 0.068% throughput spread  [OK]
+                     bounds a work-attributable difference at 10 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.82  14.84  14.84  14.85  14.89  14.87  14.91  14.90  14.94  14.85
+    cond 1:  15.22  15.22  15.24  15.22  15.29  15.22  15.33  15.30  15.36  15.26
+    within-condition span: cond 0 0.124 W, cond 1 0.141 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.141 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3954 W  95% CI [+0.3799, +0.4109]  (+2.66% of baseline)
+  Cohen's d        : +0.8321  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.853  ############################
+      n=   2  acc=0.907  ################################
+      n=   3  acc=0.933  ##################################
+      n=   5  acc=0.957  ####################################
+      n=   8  acc=0.975  #####################################
+      n=  13  acc=0.985  ######################################
+      n=  21  acc=0.986  ######################################
+      n=  34  acc=0.990  #######################################
+      n=  55  acc=0.998  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  199.1 bit/s raw
+  n for 99%        : 34  ->  29.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.838    0.600     2299     2300     136.0
+     1            8   18000    15.170    0.568     2299     2300     136.7
+
+  work balance     : 0.513% throughput spread  [OK]
+                     bounds a work-attributable difference at 77 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.72  14.74  14.76  14.74  14.75  14.76  14.78  14.79  14.84  15.50
+    cond 1:  15.04  15.11  15.14  15.12  15.12  15.13  15.19  15.12  15.12  15.62
+    within-condition span: cond 0 0.779 W, cond 1 0.577 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.000 x drift span 0.779 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3316 W  95% CI [+0.2778, +0.3812]  (+2.24% of baseline)
+  Cohen's d        : +0.5679  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.949 at n<=120
+      n=   1  acc=0.806  ########################
+      n=   2  acc=0.840  ###########################
+      n=   3  acc=0.858  ############################
+      n=   5  acc=0.880  ##############################
+      n=   8  acc=0.904  ################################
+      n=  13  acc=0.911  ################################
+      n=  21  acc=0.921  #################################
+      n=  34  acc=0.918  #################################
+      n=  55  acc=0.935  ##################################
+      n=  89  acc=0.949  ###################################
+      n= 120  acc=0.943  ###################################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw08  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.141    0.468     2299     1900     308.9
+     1     25219587   18000    13.579    0.443     2299     1900     308.9
+
+  work balance     : 0.006% throughput spread  [OK]
+                     bounds a work-attributable difference at 1 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.06  13.12  13.17  13.13  13.15  13.13  13.15  13.16  13.17  13.18
+    cond 1:  13.46  13.54  13.54  13.60  13.59  13.60  13.58  13.63  13.64  13.63
+    within-condition span: cond 0 0.124 W, cond 1 0.184 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.184 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4385 W  95% CI [+0.4222, +0.4546]  (+3.34% of baseline)
+  Cohen's d        : +0.9623  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.877  ##############################
+      n=   2  acc=0.907  ################################
+      n=   3  acc=0.932  ##################################
+      n=   5  acc=0.956  ####################################
+      n=   8  acc=0.972  #####################################
+      n=  13  acc=0.977  ######################################
+      n=  21  acc=0.979  ######################################
+      n=  34  acc=0.983  ######################################
+      n=  55  acc=0.985  ######################################
+      n=  89  acc=0.999  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  198.9 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.389    0.402     2299     2300      42.8
+     1            0   18000    13.390    0.407     2299     2300      42.8
+
+  work balance     : 0.090% throughput spread  [OK]
+                     bounds a work-attributable difference at 12 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.32  13.37  13.38  13.38  13.38  13.38  13.43  13.41  13.40  13.43
+    cond 1:  13.37  13.36  13.36  13.38  13.39  13.39  13.41  13.43  13.41  13.40
+    within-condition span: cond 0 0.108 W, cond 1 0.064 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.108 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0012 W  95% CI [-0.0096, +0.0118]  (+0.01% of baseline)
+  Cohen's d        : +0.0028  (per sample)
+  permutation p    : 0.82602  (10000 block relabelings)
+  detector         : best accuracy 0.512 at n<=120
+      n=   1  acc=0.495  
+      n=   2  acc=0.489  
+      n=   3  acc=0.490  
+      n=   5  acc=0.512  
+      n=   8  acc=0.481  
+      n=  13  acc=0.474  
+      n=  21  acc=0.477  
+      n=  34  acc=0.488  
+      n=  55  acc=0.463  
+      n=  89  acc=0.479  
+      n= 120  acc=0.462  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3_2buf  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [1515870810, 5810838106]   << A/A CONTROL (declared: same contents, different buffers)
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0   1515870810   18000    16.693    0.530     2300     2300     144.0
+     1   5810838106   18000    16.338    0.561     2299     2300     143.6
+
+  work balance     : 0.273% throughput spread  [OK]
+                     bounds a work-attributable difference at 45 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.66  16.70  16.74  16.75  16.78  16.74  16.65  16.62  16.64  16.65
+    cond 1:  16.30  16.29  16.36  16.40  16.48  16.41  16.35  16.25  16.24  16.30
+    within-condition span: cond 0 0.164 W, cond 1 0.233 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.233 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.3543 W  95% CI [-0.3714, -0.3372]  (-2.12% of baseline)
+  Cohen's d        : -0.6495  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.984 at n<=120
+      n=   1  acc=0.837  ##########################
+      n=   2  acc=0.885  ##############################
+      n=   3  acc=0.890  ###############################
+      n=   5  acc=0.931  ##################################
+      n=   8  acc=0.953  ####################################
+      n=  13  acc=0.962  ####################################
+      n=  21  acc=0.963  #####################################
+      n=  34  acc=0.961  ####################################
+      n=  55  acc=0.979  ######################################
+      n=  89  acc=0.984  ######################################
+      n= 120  acc=0.976  ######################################
+  n for 95%        : 8  ->  124.3 bit/s raw
+  n for 99%        : None  (not reached)
+  A/A GATE         : FAIL (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+anchor_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.486    0.526     2299     2300     145.5
+     1     94757711   18000    16.716    0.566     2299     2300     146.0
+
+  work balance     : 0.357% throughput spread  [OK]
+                     bounds a work-attributable difference at 58 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.45  15.46  15.47  15.54  15.55  15.57  15.52  15.44  15.43  15.44
+    cond 1:  16.67  16.68  16.72  16.78  16.81  16.79  16.72  16.66  16.65  16.69
+    within-condition span: cond 0 0.140 W, cond 1 0.156 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.156 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2303 W  95% CI [+1.2138, +1.2470]  (+7.94% of baseline)
+  Cohen's d        : +2.2515  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.934  ##################################
+      n=   2  acc=0.976  ######################################
+      n=   3  acc=0.985  ######################################
+      n=   5  acc=0.992  #######################################
+      n=   8  acc=0.995  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=0.998  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  499.3 bit/s raw
+  n for 99%        : 5  ->  199.7 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l1  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.641    0.807     2299     2300     739.5
+     1            0   18000    14.627    0.768     2299     2300     739.4
+
+  work balance     : 0.013% throughput spread  [OK]
+                     bounds a work-attributable difference at 2 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 230 kHz (0.010%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.95  14.70  14.65  14.63  14.65  14.53  14.55  14.59  14.57  14.60
+    cond 1:  14.87  14.72  14.68  14.60  14.65  14.52  14.53  14.56  14.56  14.59
+    within-condition span: cond 0 0.417 W, cond 1 0.346 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.417 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0145 W  95% CI [-0.0856, +0.0389]  (-0.10% of baseline)
+  Cohen's d        : -0.0184  (per sample)
+  permutation p    : 0.73323  (10000 block relabelings)
+  detector         : best accuracy 0.509 at n<=120
+      n=   1  acc=0.502  
+      n=   2  acc=0.489  
+      n=   3  acc=0.496  
+      n=   5  acc=0.498  
+      n=   8  acc=0.502  
+      n=  13  acc=0.493  
+      n=  21  acc=0.482  
+      n=  34  acc=0.486  
+      n=  55  acc=0.509  
+      n=  89  acc=0.495  
+      n= 120  acc=0.492  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw32  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.016 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.842    0.819     2299     2300     731.7
+     1   4294967295   18000    14.991    0.649     2299     2300     731.5
+
+  work balance     : 0.034% throughput spread  [OK]
+                     bounds a work-attributable difference at 5 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.82  14.86  14.87  14.85  14.84  14.82  14.77  14.79  15.03  14.77
+    cond 1:  14.95  15.04  15.08  15.07  15.01  14.94  14.94  14.93  14.94  15.03
+    within-condition span: cond 0 0.263 W, cond 1 0.155 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.263 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1498 W  95% CI [+0.0876, +0.1883]  (+1.01% of baseline)
+  Cohen's d        : +0.2026  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.874 at n<=120
+      n=   1  acc=0.641  ###########
+      n=   2  acc=0.692  ###############
+      n=   3  acc=0.713  #################
+      n=   5  acc=0.736  ##################
+      n=   8  acc=0.751  ####################
+      n=  13  acc=0.790  #######################
+      n=  21  acc=0.798  #######################
+      n=  34  acc=0.823  #########################
+      n=  55  acc=0.854  ############################
+      n=  89  acc=0.856  ############################
+      n= 120  acc=0.874  #############################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw32  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.386    0.522     2299     2300      41.5
+     1   4294967295   18000    14.148    0.495     2299     2300      42.4
+
+  work balance     : 2.111% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 291 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.33  13.40  13.37  13.38  13.36  13.39  13.41  13.39  13.42  13.41
+    cond 1:  14.11  14.07  14.11  14.14  14.12  14.19  14.18  14.15  14.20  14.22
+    within-condition span: cond 0 0.091 W, cond 1 0.148 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.148 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.7625 W  95% CI [+0.7451, +0.7790]  (+5.70% of baseline)
+  Cohen's d        : +1.4990  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.919  #################################
+      n=   2  acc=0.945  ###################################
+      n=   3  acc=0.969  #####################################
+      n=   5  acc=0.978  ######################################
+      n=   8  acc=0.986  ######################################
+      n=  13  acc=0.990  #######################################
+      n=  21  acc=0.987  ######################################
+      n=  34  acc=0.995  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 3  ->  331.3 bit/s raw
+  n for 99%        : 13  ->  76.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.617    0.590     2299     2300     143.7
+     1   4294967295   18000    17.504    0.632     2299     2300     145.3
+
+  work balance     : 1.098% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 182 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.62  15.66  15.67  15.64  15.65  15.63  15.58  15.59  15.58  15.56
+    cond 1:  17.54  17.53  17.55  17.56  17.54  17.51  17.46  17.44  17.46  17.44
+    within-condition span: cond 0 0.110 W, cond 1 0.118 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.118 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.8869 W  95% CI [+1.8709, +1.9024]  (+12.08% of baseline)
+  Cohen's d        : +3.0861  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.960  ####################################
+      n=   2  acc=0.982  ######################################
+      n=   3  acc=0.991  #######################################
+      n=   5  acc=0.997  #######################################
+      n=   8  acc=0.995  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1002.5 bit/s raw
+  n for 99%        : 3  ->  334.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw02  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.732    0.786     2299     2300     361.9
+     1     16777280   18000    15.111    0.779     2299     2300     348.8
+
+  work balance     : 3.685% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 550 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.38  14.53  14.54  14.54  14.57  14.54  14.82  15.13  15.13  15.15
+    cond 1:  14.68  14.94  14.93  14.98  14.99  15.01  15.27  15.45  15.46  15.40
+    within-condition span: cond 0 0.772 W, cond 1 0.781 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.1 mW  (imbalance 0.000 x drift span 0.781 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3787 W  95% CI [+0.3134, +0.4460]  (+2.57% of baseline)
+  Cohen's d        : +0.4840  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.749 at n<=120
+      n=   1  acc=0.660  ############
+      n=   2  acc=0.683  ##############
+      n=   3  acc=0.675  ##############
+      n=   5  acc=0.683  ##############
+      n=   8  acc=0.689  ###############
+      n=  13  acc=0.695  ###############
+      n=  21  acc=0.714  #################
+      n=  34  acc=0.703  ################
+      n=  55  acc=0.724  #################
+      n=  89  acc=0.749  ###################
+      n= 120  acc=0.728  ##################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw01  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.583    0.525     2299     2300     739.8
+     1            8   18000    14.519    0.709     2299     2300     735.1
+
+  work balance     : 0.630% throughput spread  [OK]
+                     bounds a work-attributable difference at 92 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 10 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.57  14.61  14.61  14.67  14.63  14.61  14.55  14.52  14.52  14.54
+    cond 1:  14.52  14.51  14.55  14.55  14.52  14.49  14.47  14.68  14.48  14.44
+    within-condition span: cond 0 0.141 W, cond 1 0.244 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.244 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0640 W  95% CI [-0.0946, -0.0150]  (-0.44% of baseline)
+  Cohen's d        : -0.1026  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.797 at n<=120
+      n=   1  acc=0.628  ##########
+      n=   2  acc=0.644  ###########
+      n=   3  acc=0.664  #############
+      n=   5  acc=0.691  ###############
+      n=   8  acc=0.700  ################
+      n=  13  acc=0.729  ##################
+      n=  21  acc=0.753  ####################
+      n=  34  acc=0.764  #####################
+      n=  55  acc=0.760  ####################
+      n=  89  acc=0.797  #######################
+      n= 120  acc=0.775  #####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw01  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.364    0.493     2300     2300      41.5
+     1            8   18000    13.397    0.506     2300     2300      42.4
+
+  work balance     : 2.065% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 276 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.41  13.37  13.32  13.32  13.37  13.37  13.37  13.35  13.36  13.40
+    cond 1:  13.45  13.40  13.37  13.34  13.41  13.38  13.38  13.39  13.40  13.45
+    within-condition span: cond 0 0.082 W, cond 1 0.105 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.105 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0328 W  95% CI [+0.0215, +0.0439]  (+0.25% of baseline)
+  Cohen's d        : +0.0656  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.664 at n<=120
+      n=   1  acc=0.558  ####
+      n=   2  acc=0.572  #####
+      n=   3  acc=0.593  #######
+      n=   5  acc=0.594  #######
+      n=   8  acc=0.605  ########
+      n=  13  acc=0.616  #########
+      n=  21  acc=0.638  ###########
+      n=  34  acc=0.634  ##########
+      n=  55  acc=0.652  ############
+      n=  89  acc=0.664  #############
+      n= 120  acc=0.633  ##########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.634    0.610     2300     2300     145.6
+     1            0   18000    15.638    0.617     2300     2300     145.6
+
+  work balance     : 0.008% throughput spread  [OK]
+                     bounds a work-attributable difference at 1 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.58  15.64  15.65  15.66  15.69  15.72  15.65  15.60  15.60  15.56
+    cond 1:  15.61  15.64  15.64  15.65  15.69  15.70  15.66  15.62  15.59  15.58
+    within-condition span: cond 0 0.162 W, cond 1 0.124 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.162 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0031 W  95% CI [-0.0106, +0.0167]  (+0.02% of baseline)
+  Cohen's d        : +0.0051  (per sample)
+  permutation p    : 0.66083  (10000 block relabelings)
+  detector         : best accuracy 0.487 at n<=120
+      n=   1  acc=0.482  
+      n=   2  acc=0.487  
+      n=   3  acc=0.482  
+      n=   5  acc=0.470  
+      n=   8  acc=0.485  
+      n=  13  acc=0.466  
+      n=  21  acc=0.447  
+      n=  34  acc=0.458  
+      n=  55  acc=0.451  
+      n=  89  acc=0.461  
+      n= 120  acc=0.451  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw02  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.571    0.525     2300     2300     144.2
+     1     16777280   18000    15.903    0.543     2300     2300     145.4
+
+  work balance     : 0.826% throughput spread  [OK]
+                     bounds a work-attributable difference at 130 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.55  15.58  15.62  15.62  15.63  15.64  15.55  15.53  15.50  15.49
+    cond 1:  15.86  15.93  15.97  15.96  15.97  15.95  15.88  15.84  15.83  15.84
+    within-condition span: cond 0 0.143 W, cond 1 0.134 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.143 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3325 W  95% CI [+0.3166, +0.3481]  (+2.14% of baseline)
+  Cohen's d        : +0.6226  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.802  ########################
+      n=   2  acc=0.845  ###########################
+      n=   3  acc=0.876  ##############################
+      n=   5  acc=0.906  ################################
+      n=   8  acc=0.939  ###################################
+      n=  13  acc=0.961  ####################################
+      n=  21  acc=0.975  ######################################
+      n=  34  acc=0.986  ######################################
+      n=  55  acc=0.985  ######################################
+      n=  89  acc=0.991  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 13  ->  77.1 bit/s raw
+  n for 99%        : 89  ->  11.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw02  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.074    0.758     2300     1900     677.8
+     1     16777280   18000    13.979    0.635     2300     1900     676.3
+
+  work balance     : 0.221% throughput spread  [OK]
+                     bounds a work-attributable difference at 31 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.27  14.09  14.08  14.10  14.06  14.04  14.05  14.01  14.03  14.00
+    cond 1:  14.00  13.99  14.01  13.98  14.00  13.96  13.98  13.88  13.92  14.08
+    within-condition span: cond 0 0.264 W, cond 1 0.193 W
+
+  interleaving     : imbalance 0.000  (mean position cond 0 0.50, cond 1 0.50)  [OK]
+  admitted bias    : 0.0 mW  (imbalance 0.000 x drift span 0.264 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0943 W  95% CI [-0.1488, -0.0541]  (-0.67% of baseline)
+  Cohen's d        : -0.1348  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.761 at n<=120
+      n=   1  acc=0.602  ########
+      n=   2  acc=0.608  ########
+      n=   3  acc=0.631  ##########
+      n=   5  acc=0.642  ###########
+      n=   8  acc=0.664  #############
+      n=  13  acc=0.687  ##############
+      n=  21  acc=0.704  ################
+      n=  34  acc=0.711  ################
+      n=  55  acc=0.723  #################
+      n=  89  acc=0.749  ###################
+      n= 120  acc=0.761  ####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw08  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.674    0.778     2300     2300     733.0
+     1     25219587   18000    14.652    0.629     2300     2300     732.6
+
+  work balance     : 0.054% throughput spread  [OK]
+                     bounds a work-attributable difference at 8 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.63  14.65  14.67  14.71  14.77  14.71  14.67  14.58  14.59  14.77
+    cond 1:  14.68  14.66  14.73  14.74  14.72  14.67  14.62  14.57  14.58  14.56
+    within-condition span: cond 0 0.193 W, cond 1 0.174 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 3.6 mW  (imbalance 0.018 x drift span 0.193 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0223 W  95% CI [-0.0811, +0.0164]  (-0.15% of baseline)
+  Cohen's d        : -0.0315  (per sample)
+  permutation p    : 0.57124  (10000 block relabelings)
+  detector         : best accuracy 0.561 at n<=120
+      n=   1  acc=0.519  #
+      n=   2  acc=0.500  
+      n=   3  acc=0.505  
+      n=   5  acc=0.511  
+      n=   8  acc=0.498  
+      n=  13  acc=0.508  
+      n=  21  acc=0.522  #
+      n=  34  acc=0.524  #
+      n=  55  acc=0.533  ##
+      n=  89  acc=0.561  ####
+      n= 120  acc=0.507  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw02  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.653    0.580     2300     2300     146.6
+     1     16777280   18000    15.961    0.617     2300     2300     147.0
+
+  work balance     : 0.294% throughput spread  [OK]
+                     bounds a work-attributable difference at 46 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.61  15.62  15.68  15.68  15.70  15.71  15.68  15.69  15.62  15.55
+    cond 1:  15.91  15.95  15.98  15.98  16.00  16.01  15.97  15.99  15.94  15.88
+    within-condition span: cond 0 0.157 W, cond 1 0.133 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.9 mW  (imbalance 0.018 x drift span 0.157 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3081 W  95% CI [+0.2939, +0.3225]  (+1.97% of baseline)
+  Cohen's d        : +0.5146  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.994 at n<=120
+      n=   1  acc=0.762  ####################
+      n=   2  acc=0.819  #########################
+      n=   3  acc=0.843  ###########################
+      n=   5  acc=0.880  ##############################
+      n=   8  acc=0.903  ################################
+      n=  13  acc=0.936  ##################################
+      n=  21  acc=0.953  ####################################
+      n=  34  acc=0.955  ####################################
+      n=  55  acc=0.977  ######################################
+      n=  89  acc=0.992  #######################################
+      n= 120  acc=0.994  #######################################
+  n for 95%        : 21  ->  47.4 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw32  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.499    0.698     2299     1900     353.7
+     1   4294967295   18000    15.640    0.793     2299     1900     354.2
+
+  work balance     : 0.140% throughput spread  [OK]
+                     bounds a work-attributable difference at 21 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.14  14.35  14.56  14.54  14.56  14.58  14.57  14.56  14.58  14.55
+    cond 1:  15.16  15.55  15.62  15.68  15.72  15.73  15.74  15.74  15.73  15.72
+    within-condition span: cond 0 0.436 W, cond 1 0.580 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 10.7 mW  (imbalance 0.018 x drift span 0.580 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1415 W  95% CI [+1.1018, +1.1797]  (+7.87% of baseline)
+  Cohen's d        : +1.5280  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.928  ##################################
+      n=   2  acc=0.956  ####################################
+      n=   3  acc=0.959  ####################################
+      n=   5  acc=0.974  #####################################
+      n=   8  acc=0.978  ######################################
+      n=  13  acc=0.988  #######################################
+      n=  21  acc=0.995  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=0.999  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  501.8 bit/s raw
+  n for 99%        : 21  ->  47.8 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3_2buf  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [1515870810, 5810838106]   << A/A CONTROL (declared: same contents, different buffers)
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0   1515870810   18000    16.788    0.698     2300     2300     145.8
+     1   5810838106   18000    16.660    0.670     2300     2300     144.9
+
+  work balance     : 0.604% throughput spread  [OK]
+                     bounds a work-attributable difference at 101 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.78  16.84  16.83  16.88  16.83  16.77  16.79  16.71  16.71  16.73
+    cond 1:  16.64  16.70  16.74  16.78  16.67  16.66  16.63  16.57  16.59  16.61
+    within-condition span: cond 0 0.169 W, cond 1 0.216 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.0 mW  (imbalance 0.018 x drift span 0.216 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.1278 W  95% CI [-0.1472, -0.1094]  (-0.76% of baseline)
+  Cohen's d        : -0.1868  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.781 at n<=120
+      n=   1  acc=0.648  ###########
+      n=   2  acc=0.672  #############
+      n=   3  acc=0.672  #############
+      n=   5  acc=0.695  ###############
+      n=   8  acc=0.714  #################
+      n=  13  acc=0.710  ################
+      n=  21  acc=0.723  #################
+      n=  34  acc=0.752  ####################
+      n=  55  acc=0.763  #####################
+      n=  89  acc=0.781  ######################
+      n= 120  acc=0.775  #####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : FAIL (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+sham_l3_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [94757711, 4200209584]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0     94757711   18000    16.832    0.787     2299     2300     144.6
+     1   4200209584   18000    16.688    0.586     2299     2300     143.2
+
+  work balance     : 0.952% throughput spread  [OK]
+                     bounds a work-attributable difference at 160 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.84  16.84  16.85  16.87  16.78  17.04  16.76  16.76  16.78  16.80
+    cond 1:  16.70  16.72  16.76  16.68  16.69  16.69  16.63  16.64  16.68  16.68
+    within-condition span: cond 0 0.280 W, cond 1 0.131 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 5.1 mW  (imbalance 0.018 x drift span 0.280 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.1439 W  95% CI [-0.2053, -0.1078]  (-0.86% of baseline)
+  Cohen's d        : -0.2074  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.796 at n<=120
+      n=   1  acc=0.635  ##########
+      n=   2  acc=0.632  ##########
+      n=   3  acc=0.674  #############
+      n=   5  acc=0.670  #############
+      n=   8  acc=0.691  ###############
+      n=  13  acc=0.718  #################
+      n=  21  acc=0.755  ####################
+      n=  34  acc=0.774  #####################
+      n=  55  acc=0.788  #######################
+      n=  89  acc=0.796  #######################
+      n= 120  acc=0.774  #####################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw01  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.572    0.823     2300     2300     144.3
+     1            8   18000    15.870    0.816     2300     2300     144.2
+
+  work balance     : 0.105% throughput spread  [OK]
+                     bounds a work-attributable difference at 17 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.59  15.56  15.62  15.63  15.63  15.59  15.52  15.52  15.50  15.56
+    cond 1:  15.85  15.90  15.95  15.95  15.88  15.88  15.83  15.82  15.82  15.82
+    within-condition span: cond 0 0.129 W, cond 1 0.126 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.4 mW  (imbalance 0.018 x drift span 0.129 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2979 W  95% CI [+0.2831, +0.3126]  (+1.91% of baseline)
+  Cohen's d        : +0.3634  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.987 at n<=120
+      n=   1  acc=0.800  ########################
+      n=   2  acc=0.832  ##########################
+      n=   3  acc=0.850  ############################
+      n=   5  acc=0.884  ##############################
+      n=   8  acc=0.917  #################################
+      n=  13  acc=0.934  ##################################
+      n=  21  acc=0.952  ####################################
+      n=  34  acc=0.968  #####################################
+      n=  55  acc=0.975  ######################################
+      n=  89  acc=0.983  ######################################
+      n= 120  acc=0.987  ######################################
+  n for 95%        : 21  ->  47.4 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l3  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.639    0.619     2300     2300     142.7
+     1            0   18000    15.634    0.644     2300     2300     142.7
+
+  work balance     : 0.025% throughput spread  [OK]
+                     bounds a work-attributable difference at 4 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.62  15.64  15.67  15.72  15.68  15.65  15.60  15.57  15.61  15.62
+    cond 1:  15.62  15.63  15.72  15.72  15.67  15.64  15.62  15.56  15.57  15.59
+    within-condition span: cond 0 0.145 W, cond 1 0.155 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.9 mW  (imbalance 0.018 x drift span 0.155 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0042 W  95% CI [-0.0188, +0.0101]  (-0.03% of baseline)
+  Cohen's d        : -0.0066  (per sample)
+  permutation p    : 0.56614  (10000 block relabelings)
+  detector         : best accuracy 0.559 at n<=120
+      n=   1  acc=0.501  
+      n=   2  acc=0.496  
+      n=   3  acc=0.513  #
+      n=   5  acc=0.500  
+      n=   8  acc=0.499  
+      n=  13  acc=0.502  
+      n=  21  acc=0.521  #
+      n=  34  acc=0.523  #
+      n=  55  acc=0.545  ###
+      n=  89  acc=0.546  ###
+      n= 120  acc=0.559  ####
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw08  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.964    1.752     2299     2300       0.8
+     1     25219587   18000    15.445    1.432     2299     2300     364.3
+
+  work balance     : 199.100% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 30272 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.52  14.54  14.52  14.67  15.10  15.10  15.12  15.11  16.45  14.51
+    cond 1:  15.10  15.14  15.17  15.54  15.54  15.60  15.56  15.64  16.01  15.14
+    within-condition span: cond 0 1.939 W, cond 1 0.919 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 35.7 mW  (imbalance 0.018 x drift span 1.939 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4810 W  95% CI [+0.2953, +0.6376]  (+3.21% of baseline)
+  Cohen's d        : +0.3006  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.805 at n<=120
+      n=   1  acc=0.733  ##################
+      n=   2  acc=0.765  #####################
+      n=   3  acc=0.775  #####################
+      n=   5  acc=0.801  ########################
+      n=   8  acc=0.791  #######################
+      n=  13  acc=0.797  #######################
+      n=  21  acc=0.796  #######################
+      n=  34  acc=0.785  ######################
+      n=  55  acc=0.792  #######################
+      n=  89  acc=0.789  #######################
+      n= 120  acc=0.805  ########################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+anchor_hw16  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 94757711]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.678    1.296     2299     2300     144.0
+     1     94757711   18000    16.877    1.562     2299     2300     145.0
+
+  work balance     : 0.652% throughput spread  [OK]
+                     bounds a work-attributable difference at 106 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.54  15.46  15.44  15.42  17.03  15.53  15.81  15.53  15.58  15.45
+    cond 1:  16.61  16.50  16.44  17.65  18.32  16.58  16.87  16.65  16.60  16.54
+    within-condition span: cond 0 1.609 W, cond 1 1.879 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 34.6 mW  (imbalance 0.018 x drift span 1.879 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1984 W  95% CI [+0.9741, +1.4299]  (+7.64% of baseline)
+  Cohen's d        : +0.8351  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.982 at n<=120
+      n=   1  acc=0.870  #############################
+      n=   2  acc=0.909  ################################
+      n=   3  acc=0.920  #################################
+      n=   5  acc=0.947  ###################################
+      n=   8  acc=0.964  #####################################
+      n=  13  acc=0.967  #####################################
+      n=  21  acc=0.977  ######################################
+      n=  34  acc=0.982  ######################################
+      n=  55  acc=0.982  ######################################
+      n=  89  acc=0.976  ######################################
+      n= 120  acc=0.975  #####################################
+  n for 95%        : 8  ->  125.7 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw02  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.264    2.542     2300     2300     732.1
+     1     16777280   18000    14.185    2.531     2300     2300     730.3
+
+  work balance     : 0.253% throughput spread  [OK]
+                     bounds a work-attributable difference at 36 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.20  14.27  14.27  14.26  14.33  14.33  14.26  14.22  14.26  14.24
+    cond 1:  14.15  14.16  14.17  14.24  14.24  14.25  14.19  14.14  14.14  14.16
+    within-condition span: cond 0 0.133 W, cond 1 0.105 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.4 mW  (imbalance 0.018 x drift span 0.133 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0795 W  95% CI [-0.0944, -0.0645]  (-0.56% of baseline)
+  Cohen's d        : -0.0313  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.708 at n<=120
+      n=   1  acc=0.502  
+      n=   2  acc=0.517  #
+      n=   3  acc=0.513  #
+      n=   5  acc=0.550  ####
+      n=   8  acc=0.554  ####
+      n=  13  acc=0.578  ######
+      n=  21  acc=0.596  #######
+      n=  34  acc=0.650  ###########
+      n=  55  acc=0.665  #############
+      n=  89  acc=0.703  ################
+      n= 120  acc=0.708  ################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw08  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.736    1.155     2299     2300     143.5
+     1     25219587   18000    16.331    1.045     2299     2300     144.3
+
+  work balance     : 0.502% throughput spread  [OK]
+                     bounds a work-attributable difference at 80 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.48  15.48  15.56  15.41  15.44  15.43  17.49  16.28  15.39  15.40
+    cond 1:  16.17  16.16  16.19  16.15  16.08  16.11  17.59  16.72  16.08  16.08
+    within-condition span: cond 0 2.103 W, cond 1 1.515 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 38.7 mW  (imbalance 0.018 x drift span 2.103 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5946 W  95% CI [+0.4150, +0.7768]  (+3.78% of baseline)
+  Cohen's d        : +0.5398  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.816 at n<=120
+      n=   1  acc=0.759  ####################
+      n=   2  acc=0.756  ####################
+      n=   3  acc=0.772  #####################
+      n=   5  acc=0.762  ####################
+      n=   8  acc=0.769  #####################
+      n=  13  acc=0.777  ######################
+      n=  21  acc=0.797  #######################
+      n=  34  acc=0.797  #######################
+      n=  55  acc=0.805  ########################
+      n=  89  acc=0.816  #########################
+      n= 120  acc=0.793  #######################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_l1  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.451    0.696     2300     2300     738.5
+     1            0   18000    14.443    0.675     2300     2300     738.4
+
+  work balance     : 0.001% throughput spread  [OK]
+                     bounds a work-attributable difference at 0 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.44  14.45  14.46  14.47  14.47  14.46  14.47  14.46  14.42  14.41
+    cond 1:  14.42  14.44  14.47  14.45  14.46  14.46  14.46  14.44  14.42  14.40
+    within-condition span: cond 0 0.056 W, cond 1 0.075 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 1.4 mW  (imbalance 0.018 x drift span 0.075 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0074 W  95% CI [-0.0173, +0.0026]  (-0.05% of baseline)
+  Cohen's d        : -0.0108  (per sample)
+  permutation p    : 0.14969  (10000 block relabelings)
+  detector         : best accuracy 0.530 at n<=120
+      n=   1  acc=0.501  
+      n=   2  acc=0.521  #
+      n=   3  acc=0.507  
+      n=   5  acc=0.518  #
+      n=   8  acc=0.518  #
+      n=  13  acc=0.530  ##
+      n=  21  acc=0.513  #
+      n=  34  acc=0.512  
+      n=  55  acc=0.506  
+      n=  89  acc=0.489  
+      n= 120  acc=0.505  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw01  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.209    0.778     2300     2300      41.6
+     1            8   18000    13.249    0.764     2300     2300      42.6
+
+  work balance     : 2.369% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 313 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.12  13.05  13.12  13.10  13.09  13.11  13.17  13.19  13.96  13.18
+    cond 1:  13.15  13.11  13.16  13.18  13.18  13.18  13.23  13.28  13.80  13.22
+    within-condition span: cond 0 0.915 W, cond 1 0.689 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 16.8 mW  (imbalance 0.018 x drift span 0.915 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0404 W  95% CI [-0.0501, +0.1288]  (+0.31% of baseline)
+  Cohen's d        : +0.0524  (per sample)
+  permutation p    : 0.38376  (10000 block relabelings)
+  detector         : best accuracy 0.609 at n<=120
+      n=   1  acc=0.556  ####
+      n=   2  acc=0.582  ######
+      n=   3  acc=0.605  ########
+      n=   5  acc=0.582  ######
+      n=   8  acc=0.594  #######
+      n=  13  acc=0.591  #######
+      n=  21  acc=0.591  #######
+      n=  34  acc=0.593  #######
+      n=  55  acc=0.600  #######
+      n=  89  acc=0.585  ######
+      n= 120  acc=0.609  ########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+aa_dram  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 0]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.565    1.119     2299     2300      40.6
+     1            0   18000    13.515    1.080     2299     2300      40.9
+
+  work balance     : 0.584% throughput spread  [OK]
+                     bounds a work-attributable difference at 79 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.17  13.18  13.18  13.75  13.51  13.20  13.35  14.68  14.45  13.18
+    cond 1:  13.17  13.18  13.40  14.43  13.17  13.17  13.19  14.37  13.87  13.19
+    within-condition span: cond 0 1.513 W, cond 1 1.263 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 27.9 mW  (imbalance 0.018 x drift span 1.513 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0500 W  95% CI [-0.2309, +0.1338]  (-0.37% of baseline)
+  Cohen's d        : -0.0454  (per sample)
+  permutation p    : 0.59574  (10000 block relabelings)
+  detector         : best accuracy 0.490 at n<=120
+      n=   1  acc=0.473  
+      n=   2  acc=0.490  
+      n=   3  acc=0.484  
+      n=   5  acc=0.474  
+      n=   8  acc=0.470  
+      n=  13  acc=0.461  
+      n=  21  acc=0.462  
+      n=  34  acc=0.467  
+      n=  55  acc=0.459  
+      n=  89  acc=0.477  
+      n= 120  acc=0.483  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw02  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.656    0.652     2300     2108     364.3
+     1     16777280   18000    14.941    0.794     2300     2113     364.8
+
+  work balance     : 0.147% throughput spread  [OK]
+                     bounds a work-attributable difference at 22 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 5330 kHz (0.253%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.44  14.42  14.42  14.45  14.52  14.84  14.86  14.86  14.88  14.85
+    cond 1:  14.61  14.63  14.65  14.66  15.04  15.18  15.16  15.17  15.13  15.18
+    within-condition span: cond 0 0.461 W, cond 1 0.574 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 10.6 mW  (imbalance 0.018 x drift span 0.574 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.2850 W  95% CI [+0.2171, +0.3637]  (+1.94% of baseline)
+  Cohen's d        : +0.3922  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.627 at n<=120
+      n=   1  acc=0.605  ########
+      n=   2  acc=0.627  ##########
+      n=   3  acc=0.613  #########
+      n=   5  acc=0.606  ########
+      n=   8  acc=0.605  ########
+      n=  13  acc=0.580  ######
+      n=  21  acc=0.564  #####
+      n=  34  acc=0.562  ####
+      n=  55  acc=0.540  ###
+      n=  89  acc=0.529  ##
+      n= 120  acc=0.539  ###
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw32  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.614    0.996     2300     2300     709.2
+     1   4294967295   18000    14.681    0.917     2300     2300     708.8
+
+  work balance     : 0.057% throughput spread  [OK]
+                     bounds a work-attributable difference at 8 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.80  14.54  14.48  14.51  14.48  14.45  14.44  14.46  14.57  14.41
+    cond 1:  15.74  14.59  14.59  14.58  14.56  14.54  14.53  14.53  14.60  14.55
+    within-condition span: cond 0 1.383 W, cond 1 1.216 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 25.5 mW  (imbalance 0.018 x drift span 1.383 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.0672 W  95% CI [-0.0785, +0.2125]  (+0.46% of baseline)
+  Cohen's d        : +0.0702  (per sample)
+  permutation p    : 0.37376  (10000 block relabelings)
+  detector         : best accuracy 0.521 at n<=120
+      n=   1  acc=0.520  #
+      n=   2  acc=0.521  #
+      n=   3  acc=0.510  
+      n=   5  acc=0.507  
+      n=   8  acc=0.495  
+      n=  13  acc=0.513  #
+      n=  21  acc=0.499  
+      n=  34  acc=0.491  
+      n=  55  acc=0.501  
+      n=  89  acc=0.503  
+      n= 120  acc=0.506  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l2_hw01  [victim=ws_l2_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.304    1.493     2300     2284     371.4
+     1            8   18000    15.419    1.383     2300     2289     371.4
+
+  work balance     : 0.012% throughput spread  [OK]
+                     bounds a work-attributable difference at 2 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 5330 kHz (0.233%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.59  17.07  15.54  14.78  14.82  14.83  14.87  14.84  14.85  14.83
+    cond 1:  16.58  16.75  15.02  15.04  15.02  15.09  15.12  15.12  15.13  15.32
+    within-condition span: cond 0 2.285 W, cond 1 1.734 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 42.1 mW  (imbalance 0.018 x drift span 2.285 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1151 W  95% CI [-0.1536, +0.3732]  (+0.75% of baseline)
+  Cohen's d        : +0.0800  (per sample)
+  permutation p    : 0.39346  (10000 block relabelings)
+  detector         : best accuracy 0.499 at n<=120
+      n=   1  acc=0.450  
+      n=   2  acc=0.467  
+      n=   3  acc=0.473  
+      n=   5  acc=0.491  
+      n=   8  acc=0.482  
+      n=  13  acc=0.484  
+      n=  21  acc=0.487  
+      n=  34  acc=0.494  
+      n=  55  acc=0.494  
+      n=  89  acc=0.499  
+      n= 120  acc=0.490  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is not resolved (bootstrap CI contains zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw32  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.008 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.121    0.479     2299     2300      42.0
+     1   4294967295   18000    13.927    0.502     2299     2300      42.9
+
+  work balance     : 2.210% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 299 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.07  13.08  13.13  13.12  13.08  13.12  13.13  13.14  13.15  13.19
+    cond 1:  13.87  13.88  13.89  13.94  13.94  13.92  13.94  13.93  13.99  13.96
+    within-condition span: cond 0 0.119 W, cond 1 0.121 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.2 mW  (imbalance 0.018 x drift span 0.121 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8062 W  95% CI [+0.7919, +0.8203]  (+6.14% of baseline)
+  Cohen's d        : +1.6435  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.936  ##################################
+      n=   2  acc=0.964  #####################################
+      n=   3  acc=0.977  ######################################
+      n=   5  acc=0.987  ######################################
+      n=   8  acc=0.991  #######################################
+      n=  13  acc=0.995  #######################################
+      n=  21  acc=0.995  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  496.1 bit/s raw
+  n for 99%        : 8  ->  124.0 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw02  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 16777280]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.108    0.406     2299     2300      41.9
+     1     16777280   18000    13.225    0.435     2299     2300      42.8
+
+  work balance     : 2.160% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 284 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.07  13.07  13.10  13.09  13.10  13.11  13.13  13.13  13.15  13.13
+    cond 1:  13.17  13.21  13.18  13.23  13.21  13.21  13.21  13.28  13.32  13.23
+    within-condition span: cond 0 0.078 W, cond 1 0.148 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.7 mW  (imbalance 0.018 x drift span 0.148 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.1164 W  95% CI [+0.1030, +0.1301]  (+0.89% of baseline)
+  Cohen's d        : +0.2768  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.894 at n<=120
+      n=   1  acc=0.667  #############
+      n=   2  acc=0.706  ################
+      n=   3  acc=0.720  #################
+      n=   5  acc=0.740  ###################
+      n=   8  acc=0.760  ####################
+      n=  13  acc=0.787  ######################
+      n=  21  acc=0.824  #########################
+      n=  34  acc=0.836  ##########################
+      n=  55  acc=0.879  ##############################
+      n=  89  acc=0.894  ###############################
+      n= 120  acc=0.873  #############################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+dram_hw08  [victim=ws_dram_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 25219587]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    13.904    1.822     2299     2300      39.5
+     1     25219587   18000    14.328    2.112     2299     2300      39.9
+
+  work balance     : 0.907% throughput spread  [OK]
+                     bounds a work-attributable difference at 128 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 230 kHz (0.010%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  13.05  13.11  13.11  13.11  13.52  15.37  16.91  14.09  13.18  13.60
+    cond 1:  13.33  13.36  13.34  13.46  14.43  16.38  17.64  14.38  13.49  13.47
+    within-condition span: cond 0 3.862 W, cond 1 4.302 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 79.2 mW  (imbalance 0.018 x drift span 4.302 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4232 W  95% CI [+0.0486, +0.8031]  (+3.04% of baseline)
+  Cohen's d        : +0.2146  (per sample)
+  permutation p    : 0.02900  (10000 block relabelings)
+  detector         : best accuracy 0.550 at n<=120
+      n=   1  acc=0.544  ###
+      n=   2  acc=0.530  ##
+      n=   3  acc=0.550  ###
+      n=   5  acc=0.542  ###
+      n=   8  acc=0.531  ##
+      n=  13  acc=0.524  #
+      n=  21  acc=0.530  ##
+      n=  34  acc=0.526  ##
+      n=  55  acc=0.533  ##
+      n=  89  acc=0.521  #
+      n= 120  acc=0.533  ##
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l3_hw32  [victim=ws_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 4294967295]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.540    0.682     2300     2300     144.3
+     1   4294967295   18000    17.339    0.749     2300     2300     146.3
+
+  work balance     : 1.413% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 232 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.51  15.55  15.56  15.55  15.56  15.58  15.57  15.54  15.50  15.48
+    cond 1:  17.28  17.34  17.36  17.42  17.39  17.40  17.37  17.32  17.26  17.26
+    within-condition span: cond 0 0.103 W, cond 1 0.159 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 2.9 mW  (imbalance 0.018 x drift span 0.159 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.7986 W  95% CI [+1.7837, +1.8133]  (+11.57% of baseline)
+  Cohen's d        : +2.5110  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.959  ####################################
+      n=   2  acc=0.980  ######################################
+      n=   3  acc=0.987  ######################################
+      n=   5  acc=0.993  #######################################
+      n=   8  acc=0.995  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1003.9 bit/s raw
+  n for 99%        : 5  ->  200.8 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+l1_hw01  [victim=ws_l1_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 8]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    14.163    2.611     2299     2300     731.3
+     1            8   18000    14.110    2.560     2299     2300     730.6
+
+  work balance     : 0.092% throughput spread  [OK]
+                     bounds a work-attributable difference at 13 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  14.18  14.24  14.23  14.29  14.18  14.15  14.08  14.04  14.13  14.11
+    cond 1:  14.13  14.17  14.16  14.34  14.08  14.09  14.03  14.01  14.03  14.06
+    within-condition span: cond 0 0.247 W, cond 1 0.334 W
+
+  interleaving     : imbalance 0.018  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 6.1 mW  (imbalance 0.018 x drift span 0.334 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0536 W  95% CI [-0.0846, -0.0169]  (-0.38% of baseline)
+  Cohen's d        : -0.0207  (per sample)
+  permutation p    : 0.00060  (10000 block relabelings)
+  detector         : best accuracy 0.613 at n<=120
+      n=   1  acc=0.531  ##
+      n=   2  acc=0.515  #
+      n=   3  acc=0.515  #
+      n=   5  acc=0.539  ###
+      n=   8  acc=0.553  ####
+      n=  13  acc=0.561  ####
+      n=  21  acc=0.581  ######
+      n=  34  acc=0.608  ########
+      n=  55  acc=0.607  ########
+      n=  89  acc=0.603  ########
+      n= 120  acc=0.613  #########
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260904-103411-phase1_depth_operand/figures
+
+==============================================================================
+Platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    power source not recorded     132 snapshots
+
+  platform power state: constant
+
+==============================================================================
+Validity gates
+==============================================================================
+  sham_l3_hw16                 zero_ticks       PASS
+  sham_l3_hw16                 work_balance     FAIL
+  sham_l3_hw16                 frequency_balance PASS
+  sham_l3_hw16                 interleaving     PASS
+  anchor_hw16                  zero_ticks       PASS
+  anchor_hw16                  work_balance     PASS
+  anchor_hw16                  frequency_balance PASS
+  anchor_hw16                  interleaving     PASS
+  aa_l3                        zero_ticks       PASS
+  aa_l3                        work_balance     PASS
+  aa_l3                        frequency_balance PASS
+  aa_l3                        interleaving     PASS
+  aa_l3                        aa_0v1           PASS
+  l3_hw02                      zero_ticks       PASS
+  l3_hw02                      work_balance     PASS
+  l3_hw02                      frequency_balance PASS
+  l3_hw02                      interleaving     PASS
+  aa_dram                      zero_ticks       PASS
+  aa_dram                      work_balance     PASS
+  aa_dram                      frequency_balance PASS
+  aa_dram                      interleaving     PASS
+  aa_dram                      aa_0v1           PASS
+  dram_hw32                    zero_ticks       PASS
+  dram_hw32                    work_balance     FAIL
+  dram_hw32                    frequency_balance PASS
+  dram_hw32                    interleaving     PASS
+  l1_hw01                      zero_ticks       PASS
+  l1_hw01                      work_balance     PASS
+  l1_hw01                      frequency_balance PASS
+  l1_hw01                      interleaving     PASS
+  l3_hw01                      zero_ticks       PASS
+  l3_hw01                      work_balance     PASS
+  l3_hw01                      frequency_balance PASS
+  l3_hw01                      interleaving     PASS
+  l3_hw32                      zero_ticks       PASS
+  l3_hw32                      work_balance     PASS
+  l3_hw32                      frequency_balance PASS
+  l3_hw32                      interleaving     PASS
+  l2_hw01                      zero_ticks       PASS
+  l2_hw01                      work_balance     FAIL
+  l2_hw01                      frequency_balance PASS
+  l2_hw01                      interleaving     PASS
+  l1_hw32                      zero_ticks       PASS
+  l1_hw32                      work_balance     PASS
+  l1_hw32                      frequency_balance PASS
+  l1_hw32                      interleaving     PASS
+  aa_l1                        zero_ticks       PASS
+  aa_l1                        work_balance     PASS
+  aa_l1                        frequency_balance PASS
+  aa_l1                        interleaving     PASS
+  aa_l1                        aa_0v1           PASS
+  l1_hw02                      zero_ticks       PASS
+  l1_hw02                      work_balance     PASS
+  l1_hw02                      frequency_balance PASS
+  l1_hw02                      interleaving     PASS
+  dram_hw01                    zero_ticks       PASS
+  dram_hw01                    work_balance     FAIL
+  dram_hw01                    frequency_balance PASS
+  dram_hw01                    interleaving     PASS
+  aa_l3_2buf                   zero_ticks       PASS
+  aa_l3_2buf                   work_balance     FAIL
+  aa_l3_2buf                   frequency_balance PASS
+  aa_l3_2buf                   interleaving     PASS
+  aa_l3_2buf                   aa_0v1           FAIL
+  dram_hw08                    zero_ticks       PASS
+  dram_hw08                    work_balance     FAIL
+  dram_hw08                    frequency_balance PASS
+  dram_hw08                    interleaving     PASS
+  l2_hw08                      zero_ticks       PASS
+  l2_hw08                      work_balance     PASS
+  l2_hw08                      frequency_balance PASS
+  l2_hw08                      interleaving     PASS
+  dram_hw02                    zero_ticks       PASS
+  dram_hw02                    work_balance     FAIL
+  dram_hw02                    frequency_balance PASS
+  dram_hw02                    interleaving     PASS
+  l2_hw32                      zero_ticks       PASS
+  l2_hw32                      work_balance     PASS
+  l2_hw32                      frequency_balance PASS
+  l2_hw32                      interleaving     PASS
+  l3_hw08                      zero_ticks       PASS
+  l3_hw08                      work_balance     PASS
+  l3_hw08                      frequency_balance PASS
+  l3_hw08                      interleaving     PASS
+  l2_hw02                      zero_ticks       PASS
+  l2_hw02                      work_balance     PASS
+  l2_hw02                      frequency_balance PASS
+  l2_hw02                      interleaving     PASS
+  l1_hw08                      zero_ticks       PASS
+  l1_hw08                      work_balance     PASS
+  l1_hw08                      frequency_balance PASS
+  l1_hw08                      interleaving     PASS
+  sham_l3_hw16                 zero_ticks       PASS
+  sham_l3_hw16                 work_balance     FAIL
+  sham_l3_hw16                 frequency_balance PASS
+  sham_l3_hw16                 interleaving     PASS
+  dram_hw08                    zero_ticks       PASS
+  dram_hw08                    work_balance     FAIL
+  dram_hw08                    frequency_balance PASS
+  dram_hw08                    interleaving     PASS
+  l2_hw01                      zero_ticks       PASS
+  l2_hw01                      work_balance     PASS
+  l2_hw01                      frequency_balance PASS
+  l2_hw01                      interleaving     PASS
+  l2_hw32                      zero_ticks       PASS
+  l2_hw32                      work_balance     PASS
+  l2_hw32                      frequency_balance PASS
+  l2_hw32                      interleaving     PASS
+  l1_hw08                      zero_ticks       PASS
+  l1_hw08                      work_balance     PASS
+  l1_hw08                      frequency_balance PASS
+  l1_hw08                      interleaving     PASS
+  dram_hw02                    zero_ticks       PASS
+  dram_hw02                    work_balance     FAIL
+  dram_hw02                    frequency_balance PASS
+  dram_hw02                    interleaving     PASS
+  l3_hw08                      zero_ticks       PASS
+  l3_hw08                      work_balance     PASS
+  l3_hw08                      frequency_balance PASS
+  l3_hw08                      interleaving     PASS
+  l3_hw01                      zero_ticks       PASS
+  l3_hw01                      work_balance     PASS
+  l3_hw01                      frequency_balance PASS
+  l3_hw01                      interleaving     PASS
+  l2_hw08                      zero_ticks       PASS
+  l2_hw08                      work_balance     PASS
+  l2_hw08                      frequency_balance PASS
+  l2_hw08                      interleaving     PASS
+  aa_dram                      zero_ticks       PASS
+  aa_dram                      work_balance     PASS
+  aa_dram                      frequency_balance PASS
+  aa_dram                      interleaving     PASS
+  aa_dram                      aa_0v1           PASS
+  aa_l3_2buf                   zero_ticks       PASS
+  aa_l3_2buf                   work_balance     PASS
+  aa_l3_2buf                   frequency_balance PASS
+  aa_l3_2buf                   interleaving     PASS
+  aa_l3_2buf                   aa_0v1           FAIL
+  anchor_hw16                  zero_ticks       PASS
+  anchor_hw16                  work_balance     PASS
+  anchor_hw16                  frequency_balance PASS
+  anchor_hw16                  interleaving     PASS
+  aa_l1                        zero_ticks       PASS
+  aa_l1                        work_balance     PASS
+  aa_l1                        frequency_balance PASS
+  aa_l1                        interleaving     PASS
+  aa_l1                        aa_0v1           PASS
+  l1_hw32                      zero_ticks       PASS
+  l1_hw32                      work_balance     PASS
+  l1_hw32                      frequency_balance PASS
+  l1_hw32                      interleaving     PASS
+  dram_hw32                    zero_ticks       PASS
+  dram_hw32                    work_balance     FAIL
+  dram_hw32                    frequency_balance PASS
+  dram_hw32                    interleaving     PASS
+  l3_hw32                      zero_ticks       PASS
+  l3_hw32                      work_balance     FAIL
+  l3_hw32                      frequency_balance PASS
+  l3_hw32                      interleaving     PASS
+  l2_hw02                      zero_ticks       PASS
+  l2_hw02                      work_balance     FAIL
+  l2_hw02                      frequency_balance PASS
+  l2_hw02                      interleaving     PASS
+  l1_hw01                      zero_ticks       PASS
+  l1_hw01                      work_balance     PASS
+  l1_hw01                      frequency_balance PASS
+  l1_hw01                      interleaving     PASS
+  dram_hw01                    zero_ticks       PASS
+  dram_hw01                    work_balance     FAIL
+  dram_hw01                    frequency_balance PASS
+  dram_hw01                    interleaving     PASS
+  aa_l3                        zero_ticks       PASS
+  aa_l3                        work_balance     PASS
+  aa_l3                        frequency_balance PASS
+  aa_l3                        interleaving     PASS
+  aa_l3                        aa_0v1           PASS
+  l3_hw02                      zero_ticks       PASS
+  l3_hw02                      work_balance     PASS
+  l3_hw02                      frequency_balance PASS
+  l3_hw02                      interleaving     PASS
+  l1_hw02                      zero_ticks       PASS
+  l1_hw02                      work_balance     PASS
+  l1_hw02                      frequency_balance PASS
+  l1_hw02                      interleaving     PASS
+  l1_hw08                      zero_ticks       PASS
+  l1_hw08                      work_balance     PASS
+  l1_hw08                      frequency_balance PASS
+  l1_hw08                      interleaving     PASS
+  l3_hw02                      zero_ticks       PASS
+  l3_hw02                      work_balance     PASS
+  l3_hw02                      frequency_balance PASS
+  l3_hw02                      interleaving     PASS
+  l2_hw32                      zero_ticks       PASS
+  l2_hw32                      work_balance     PASS
+  l2_hw32                      frequency_balance PASS
+  l2_hw32                      interleaving     PASS
+  aa_l3_2buf                   zero_ticks       PASS
+  aa_l3_2buf                   work_balance     PASS
+  aa_l3_2buf                   frequency_balance PASS
+  aa_l3_2buf                   interleaving     PASS
+  aa_l3_2buf                   aa_0v1           FAIL
+  sham_l3_hw16                 zero_ticks       PASS
+  sham_l3_hw16                 work_balance     PASS
+  sham_l3_hw16                 frequency_balance PASS
+  sham_l3_hw16                 interleaving     PASS
+  l3_hw01                      zero_ticks       PASS
+  l3_hw01                      work_balance     PASS
+  l3_hw01                      frequency_balance PASS
+  l3_hw01                      interleaving     PASS
+  aa_l3                        zero_ticks       PASS
+  aa_l3                        work_balance     PASS
+  aa_l3                        frequency_balance PASS
+  aa_l3                        interleaving     PASS
+  aa_l3                        aa_0v1           PASS
+  l2_hw08                      zero_ticks       PASS
+  l2_hw08                      work_balance     FAIL
+  l2_hw08                      frequency_balance PASS
+  l2_hw08                      interleaving     PASS
+  anchor_hw16                  zero_ticks       PASS
+  anchor_hw16                  work_balance     PASS
+  anchor_hw16                  frequency_balance PASS
+  anchor_hw16                  interleaving     PASS
+  l1_hw02                      zero_ticks       PASS
+  l1_hw02                      work_balance     PASS
+  l1_hw02                      frequency_balance PASS
+  l1_hw02                      interleaving     PASS
+  l3_hw08                      zero_ticks       PASS
+  l3_hw08                      work_balance     PASS
+  l3_hw08                      frequency_balance PASS
+  l3_hw08                      interleaving     PASS
+  aa_l1                        zero_ticks       PASS
+  aa_l1                        work_balance     PASS
+  aa_l1                        frequency_balance PASS
+  aa_l1                        interleaving     PASS
+  aa_l1                        aa_0v1           PASS
+  dram_hw01                    zero_ticks       PASS
+  dram_hw01                    work_balance     FAIL
+  dram_hw01                    frequency_balance PASS
+  dram_hw01                    interleaving     PASS
+  aa_dram                      zero_ticks       PASS
+  aa_dram                      work_balance     PASS
+  aa_dram                      frequency_balance PASS
+  aa_dram                      interleaving     PASS
+  aa_dram                      aa_0v1           PASS
+  l2_hw02                      zero_ticks       PASS
+  l2_hw02                      work_balance     PASS
+  l2_hw02                      frequency_balance PASS
+  l2_hw02                      interleaving     PASS
+  l1_hw32                      zero_ticks       PASS
+  l1_hw32                      work_balance     PASS
+  l1_hw32                      frequency_balance PASS
+  l1_hw32                      interleaving     PASS
+  l2_hw01                      zero_ticks       PASS
+  l2_hw01                      work_balance     PASS
+  l2_hw01                      frequency_balance PASS
+  l2_hw01                      interleaving     PASS
+  dram_hw32                    zero_ticks       PASS
+  dram_hw32                    work_balance     FAIL
+  dram_hw32                    frequency_balance PASS
+  dram_hw32                    interleaving     PASS
+  dram_hw02                    zero_ticks       PASS
+  dram_hw02                    work_balance     FAIL
+  dram_hw02                    frequency_balance PASS
+  dram_hw02                    interleaving     PASS
+  dram_hw08                    zero_ticks       PASS
+  dram_hw08                    work_balance     PASS
+  dram_hw08                    frequency_balance PASS
+  dram_hw08                    interleaving     PASS
+  l3_hw32                      zero_ticks       PASS
+  l3_hw32                      work_balance     FAIL
+  l3_hw32                      frequency_balance PASS
+  l3_hw32                      interleaving     PASS
+  l1_hw01                      zero_ticks       PASS
+  l1_hw01                      work_balance     PASS
+  l1_hw01                      frequency_balance PASS
+  l1_hw01                      interleaving     PASS
+
+FAILED GATES: sham_l3_hw16/work_balance, dram_hw32/work_balance, l2_hw01/work_balance, dram_hw01/work_balance, aa_l3_2buf/work_balance, aa_l3_2buf/aa_0v1, dram_hw08/work_balance, dram_hw02/work_balance, sham_l3_hw16/work_balance, dram_hw08/work_balance, dram_hw02/work_balance, aa_l3_2buf/aa_0v1, dram_hw32/work_balance, l3_hw32/work_balance, l2_hw02/work_balance, dram_hw01/work_balance, aa_l3_2buf/aa_0v1, l2_hw08/work_balance, dram_hw01/work_balance, dram_hw32/work_balance, dram_hw02/work_balance, l3_hw32/work_balance
+
+### between-run aggregate over three repeats ###
+
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s    dpJ/B
+----------------------------------------------------------------------------------------------------
+aa_dram (A/A)         3   -0.0167    0.0288    0.0756   0.38   FLIPS  0.496    41.36     -0.4
+                        per-repeat: -0.0013  +0.0012  -0.0500
+aa_l1 (A/A)           3   -0.0070    0.0077    0.0290   0.26   FLIPS  0.518   736.78     -0.0
+                        per-repeat: +0.0008  -0.0145  -0.0074
+aa_l3 (A/A)           3   -0.0032    0.0059    0.0147   0.40   FLIPS  0.524   144.34     -0.0
+                        per-repeat: -0.0086  +0.0031  -0.0042
+aa_l3_2buf (A/A)      3   -0.2265    0.1161    0.0174   6.65   all -  0.889   144.57     -1.6
+                        per-repeat: -0.1975  -0.3543  -0.1278
+anchor_hw16           3   +1.1604    0.0948    0.0854   1.11   all +  0.994   145.26      8.0
+                        per-repeat: +1.0525  +1.2303  +1.1984
+dram_hw01             3   +0.0371    0.0039    0.0383   0.10   all +  0.624    42.13      0.9
+                        per-repeat: +0.0381  +0.0328  +0.0404
+dram_hw02             3   +0.0845    0.0282    0.0129   2.18   all +  0.809    42.33      2.0
+                        per-repeat: +0.0744  +0.0628  +0.1164
+dram_hw08             3   +0.2962    0.1103    0.1335   0.83   all +  0.810    41.46      7.1
+                        per-repeat: +0.2407  +0.2247  +0.4232
+dram_hw32             3   +0.7585    0.0498    0.0256   1.95   all +  0.998    40.97     18.5
+                        per-repeat: +0.7068  +0.7625  +0.8062
+l1_hw01               3   -0.0581    0.0053    0.0482   0.11   all -  0.652   734.15     -0.1
+                        per-repeat: -0.0568  -0.0640  -0.0536
+l1_hw02               3   -0.0744    0.0229    0.0254   0.90   all -  0.702   713.22     -0.1
+                        per-repeat: -0.0494  -0.0943  -0.0795
+l1_hw08               3   +0.0415    0.0633    0.0258   2.46   FLIPS  0.680   732.90      0.1
+                        per-repeat: +0.1043  +0.0424  -0.0223
+l1_hw32               3   +0.1626    0.1025    0.0920   1.11   all +  0.697   723.31      0.2
+                        per-repeat: +0.2710  +0.1498  +0.0672
+l2_hw01               3   +0.2652    0.1442    0.1894   0.76   all +  0.678   359.49      0.7
+                        per-repeat: +0.4027  +0.2779  +0.1151
+l2_hw02               3   +0.2949    0.0794    0.0684   1.16   all +  0.639   345.28      0.9
+                        per-repeat: +0.2209  +0.3787  +0.2850
+l2_hw08               3   +0.4129    0.0840    0.0655   1.28   all +  0.935   216.88      1.9
+                        per-repeat: +0.3190  +0.4385  +0.4810
+l2_hw32               3   +1.0680    0.0735    0.0209   3.52   all +  1.000   339.09      3.1
+                        per-repeat: +0.9946  +1.0680  +1.1415
+l3_hw01               3   +0.2695    0.0803    0.0354   2.27   all +  0.905   140.72      1.9
+                        per-repeat: +0.1788  +0.3316  +0.2979
+l3_hw02               3   +0.3194    0.0123    0.0317   0.39   all +  0.887   145.40      2.2
+                        per-repeat: +0.3177  +0.3325  +0.3081
+l3_hw08               3   +0.5153    0.1057    0.0807   1.31   all +  0.938   142.17      3.6
+                        per-repeat: +0.5561  +0.3954  +0.5946
+l3_hw32               3   +1.7750    0.1255    0.0294   4.26   all +  0.995   142.83     12.4
+                        per-repeat: +1.6394  +1.8869  +1.7986
+sham_l3_hw16          3   -0.1740    0.0938    0.0409   2.29   all -  0.747   143.11     -1.2
+                        per-repeat: -0.2791  -0.0990  -0.1439
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+dpJ/B    : mean dW normalised to traffic rate -- mW/(GB/s), which is
+           picojoules per byte. It is a DIFFERENCE between two operands,
+           not the energy needed to move a byte; that quantity is much
+           larger and is not measured anywhere in this project. The
+           distinction matters because published DRAM transport figures
+           of 10-20 pJ/bit are the other one.
+
+### hwfit, depth l1 ###
+
+label         HW               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+l1_hw01        1                     8  3   -0.0581    0.0053    0.0482   -58.14
+l1_hw02        2              16777280  3   -0.0744    0.0229    0.0254   -37.21
+l1_hw08        8              25219587  3   +0.0415    0.0633    0.0258     5.18
+l1_hw32       32            4294967295  3   +0.1626    0.1025    0.0920     5.08
+(A/A)          0                     0 12   -0.0634    0.1110
+
+per-repeat fit of dP = a + b*HW
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   4       10.24    -42.80   0.920
+     1   4        7.16    -68.51   0.875
+     2   4        4.29    -68.19   0.948
+
+slope   : +7.23 mW/bit  (SD 2.97 over 3 repeats, SE 1.72)
+          95% CI [+3.86, +10.59] mW/bit
+mean R^2: 0.914
+          i.e. +231 mW over the full 0 -> 32 bit range
+          +0.0100 mW/bit per GB/s at 726 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+
+### hwfit, depth l2 ###
+
+label         HW               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+l2_hw01        1                     8  3   +0.2652    0.1442    0.1894   265.24
+l2_hw02        2              16777280  3   +0.2949    0.0794    0.0684   147.43
+l2_hw08        8              25219587  3   +0.4129    0.0840    0.0655    51.61
+l2_hw32       32            4294967295  3   +1.0680    0.0735    0.0209    33.38
+(A/A)          0                     0 12   -0.0634    0.1110
+
+per-repeat fit of dP = a + b*HW
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   4       22.83    238.91   0.904
+     1   4       24.52    277.19   0.988
+     2   4       30.63    176.41   0.976
+
+slope   : +25.99 mW/bit  (SD 4.10 over 3 repeats, SE 2.37)
+          95% CI [+21.35, +30.63] mW/bit
+mean R^2: 0.956
+          i.e. +832 mW over the full 0 -> 32 bit range
+          +0.0825 mW/bit per GB/s at 315 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+
+### hwfit, depth l3 ###
+
+label         HW               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+l3_hw01        1                     8  3   +0.2695    0.0803    0.0354   269.45
+l3_hw02        2              16777280  3   +0.3194    0.0123    0.0317   159.71
+l3_hw08        8              25219587  3   +0.5153    0.1057    0.0807    64.42
+l3_hw32       32            4294967295  3   +1.7750    0.1255    0.0294    55.47
+(A/A)          0                     0 12   -0.0634    0.1110
+
+per-repeat fit of dP = a + b*HW
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   4       45.63    182.42   0.997
+     1   4       52.11    176.42   0.969
+     2   4       49.12    221.71   0.999
+
+slope   : +48.96 mW/bit  (SD 3.24 over 3 repeats, SE 1.87)
+          95% CI [+45.29, +52.62] mW/bit
+mean R^2: 0.988
+          i.e. +1567 mW over the full 0 -> 32 bit range
+          +0.3429 mW/bit per GB/s at 143 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+
+### hwfit, depth dram ###
+
+label         HW               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+dram_hw01      1                     8  3   +0.0371    0.0039    0.0383    37.11
+dram_hw02      2              16777280  3   +0.0845    0.0282    0.0129    42.26
+dram_hw08      8              25219587  3   +0.2962    0.1103    0.1335    37.02
+dram_hw32     32            4294967295  3   +0.7585    0.0498    0.0256    23.70
+(A/A)          0                     0 12   -0.0634    0.1110
+
+per-repeat fit of dP = a + b*HW
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   4       21.14     37.71   0.994
+     1   4       23.33     19.87   0.999
+     2   4       23.08     98.50   0.923
+
+slope   : +22.52 mW/bit  (SD 1.20 over 3 repeats, SE 0.69)
+          95% CI [+21.16, +23.87] mW/bit
+mean R^2: 0.972
+          i.e. +721 mW over the full 0 -> 32 bit range
+          +0.5397 mW/bit per GB/s at 42 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+
+### NOTES ###
+
+WHAT THIS SESSION ANSWERS (critique A2, E1, C4)
+
+A2. The zero-operand step is neither constant in watts nor constant in
+pJ/byte. It scales with depth, which was the third of the three readings and
+the one no measurement had yet distinguished. Intercepts of dP = a + b*HW,
+per depth, from the per-repeat fits above:
+
+    depth   a (mW)  per-repeat                 b (mW/bit)   b*32 (mW)
+    L1        -60   -42.8  -68.5  -68.2          7.23 +- 2.97     231
+    L2       +231  +238.9 +277.2 +176.4         25.99 +- 4.10     832
+    L3       +194  +182.4 +176.4 +221.7         48.96 +- 3.24    1567
+    DRAM      +52   +37.7  +19.9  +98.5         22.52 +- 1.20     721
+
+So the +349 mW step measured on ws_l3_x8 alone is not a platform constant. At
+L1 it is absent and slightly negative; at L3 it is +194 mW, about 55% of the
+figure section 8 quotes; at DRAM it is +52 mW and within its own spread of
+zero. The step is a property of the transport path, not of the baseline.
+
+CONSEQUENCE FOR SECTION 4. The critique's worst case does not happen. Removing
+each depth's own intercept leaves the bit-attributable cost b*32 normalised to
+that depth's throughput:
+
+    depth   GB/s   dpJ/B as measured   dpJ/B less its own intercept
+    L1     723.3          0.225                   0.319
+    L2     339.1          3.150                   2.454
+    L3     142.8         12.427                  10.971
+    DRAM    41.0         18.514                  17.598
+
+Both columns are normalised by the same throughput, that of each depth's own
+HW-32 row, so the correction is the only difference between them.
+
+The ladder is 55x L1 to DRAM, monotone, with L3 and DRAM still well separated
+and L1 still positive. The feared collapse to ~5.5x with a negative L1 row
+came from applying a constant 0.349 W correction at every depth, and that
+correction is now measured and is not constant. Section 4 stands, with the
+ratio revised from 68x to 55x.
+
+E1. The grid is the interaction term: b rises from 7.2 mW/bit at L1 to 49.0 at
+L3 and falls to 22.5 at DRAM, so the weight coefficient is not separable from
+depth and a combined model needs the product term. Absolute watts peak at L3,
+as the published depth ladder already found, and both the slope and the
+intercept peak there too.
+
+CROSS-SESSION ANCHOR. anchor_hw16 reads +1.160 W (SD 0.095) against +1.133,
++1.215 and +1.228 W in the three earlier sessions -- inside the spread, so the
+session is comparable to the corpus. l3_hw32 reads +1.775 W against +1.904
+(weight sweep) and +1.841 (polarity), also inside it. The L3 slope of +48.96
+mW/bit reproduces the published pooled +50.75 within its error bar.
+
+THE THREE GATE FAILURES
+
+1. aa_l3_2buf, the two-buffer A/A (C4). FAILS in all three repeats, at
+   -0.198, -0.354 and -0.128 W, all the same sign, detector 0.78-0.98. The two
+   buffers hold bit-identical data: ws_fill casts the selector to uint32, so
+   0x00000000_5A5A5A5A and 0x00000001_5A5A5A5A both fill with 0x5A5A5A5A,
+   while ws_get keys its cache on all 64 bits and so allocates two distinct
+   mappings. The victim loop reads only the returned pointer -- the high half
+   reaches nothing else -- so the only difference between the conditions is
+   which mmap is being read. Throughput differs with it (-1.08%, -0.27%,
+   -0.60%, second buffer always slower), so part of this is a placement
+   effect acting through achieved bandwidth. The single-buffer aa_l3 in the
+   same session is clean at -0.003 W and 0.02% throughput spread, so this is
+   not the harness.
+
+   This is NOT a blanket correction to every A/B result, and the corpus
+   already bounds it: phase1_polarity ran the same victim forward and reverse
+   and got (fwd+rev)/2 = -7 mW, where a fixed slot-1 penalty of -227 mW would
+   have shown up in full. So the placement term is large per allocation and
+   near zero in the mean -- a variance source, not a bias. It is the best
+   candidate yet for the ~100 mW between-run SD this project has been
+   attributing to "the instrument" without naming a mechanism. It needs its
+   own session before the chapter claims more than that.
+
+2. work_balance, 19 of 66 runs. Systematic at DRAM: +2.08% mean over 12 runs,
+   11 of them over the 1% gate, the heavier operand always moving more bytes.
+   Not noise, and it lands on the row with the highest pJ/byte. The bound the
+   report prints is the worst case in which all package power scales with
+   traffic; the true share is smaller, but the DRAM row should be quoted with
+   this stated rather than silently. L1, L2 and L3 are inside the gate apart
+   from the runs named below. frequency_balance passes everywhere at 0.000%,
+   so Config-A held throughout.
+
+3. sham_l3_hw16, the effect-scale noise floor (C4's second half). Reads
+   -0.174 W with between-run SD 0.094 and all three repeats negative, on an
+   operand pair matched in both Hamming weight (16) and Hamming distance. It
+   is deliberately not declared a control, so it does not fail as an A/A --
+   its work_balance does, at +1.19%, +1.44% and -0.95% with the sign flipping.
+   Read together with aa_l3_2buf: a matched-operand contrast across two
+   mappings sits at roughly -0.2 W with a ~0.09 W spread, which is the noise
+   floor for large effects the chapter did not previously have. Every claim
+   in the grid above at HW 8 and 32 clears it; the HW 1 and 2 rows at L1 and
+   DRAM do not, and should not be quoted individually.
+
+ONE CONTAMINATED RUN
+
+l2_hw08_r2 stalled for 8595 s against 47.1 s for every other run in the
+session -- a suspend, landing in its cond 0 blocks. Its throughput reads
+0.8 GB/s against 364.3 (work_balance 199.1%) and its cond-0 drift span is
+1.94 W against 0.92 W for cond 1. The power difference it reports, +0.481 W,
+is in line with its siblings (+0.319, +0.439), but the run is contaminated and
+its throughput figure is meaningless.
+
+It is left in place so the gate fails visibly rather than being quietly
+deleted, but it should not be quoted. Excluding it, from the per-repeat fits
+printed above:
+
+    l2_hw08   +0.379 W over repeats 0 and 1, against +0.413 with all three
+    L2 slope  +23.68 mW/bit (repeats 0, 1), against +25.99 with all three
+    L2 a      +258 mW       (repeats 0, 1), against +231 with all three
+
+Neither figure moves the A2 conclusion. The L2 aggregate throughput hwfit
+prints, 315 GB/s, is dragged down by this run; the other three L2 rows average
+348 GB/s, and the pJ/byte table above sidesteps it by normalising on the
+uncontaminated l2_hw32 row. Re-running this one cell costs about 90 seconds
+and would restore the depth to n=3.
+
+WHAT THIS SESSION DOES NOT CARRY
+
+The power source was not recorded. The run started at 10:34 on commit a24993e
+and the ac_online field landed at 10:50 in 1c39203, sixteen minutes into the
+session, so the on_mains gate passes vacuously here and this is the last
+session that cannot answer the question. PL1 held at 200 W and PL2 at 80 W
+across all 132 snapshots, so the power_state gate is genuinely clean and
+thermald did not move anything.

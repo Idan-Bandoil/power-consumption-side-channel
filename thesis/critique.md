@@ -736,9 +736,10 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
 2. **Reanalysis only, on committed data**: period-vs-overshoot correlation across the 82
    manifests (B4.1); acquisition-vs-demodulation split of the tier-1 sweep (A3);
    admitted-bias figures from the existing drift tables (C3). *Zero machine time.*
-3. **The depth × operand grid** (A2 + E1): HW {0,1,8,32} × {L1, L2, DRAM}, 3 repeats, with
-   an anchor and the new two-buffer A/A (C4). *Settles the §4/§8 contradiction and gives the
-   combined model its interaction term.*
+3. ~~**The depth × operand grid**~~ **DONE 2026-09-04** (A2 + E1 + C4):
+   `results/20260904-103411-phase1_depth_operand`. A2 settled — the step scales with depth
+   and §4 survives at 55×. C4 closed and *positive*: the two-buffer A/A fails at −0.23 W.
+   See *Outcomes — item 3* below.
 4. **The sparsity mixture sweep** (E2a). *Phase 3's foundation. Belongs in Phase 1.*
 5. ~~**Gates and instrumentation**~~ **DONE 2026-09-04**: per-condition throughput (B3),
    victim-core frequency + `frequency_balance` (B2), robust period estimator (B4.2),
@@ -925,13 +926,85 @@ fact makes the tie count a diagnostic worth printing.
   Phase 2 directories have theirs; the Phase 0/1 ones will get theirs when next
   regenerated.
 
-### Item 3 is specified but not run
+## Outcomes — item 3 (run 2026-09-04, analysed 2026-09-14)
 
-`experiments/phase1_depth_operand.json` is written and validated: four depths × four
-Hamming weights, plus three A/A controls spanning L1 to DRAM, the two-buffer A/A from C4,
-a sham-B at effect scale (C4's second half), and the standard cross-session anchor. 22
-runs × 3 repeats, about 90 minutes. It settles A2, supplies E1's interaction term, and
-closes both halves of C4 in one session. It needs root and has not been run.
+`results/20260904-103411-phase1_depth_operand`, 22 labels × 3 repeats. Full numbers and
+the arithmetic behind them are in that directory's `summary.txt`; `summary.cmd` records
+how it is built (report, aggregate, one `hwfit` per depth, then notes).
+
+### A2 resolved — the step scales with depth, and §4 survives
+
+Fitting `dP = a + b·HW` once per repeat, per depth:
+
+| depth | GB/s | intercept *a* | slope *b* | *b*·32 | Δ pJ/B published | Δ pJ/B less its own *a* |
+|---|---|---|---|---|---|---|
+| L1 | 723 | **−60 mW** | +7.23 ± 2.97 | 231 mW | 0.31 | **0.319** |
+| L2 | 339 | +231 mW | +25.99 ± 4.10 | 832 mW | 3.35 | **2.454** |
+| L3 | 143 | +194 mW | +48.96 ± 3.24 | 1567 mW | 13.88 | **10.971** |
+| DRAM | 41 | +52 mW | +22.52 ± 1.20 | 721 mW | 21.02 | **17.598** |
+
+The +349 mW step was measured on `ws_l3_x8` alone and is not a platform constant. It is
+absent at L1, +194 mW at L3 (55% of the published figure), and inside its own spread of
+zero at DRAM. Neither of the two readings this item posed is right: **the third is**, the
+one the item called most likely on arithmetic grounds but insisted had to be measured.
+
+The corrected ladder is **55×, monotone, L1 positive, L3 clear of DRAM**. The collapse to
+~5.5× with a negative L1 row was an artifact of applying one depth's intercept at every
+depth. §4 needs its ratio changed from 68× to 55× and its per-byte column replaced with
+the corrected one; §8 needs the step restated as depth-dependent rather than as a constant
+carried by every Δ. Neither section's *conclusion* changes.
+
+Controls: `anchor_hw16` +1.160 W against +1.133/+1.215/+1.228 in three earlier sessions;
+`l3_hw32` +1.775 W against +1.904 and +1.841; the L3 slope +48.96 against the published
+pooled +50.75 mW/bit. The session is comparable to the corpus.
+
+### E1 supplied
+
+*b* rises 7 → 26 → 49 mW/bit from L1 to L3 and falls to 23 at DRAM. The weight coefficient
+is not separable from depth, so the combined model needs the product term and not a sum of
+independently-fitted coefficients. Both *a* and *b* peak at L3, as absolute watts already
+did.
+
+### C4 closed, and it came back positive — the finding of the session
+
+**The two-buffer A/A fails in all three repeats**: −0.198, −0.354, −0.128 W, same sign
+throughout, detector 0.78–0.98. `ws_fill` casts the selector to `uint32` while `ws_get`
+keys its cache on all 64 bits, so the two conditions fill two distinct mappings with
+bit-identical contents, and the victim loop reads nothing but the returned pointer.
+Throughput moves with it — −1.08%, −0.27%, −0.60%, second buffer always slower — so some
+of it is placement acting through achieved bandwidth. The single-buffer `aa_l3` in the
+same session is clean at −0.003 W and 0.02%, so the harness is not implicated.
+
+**This is not a correction to apply to the corpus.** `phase1_polarity` ran this victim
+forward and reverse for `(fwd+rev)/2 = +0.7 ± 3.1 mW`; a fixed slot-1 penalty of −227 mW
+would have appeared there in full. The placement term is therefore large per allocation
+and ~zero in the mean — a variance source, not a bias, and the best candidate yet for the
+~100 mW between-run SD the drafts attribute to "the instrument" without a mechanism. That
+is a claim worth one session of its own (vary the mapping deliberately, several
+allocations per condition) before any chapter states it.
+
+C4's second half also lands: `sham_l3_hw16`, matched in weight *and* distance on ~1.2 W of
+common signal, reads −0.174 W with between-run SD 0.094. That is the effect-scale noise
+floor the review said was missing. Everything in the depth grid at HW 8 and 32 clears it;
+the HW 1 and 2 rows at L1 and DRAM do not, and must not be quoted individually.
+
+### The item-5 gates caught things on their first real session
+
+`work_balance` fails in 19 of 66 runs, systematically at DRAM (+2.08% mean over 12 runs,
+11 over the gate, the heavier operand always moving more bytes) — on precisely the row
+with the highest pJ/byte. It was argued architecturally for months; it is false, by ~2%,
+at the depth that matters most. `frequency_balance` passes everywhere at 0.000%.
+
+One run is contaminated: `l2_hw08_r2` stalled 8595 s against 47.1 s, a suspend landing in
+its cond-0 blocks. It is left in place so the gate fails visibly. Excluding it moves the L2
+slope to +23.68 mW/bit and *a* to +258 mW, neither of which touches A2.
+
+### One thing this session cannot answer
+
+The power source was not recorded — the run started at 10:34 on `a24993e` and `ac_online`
+landed at 10:50 in `1c39203`, sixteen minutes in. `on_mains` passes vacuously here. PL1
+held at 200 W and PL2 at 80 W across all 132 snapshots, so `power_state` is genuinely
+clean. This is the last session with that gap.
 
 ### Process note
 
