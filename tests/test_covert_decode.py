@@ -37,7 +37,7 @@ def check(name, cond, detail=""):
 
 def synth_run(payload, symbol_us, delta_w, base_w=20.0, noise_w=0.0,
               frames=4, code="manchester", lead_ms=300.0, seed=1,
-              overshoots=0):
+              overshoots=0, late_frac=0.0):
     """A transmission and the trace a receiver would have recorded of it.
 
     Power follows the chip pattern exactly; the receiver samples it on a
@@ -79,6 +79,24 @@ def synth_run(payload, symbol_us, delta_w, base_w=20.0, noise_w=0.0,
         joules = float(np.mean(p) * (b - a) / TSC_HZ)
         ticks = max(int(round(joules / ENERGY_UNIT)), 0)
         rows.append((int(b), ticks, int(b - a)))
+
+    # An edge seen late is one RAPL sample spanning two update periods, so
+    # make them the way the hardware would: merge adjacent samples, summing
+    # both the energy and the interval. Nothing else about the trace changes,
+    # which is what lets the decoder still find the frame through them.
+    if late_frac:
+        step = max(int(round(1.0 / late_frac)), 2)
+        merged, i, n = [], 0, 0
+        while i < len(rows):
+            if i + 1 < len(rows) and n % step == 0:
+                (_, k1, d1), (t2, k2, d2) = rows[i], rows[i + 1]
+                merged.append((t2, k1 + k2, d1 + d2))
+                i += 2
+            else:
+                merged.append(rows[i])
+                i += 1
+            n += 1
+        rows = merged
 
     entry = {
         "tag": "synth", "label": "synth", "repeat": 0, "csv": "synth.rx.csv",
@@ -239,13 +257,32 @@ def main():
               abs(d["ber"] - d["ber_predicted"]) < 0.10,
               f"BER {d['ber']:.4f} vs predicted {d['ber_predicted']:.4f}")
 
-        print("\novershoot bookkeeping")
-        e, r = synth_run(payload, symbol_us=8000, delta_w=2.0)
-        e["rx"]["rapl_overshoots"] = int(0.04 * e["rx"]["samples_written"])
+        print("\novershoot bookkeeping, measured rather than taken on trust")
+        # The gate used to read the sampler's own count. That count is computed
+        # against a running estimate of the update period, and the estimate can
+        # be wrong about itself -- it latched at a quarter of the truth and
+        # called every edge late (util/sampler.c). So the trace is the source
+        # of truth now, and these two cases are the ones that told them apart.
+        e, r = synth_run(payload, symbol_us=8000, delta_w=2.0, late_frac=0.04)
+        e["rx"]["rapl_overshoots"] = 0          # a sampler that noticed nothing
         d = write_and_decode(e, r, tmp)
-        check("overshoot fraction is carried through for the gate",
-              abs(d["overshoot_fraction"] - 0.04) < 0.005,
-              f"{d['overshoot_fraction']:.3f}")
+        check("late edges are found in the trace the sampler called clean",
+              abs(d["overshoot_fraction"] - 0.04) < 0.015,
+              f"measured {d['overshoot_fraction']:.3f}, sampler said 0.000")
+        check("and the sampler's own claim is kept beside it",
+              d["overshoot_reported"] == 0.0,
+              f"{d['overshoot_reported']:.3f}")
+
+        e, r = synth_run(payload, symbol_us=8000, delta_w=2.0)
+        e["rx"]["rapl_period_ms"] = RAPL_MS / 4
+        e["rx"]["rapl_overshoots"] = e["rx"]["samples_written"]
+        d = write_and_decode(e, r, tmp)
+        check("a latched period estimate does not become the gate's opinion",
+              abs(d["period_robust_ms"] - RAPL_MS) < 0.05 * RAPL_MS
+              and d["overshoot_fraction"] < 0.01,
+              f"trace says {d['period_robust_ms']:.3f} ms against a claimed "
+              f"{RAPL_MS / 4:.3f}; overshoot {d['overshoot_fraction']:.3f} "
+              f"against a claimed 1.000")
 
         print("\nA/A control: nothing transmitted")
         e, r = synth_run(payload, symbol_us=8000, delta_w=0.0, noise_w=0.3)

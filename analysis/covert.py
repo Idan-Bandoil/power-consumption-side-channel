@@ -279,6 +279,27 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0, sync_mode="raw"):
     trace_sd = float(np.std(level))
     trace_unique = int(np.unique(level).size)
 
+    # Overshoots, recomputed from the recorded intervals rather than taken
+    # from the sampler's own count.
+    #
+    # The sampler counts an edge late against a running EWMA estimate of the
+    # update period, and that estimate can be wrong: seeded from the first
+    # interval -- a fragment of a period, since the sampler opens at an
+    # arbitrary phase -- it used to latch at a quarter of the truth and report
+    # every subsequent edge as late (util/sampler.c). The estimator is fixed,
+    # but a quality gate that reads the instrument's opinion of itself cannot
+    # catch the instrument being wrong about itself. The median interval is a
+    # robust period estimate under any overshoot rate below half, which is far
+    # above anything the bimodal regime produces, so recomputing costs nothing
+    # and closes that loop.
+    period_robust = float("nan")
+    overshoot_measured = None
+    if receiver not in ("freq", "timing") and len(raw) > 2:
+        dtsc = raw[1:, 2]          # drop the opening fragment
+        period_robust = float(np.median(dtsc))
+        if period_robust > 0:
+            overshoot_measured = float(np.mean(dtsc > 1.5 * period_robust))
+
     code = tx["code"]
     chip_tsc = float(tx["chip_tsc"])
     chips_per_bit = int(tx["chips_per_bit"])
@@ -559,8 +580,17 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0, sync_mode="raw"):
         # overshoot regime nor a zero-tick failure mode; its analogue is
         # late_polls, which the runner records in the manifest. Reporting 0
         # here rather than omitting the keys keeps one table for both tiers.
-        "overshoot_fraction": (rx["rapl_overshoots"] / max(rx["samples_written"], 1)
-                               if "rapl_overshoots" in rx else 0.0),
+        # The measured figure is the one gated on; the sampler's self-report is
+        # kept beside it so a disagreement is visible rather than silently
+        # resolved in favour of whichever was written first.
+        "overshoot_fraction": (
+            overshoot_measured if overshoot_measured is not None
+            else (rx["rapl_overshoots"] / max(rx["samples_written"], 1)
+                  if "rapl_overshoots" in rx else 0.0)),
+        "overshoot_reported": (rx["rapl_overshoots"] / max(rx["samples_written"], 1)
+                               if "rapl_overshoots" in rx else None),
+        "period_robust_ms": (period_robust / rx["tsc_hz"] * 1e3
+                             if period_robust == period_robust else float("nan")),
         "rapl_period_ms": rx.get("rapl_period_ms", float("nan")),
         "samples_per_chip": chip_tsc / (rx.get("rapl_period_tsc")
                                         or rx.get("interval_tsc") or float("nan")),
@@ -613,6 +643,60 @@ def hr(title=""):
     return f"\n{'=' * 78}\n{title}\n{'=' * 78}" if title else "-" * 78
 
 
+def platform_power_state(manifests):
+    """Print the session's power limits, and say whether they held.
+
+    Same check analysis.report runs on driver sessions, which Phase 2 was
+    missing entirely. thermald lowers PL1 as the die heats and does it
+    mid-run -- the corpus has driver sessions going 200 W -> 15 -> 35 as the
+    package crossed ~50 C -- so a covert session could have a power *limit*
+    move underneath it and say nothing.
+
+    It matters differently here than for an A/B difference. There, a limit
+    that moved is common-mode to both conditions and shows up only as a
+    shrinking effect. A covert run is scored per symbol against an absolute
+    separation, so a PL1 step landing mid-transmission changes the ON level
+    partway through the frame and costs bits outright, exactly as an
+    overshoot does.
+
+    Returns (stable, on_battery).
+    """
+    seen = {}
+    for m in manifests:
+        for e in m["runs"]:
+            for when in ("state_before", "state_after"):
+                st = e.get(when) or {}
+                key = (st.get("pl1_uw"), st.get("pl2_uw"),
+                       st.get("ac_online"), st.get("battery_status"))
+                if any(v is not None for v in key):
+                    seen.setdefault(key, []).append(f"{e.get('tag')}/{when}")
+
+    if not seen:
+        print("  no power state recorded (session predates the snapshots)")
+        return True, False
+
+    def _w(uw):
+        return f"{float(uw) / 1e6:.1f} W" if uw else str(uw)
+
+    for (pl1, pl2, ac, bat), where in seen.items():
+        src = ("mains" if ac == "1" else "BATTERY" if ac == "0"
+               else "power source not recorded")
+        print(f"  PL1 {_w(pl1):<9} PL2 {_w(pl2):<9} {src:<28} "
+              f"{len(where):>4} snapshots")
+    if len(seen) > 1:
+        print("\n  first snapshot at each state:")
+        for k, where in seen.items():
+            print(f"    {where[0]}")
+
+    stable = len(seen) <= 1
+    on_battery = any(k[2] == "0" for k in seen)
+    print(f"\n  platform power state: "
+          f"{'constant' if stable else 'CHANGED DURING THE SESSION'}")
+    if on_battery:
+        print("  measured on battery, unlike the rest of the corpus")
+    return stable, on_battery
+
+
 def aggregate(rows):
     """Group repeats of the same label; between-run spread is the error bar.
 
@@ -647,9 +731,11 @@ def main():
     args = ap.parse_args()
 
     rows, failures, warnings = [], [], []
+    manifests = []
     for d in args.results:
         d = Path(d)
         manifest = json.loads((d / "manifest.json").read_text())
+        manifests.append(manifest)
         for entry in manifest["runs"]:
             if "tx" not in entry:
                 continue
@@ -799,8 +885,19 @@ def main():
             print(f"    {label:>18}  <= {3 / tot_bits:.1e} over {tot_bits} tx"
                   f"   |  <= {3 / n_distinct:.1e} over {n_distinct} distinct")
 
+    print(hr("platform power state"))
+    platform_stable, on_battery = platform_power_state(manifests)
+
     # --- gates ------------------------------------------------------------
     print(hr("gates"))
+    if not platform_stable:
+        failures.append("session: PL1/PL2 or the power source changed during "
+                        "the session -- a power limit moved underneath a power "
+                        "measurement, and a step landing mid-transmission costs "
+                        "bits rather than averaging out")
+    if on_battery:
+        failures.append("session: measured on battery, where the platform runs "
+                        "different limits than the rest of the corpus")
     for r in rows:
         if r["late_chips"]:
             failures.append(f"{r['tag']}: {r['late_chips']} late chips -- the "
@@ -833,6 +930,23 @@ def main():
                             f"edges seen late -- per-chip noise is "
                             f"{r['noise_sd_w']:.3f} W and the decode is degraded "
                             f"by the instrument, not by the channel")
+        # The sampler's period estimate against the one the trace actually
+        # shows. These agree to a per cent in a healthy run; a gross
+        # disagreement means the estimator did not track the part, which
+        # mis-sizes the guard window and makes the receiver's own overshoot
+        # count meaningless. This is what a latched estimator looks like from
+        # the outside, and the gate above no longer depends on the count it
+        # corrupts.
+        rep, est, meas = (r.get("overshoot_reported"), r.get("rapl_period_ms"),
+                          r.get("period_robust_ms"))
+        if est and meas == meas and meas > 0 and abs(est - meas) / meas > 0.25:
+            said = f"its own overshoot figure of {rep:.1%}" if rep is not None \
+                else "its own overshoot figure"
+            failures.append(f"{r['tag']}: the sampler estimated a {est:.3f} ms "
+                            f"RAPL period where the trace shows {meas:.3f} ms "
+                            f"-- the estimator did not track the part, so its "
+                            f"guard window was mis-sized and {said} is not a "
+                            f"measure of anything")
         # An A/A transmission carries nothing, so the decoder must fail on it.
         # This is the same negative control every A/B claim in the project
         # ships with, in the form the channel takes.

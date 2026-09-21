@@ -1,0 +1,131 @@
+==============================================================================
+aborted session -- kept as evidence, not as a measurement
+==============================================================================
+  Stopped 9 runs into 70. Nothing here is quotable: no condition has its
+  repeats, and the instrument was in the state described below for part of it.
+
+  What it caught. util/sampler.c seeded its RAPL period estimate from the
+  first observed interval, which is a fragment of a period rather than a
+  period -- the sampler opens at an arbitrary phase within one, so that first
+  dtsc is uniform in (0, T]. A separate change had moved the EWMA update into
+  the else-branch of the overshoot test, so an edge classified as late no
+  longer fed the estimator. Those two together make an absorbing state: seed
+  under about two thirds of T and every subsequent real edge trips the
+  overshoot test, which is also the branch that cannot correct it. The
+  estimate froze at the seed for the whole run.
+
+  Five of these nine runs latched, at 0.17-0.23 ms against a true 0.96-0.97 ms,
+  and reported 99.99% of their edges late. Recomputed from the recorded
+  intervals the same runs read 0.16-0.29% -- so the sampler was recording
+  correctly and was only wrong about itself. Recorded energies are unaffected
+  either way, because the poll loop runs until the counter actually moves; what
+  the estimate drives is the guard window, so a latched run polls about 80% of
+  each period instead of 12%, and its overshoot figure means nothing.
+
+  This regression postdates the published corpus. At c0939cb -- the commit the
+  tier-1 rate sweep ran at -- the EWMA ran unconditionally on every edge and
+  the overshoot test only incremented a counter, so no latch was possible and
+  no published number moves.
+
+  Fixed in util/sampler.c by discarding the opening fragment and learning
+  unconditionally through warmup, which makes the absorbing state unreachable
+  rather than unlikely. analysis/covert.py now recomputes the overshoot
+  fraction from the recorded dtsc and fails a run whose sampler disagreed with
+  its own trace, so a gate no longer rests on the instrument's opinion of
+  itself. tests/test_covert_decode.py pins both.
+
+  The decode below therefore runs on the FIXED analysis against traces taken
+  with the BROKEN sampler. The estimator-disagreement failures are the point.
+
+==============================================================================
+per-run decode
+==============================================================================
+                     run  sym us   bit/s     BER  BER|snc  acq  |pk|    pre   vote  ties  cap b/s       dW     sd W  d-marg  d-pair  Q(pair)  ovr%    sync  late
+          p13_aa_08ms_r0    8000   125.0  0.4878   0.4805   NO  0.23  0.308  0.465 71/256      0.1    0.014    0.611    0.02    0.03   0.4899  0.22 +510.18     0
+         p13_sym_04ms_r0    4000   250.0  0.0391   0.0508  yes  0.80  0.019  0.000 0/256    190.5    1.196    0.718    1.67    1.56   0.0591  0.29   +0.26     0
+         p13_sym_06ms_r0    6000   166.7  0.0791   0.0791  yes  0.79  0.058  0.000 1/256    100.2    1.583    0.917    1.73    1.28   0.1009  4.01   +0.08     0   << unsettled sampler
+         p13_sym_08ms_r0    8000   125.0  0.0806   0.0942  yes  0.81  0.029  0.000 0/256     74.5    1.597    1.267    1.26    1.31   0.0956  2.60   +0.13     0   << unsettled sampler
+       p13_sym_1500us_r0    1500   666.7  0.5010   0.3022   NO  0.39  0.279  0.492 35/256      0.0    0.417    0.997    0.42    0.33   0.3707  0.16 +214.41     0
+          p63_aa_08ms_r0    8000   125.0  0.4941   0.4990   NO  0.08  0.442  0.477 71/256      0.0    0.006    0.646    0.01    0.01   0.4959  0.70  -85.95     0
+         p63_sym_04ms_r0    4000   250.0  0.0688   0.0825  yes  0.78  0.056  0.000 0/256    159.6    1.338    0.715    1.87    1.23   0.1096  0.25   +0.18     0
+         p63_sym_08ms_r0    8000   125.0  0.0112   0.0166  yes  0.89  0.012  0.000 0/256    113.9    1.719    0.505    3.41    2.78   0.0027  0.33   +0.11     0
+       p63_sym_1500us_r0    1500   666.7  0.1582   0.1831  yes  0.56  0.127  0.055 17/256    246.7    0.491    0.525    0.94    0.80   0.2108  0.12   +0.31     0
+
+  ties: 195 of 2304 voted bits split evenly across frames and were
+  decided on the summed decision margin rather than resolved to 0. An even
+  frame count is what makes that possible; a high tie rate is also a symptom,
+  since frames only disagree this much when there is nothing for them to agree on.
+
+  BER over payload bits, decoded at the sync the receiver recovered.
+  BER|snc is the same decode on the TRUE chip grid, so it measures
+  demodulation with acquisition removed; acq says whether the recovered
+  sync landed within half a chip. A run with acq=NO has a BER at chance
+  whatever the channel did, so read BER and BER|snc together: they part
+  company exactly where the failure is acquisition and not noise. |pk| is
+  the winning correlation, the acquisition statistic a real receiver could
+  compute for itself -- it has no sync column to check. Peak over best
+  sidelobe, the obvious alternative, does not separate the two at all.
+  pre = preamble BER (a sync check);
+  vote = BER after majority vote across frames; dW and sd are
+  the per-chip separation and noise, d-marg their ratio. d-pair is
+  the same for the within-symbol difference the decision actually
+  uses, and Q(pair) is the error rate it predicts -- compare that
+  with BER, not d-marg, which ignores noise shared between chips.
+  ovr% is the share of RAPL edges seen late; sync = recovered
+  start minus true start, in chips.
+
+==============================================================================
+by condition (between-repeat spread is the error bar)
+==============================================================================
+  THIS is the reporting unit. A single repeat is not quotable -- the
+  project's own rule everywhere else -- and at a given rate the repeats
+  here span far more than any one of them admits.
+
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
+         p13_aa_08ms   1    125.0   0.4878      nan   0/1   0.4805      0.1    0.4648      15.6    256/2048   1.39e-01  0.4878 (n=1)
+        p13_sym_04ms   1    250.0   0.0391      nan   1/1   0.0508    190.5    0.0000      31.2    256/2048   0.00e+00  0.0391 (n=1)
+        p13_sym_06ms   1    166.7   0.0791      nan   1/1   0.0791    100.2    0.0000      20.8    256/2048   0.00e+00  none settled
+        p13_sym_08ms   1    125.0   0.0806      nan   1/1   0.0942     74.5    0.0000      15.6    256/2048   0.00e+00  none settled
+      p13_sym_1500us   1    666.7   0.5010      nan   0/1   0.3022      0.0    0.4922      83.3    256/2048   5.44e-01  0.5010 (n=1)
+         p63_aa_08ms   1    125.0   0.4941      nan   0/1   0.4990      0.0    0.4766      15.6    256/2048   3.06e-01  0.4941 (n=1)
+        p63_sym_04ms   1    250.0   0.0688      nan   1/1   0.0825    159.6    0.0000      31.2    256/2048   0.00e+00  0.0688 (n=1)
+        p63_sym_08ms   1    125.0   0.0112      nan   1/1   0.0166    113.9    0.0000      15.6    256/2048   0.00e+00  0.0112 (n=1)
+      p63_sym_1500us   1    666.7   0.1582      nan   1/1   0.1831    246.7    0.0547      83.3    256/2048  2.29e-230  0.1582 (n=1)
+
+  acq       : repeats whose recovered sync landed within half a chip.
+  BER|snc   : mean BER demodulated on the true chip grid. Where this is
+              far below BER, the rate was limited by acquisition and not
+              by per-chip noise, and the remedy is a better preamble
+              rather than a slower symbol.
+  cap b/s   : raw rate x (1 - H(BER)), the BSC capacity at the aggregated
+              BER. This is the rate/reliability figure to quote and compare
+              against the literature; BER at a rate is not one number.
+  vote b/s  : raw / frames, the rate actually delivered after the majority
+              vote, since the F frames carry one payload between them.
+  bits d/tx : distinct payload bits / times they were transmitted. p<chance
+              is a binomial over the second, which assumes every
+              transmission is an independent truth. It is not: a decoder
+              biased but independent of the message errs the same way on
+              every repeat of a bit, so the effective n is the first
+              number. Read p as an upper bound on the evidence.
+
+==============================================================================
+platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    mains                          18 snapshots
+
+  platform power state: constant
+
+==============================================================================
+gates
+==============================================================================
+  A/A p13_aa_08ms: pooled BER 0.488 over 2048 bits, p = 0.139
+  A/A p63_aa_08ms: pooled BER 0.494 over 2048 bits, p = 0.306
+  WARN  p13_sym_08ms_r0: 2.6% of RAPL edges seen late -- per-chip noise is 1.267 W and the decode is degraded by the instrument, not by the channel
+  WARN  p13_sym_06ms_r0: 4.0% of RAPL edges seen late -- per-chip noise is 0.917 W and the decode is degraded by the instrument, not by the channel
+  FAIL  p13_sym_04ms_r0: the sampler estimated a 0.214 ms RAPL period where the trace shows 0.965 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything
+  FAIL  p63_sym_1500us_r0: 3 of 2048 bits' worth of chips were never observed by a victim -- the modulation was scheduled but did not reach the die
+  FAIL  p63_sym_1500us_r0: the sampler estimated a 0.232 ms RAPL period where the trace shows 0.965 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything
+  FAIL  p63_sym_08ms_r0: the sampler estimated a 0.214 ms RAPL period where the trace shows 0.964 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything
+  FAIL  p13_aa_08ms_r0: the sampler estimated a 0.203 ms RAPL period where the trace shows 0.971 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything
+  FAIL  p63_aa_08ms_r0: the sampler estimated a 0.171 ms RAPL period where the trace shows 0.967 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything

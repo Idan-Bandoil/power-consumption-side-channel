@@ -148,8 +148,42 @@ struct rapl_edge_t rapl_sampler_next(struct rapl_sampler_t *s)
 	e.dmperf = cur_f.mperf - s->prev_f.mperf;
 
 	if (s->mode == SAMPLE_EDGE) {
-		if (s->period_est == 0) {
+		/*
+		 * The first edge is a fragment of an update period, not a
+		 * period: the sampler opens at an arbitrary phase within one,
+		 * so its dtsc is uniform in (0, T]. Seeding from it is what
+		 * made this estimator latch. Once the overshoot branch stopped
+		 * feeding the EWMA -- which it does deliberately, see below --
+		 * a seed under two thirds of T put every subsequent real edge
+		 * over the overshoot threshold, and the branch that rejects
+		 * them is also the branch that cannot correct them. The
+		 * estimate froze at the seed for the whole run and the
+		 * receiver reported ~100% of its edges late: measured at
+		 * 0.21-0.23 ms against a true 0.99 ms in two of the first five
+		 * runs of results/20260921-185944-phase2_tier1_validate, which
+		 * is what caught it. Recorded energies were unaffected -- the
+		 * poll loop runs until the counter actually moves -- but the
+		 * guard window and the overshoot gate both read the estimate,
+		 * so a latched run polls ~80% of each period instead of ~12%
+		 * and its quality statistic means nothing.
+		 *
+		 * Discarding the fragment and learning unconditionally through
+		 * warmup makes the absorbing state unreachable rather than
+		 * unlikely: by the time the rejection test is live, the
+		 * estimate has already converged on the true period.
+		 */
+		if (s->edges_seen == 0) {
+			/* a partial interval: carries no period information */
+		} else if (s->period_est == 0) {
 			s->period_est = e.dtsc;
+		} else if (s->edges_seen <= WARMUP_EDGES) {
+			/*
+			 * The guard is not engaged yet, so every edge here is
+			 * caught promptly and its dtsc is a real period. A
+			 * heavier weight than steady state, to converge before
+			 * the rejection test starts gating what gets learned.
+			 */
+			s->period_est += ((int64_t)e.dtsc - (int64_t)s->period_est) / 4;
 		} else if (e.dtsc > s->period_est + s->period_est / 2) {
 			/*
 			 * An edge seen this late spans about two update
