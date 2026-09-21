@@ -10,7 +10,7 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-09-04)
+## Where things stand (last updated 2026-09-20)
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
@@ -34,13 +34,15 @@ The operand-structure sweeps are done: `phase1_hamming_weight.json` (11 runs × 
 
 **Item 3 is measured and analysed** (`results/20260904-103411-phase1_depth_operand`, 22 labels × 3 repeats, 2026-09-04). It settled A2: **the zero-operand step scales with depth**, which was the third of the three readings and the one nothing distinguished — see *Findings so far*. The same session's two-buffer A/A failed loudly and is now the most interesting open question in Phase 1.
 
-**The next thing to do is writing, not measuring**: `thesis/phase1-leakage.md` §4 and §8 still carry the pre-item-3 numbers (68× ladder, a flat +349 mW step quoted as a platform constant). The measured replacements are in that run's `summary.txt`. Two small re-runs are worth folding into the next session that touches the machine — the contaminated `l2_hw08` cell (~90 s), and a session on the two-buffer placement effect.
+**§4 and §8 of `thesis/phase1-leakage.md` now carry the depth × operand numbers** (`47cdd37`, 2026-09-14): the ladder reads 55× throughout and the step is stated as a property of the transport path. Two small re-runs are still worth folding into the next session that touches the machine — the contaminated `l2_hw08` cell (~90 s), and a session on the two-buffer placement effect.
 
 Then, in Phase 2:
 1. **Placements**: cross-SMT-sibling, cross-P/E-core, cross-container. The container case is now less about whether the channel survives (tier 3 needs no interface, so it should) than about confirming that, and it is a one-command experiment.
 2. **Re-run `phase2_tier1_rate` with 4 repeats** now that the overshoot gate exists. The first sweep had 7 of 30 runs in the bad sampler regime, and at 2 ms and 4 ms only 1 of 3 repeats acquired sync, so those two rows measure an acquisition probability rather than a channel. **Pair it with a longer preamble**: that is now the only lever left on acquisition, since the decoder side was tried and rejected (see the correlator note below).
 3. **Tier 1 under Config-B**, so the tiers can be compared in one configuration. Today tier 1 is Config-A at 4 threads/stride 2 with 8 frames and 256-bit payloads, and tiers 2–3 are Config-B at 10 threads/stride 1 with 4 frames and 8-bit payloads — five differences at once, so 241 bit/s against 1 is each tier measured where it works rather than a controlled comparison.
 4. Then the comparison against Liu et al. (CCS'22) and Hertzbleed.
+
+**Tier 3 is deprioritised as of 2026-09-20.** It is the weakest of the three channels, and since `scaling_cur_freq` is world-readable anyway, a second unprivileged receiver adds little to the threat model. Its measurements stay in the corpus and in §8.3, and the Phase 4 point they support — that restricting the interface buys nothing — already rests on the data in hand; new work simply does not weigh tier 3.
 
 Chapter drafts are written as phases complete, not deferred to the end. `thesis/phase0-measurement.md` and `thesis/phase1-leakage.md` are full first drafts. `thesis/phase2-covert.md` is a **partial** draft covering all three tiers; its §9 lists what is missing (the placement matrix, a controlled cross-tier comparison, the literature comparison, the transmitter's real operating point, and the receiver's isolated core). `thesis/critique.md` is a standing review of all three drafts with a work order at its foot; items 1 and 2 are done and its *Outcomes* section records which findings survived checking.
 
