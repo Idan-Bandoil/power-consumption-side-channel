@@ -10,7 +10,7 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-09-20)
+## Where things stand (last updated 2026-09-21)
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
@@ -84,7 +84,16 @@ EOF
 bash analysis/regen-summary.sh "$r"
 ```
 
-**The `summary.cmd` is not ceremony.** Summaries are heterogeneous — some carry `analysis.hwfit` output, the instruction table carries two differently-flagged `aggregate` sections, the tier-2 sweep carries a second decode against a different watched CPU — and a uniform report+aggregate pass over all of them silently deletes that content. It did once, and was caught only because the diff came out net-negative. `regen-summary.sh` refuses to guess for a directory with no `summary.cmd`.
+**The `summary.cmd` is not ceremony.** Summaries are heterogeneous — some carry `analysis.hwfit` output, the instruction table carries *five* differently-flagged `aggregate` sections, the tier-2 sweep carries a second decode against a different watched CPU — and a uniform report+aggregate pass over all of them silently deletes that content. It did once, and was caught only because the diff came out net-negative. `regen-summary.sh` refuses to guess for a directory with no `summary.cmd`.
+
+**All 23 run directories now have one** (backfilled 2026-09-21). Each backfill was verified by running it and diffing against the committed `summary.txt`: every section marker and every measured value reproduces exactly. Two things that verification turned up, both worth knowing before writing one:
+
+- **A `--labels` glob can be load-bearing.** `phase1_low_end`'s fit is over `hw*` only. Letting the session's `anchor_hw16` into it — the anchor is there for cross-session comparison, not as a point on the axis — extends the x-range fourfold and reads **+57.15 mW/bit at R² 0.912** against the published **+61.59 at R² 0.680**. The wrong one looks like the better fit.
+- **Not every section is regenerable.** `20260903-134424-phase2_tier2_feasibility` ends in a frequency table computed by hand for that session, which no analysis entry point reproduces. It is 13 lines of 676, so a regen that dropped it would shrink the summary by 2% and slide under `regen-summary.sh`'s 15% guard unnoticed. It is carried verbatim in a heredoc instead. Do the same for any hand-computed section.
+
+Older summaries were produced by the analysis code as it stood at their own commit, so regenerating one now *grows* it by 11–17% — the per-condition work and frequency columns (which read "not recorded" for runs predating the counters), the admitted-bias line, and the platform power-state section. No measured number moves.
+
+**`results/_crosscheck/` is not a run directory** — no manifest, so `regen-summary.sh` skips it. It holds `analysis.instrument` output over the whole corpus; see its `README.md` for the command and for why it is left at its 322-run snapshot rather than refreshed.
 
 Chapter drafts live in `thesis/`, one per phase, written as the phase completes. Every number in a draft cites the run directory it came from.
 
