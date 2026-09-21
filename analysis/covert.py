@@ -136,23 +136,80 @@ def bits_to_chips(bits, code):
     return np.array(out, dtype=np.float64)
 
 
-def sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames):
+def sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames,
+               mode="raw", code="manchester"):
     """Normalised preamble correlation, summed over every frame.
 
     Frame length is part of the protocol, so a receiver may add the
     correlation from all F preambles at a single candidate offset. That turns
     F weak peaks into one strong one and is what makes sync work at symbol
     periods where a single preamble would not be enough.
+
+    `mode` selects what the correlation runs on. "raw" is the default and is
+    what every published summary was decoded with; "diff" is kept because it
+    was measured, and the measurement is worth having on record.
+
+    "raw"  correlates the chip levels, with the mean over the preamble window
+           removed.
+
+    "diff" differences the two chips of each Manchester symbol first, the way
+           the demodulator does, then correlates against the differenced
+           pattern.
+
+    The motivating idea was that "diff" would add the demodulator's drift
+    rejection to acquisition -- d-pair runs 5-30x d-marg in the tier-2 tables,
+    so the demodulator was plainly getting something the correlator was not.
+    It does not, and the reason is that the correlator was never missing it: a
+    Manchester chip pattern is pair-antisymmetric, so correlating against it
+    *is* a within-symbol difference. Any drift constant across a symbol
+    already cancels in the numerator. On a clean tier-1 trace the two
+    numerators correlate at 0.93, and they differ at all only because the
+    13-bit Barker preamble is unbalanced (nine ones to four zeros), which
+    gives the differenced pattern a DC component that the raw one does not
+    have.
+
+    What "diff" really changes is the denominator: it normalises by the energy
+    of the 13 differenced values rather than of all 26 chips. Every peak rises
+    -- median ratio 1.33 over a tier-1 trace -- and the noise peaks rise with
+    the signal ones, which is the whole problem. Measured over the tier-1 and
+    tier-2 sweeps (`results/20260903-115606-phase2_tier1_rate`,
+    `results/20260903-143109-phase2_tier2_covert`):
+
+      - tier 1 gains one run. `sym_04ms` goes from 1/3 to 2/3 acquired, BER
+        0.339 -> 0.197 and capacity 78 -> 125 bit/s, as `sym_04ms_r1` finally
+        lands on the frame and decodes at its own oracle value of 0.087.
+      - every other tier-1 rate pays a little: 0.048 -> 0.060 at 3 ms,
+        0.060 -> 0.066 at 6 ms, 0.016 -> 0.022 at 24 ms.
+      - tier 2 loses the headline. At 2 bit/s acquisition falls from 3/3 to
+        1/3 (the voted BER stays 0), because the flatter peak moves the
+        recovered sync from +0.1/+0.2 chips to +0.6 and past the half-chip
+        criterion.
+      - the A/A controls rise, which is what settles it: tier-1 A/A peaks go
+        0.26-0.28 -> 0.35-0.38 and tier-2 0.20-0.26 -> 0.38-0.55. On tier 2
+        that destroys the |pk| acquisition statistic of thesis section 6.1 --
+        failed runs reach 0.80 against 0.79 for the one acquired run.
+
+    A correlator whose floor on a transmission carrying nothing nearly doubles
+    is a worse instrument than one that finds an extra frame, so "raw" stays
+    the default. The lever acquisition actually needs is a longer preamble,
+    not a different normalisation of this one.
+
+    Only Manchester has an in-symbol reference to difference against, so for
+    NRZ both modes are the same thing.
     """
     n = len(pattern)
     rel = np.arange(n + 1, dtype=np.float64) * chip_tsc
-    c = pattern - pattern.mean()
+    pair = mode == "diff" and code == "manchester" and n % 2 == 0
+    c = pattern[0::2] - pattern[1::2] if pair else pattern
+    c = c - c.mean()
     cnorm = np.linalg.norm(c)
 
     total = np.zeros(len(offsets), dtype=np.float64)
     for f in range(frames):
         edges = offsets[:, None] + f * frame_tsc + rel[None, :]
         x = trace.window_power(edges)
+        if pair:
+            x = x[..., 0::2] - x[..., 1::2]
         x = x - x.mean(axis=-1, keepdims=True)
         norm = np.linalg.norm(x, axis=-1)
         with np.errstate(invalid="ignore", divide="ignore"):
@@ -190,7 +247,7 @@ def demodulate(chips, code, nrz_window=16, polarity=1.0):
     return (soft_margin(chips, code, nrz_window, polarity) > 0).astype(np.int8)
 
 
-def decode_run(entry, csv_path, sync_span=None, freq_column=0):
+def decode_run(entry, csv_path, sync_span=None, freq_column=0, sync_mode="raw"):
     tx, rx = entry["tx"], entry["rx"]
     raw = np.loadtxt(csv_path, delimiter=",", skiprows=1, dtype=np.float64, ndmin=2)
     if raw.size == 0:
@@ -271,7 +328,8 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
 
     step = chip_tsc / SYNC_OVERSAMPLE
     offsets = np.arange(lo, hi, step)
-    scores = sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames)
+    scores = sync_score(trace, offsets, chip_tsc, pattern, frame_tsc, frames,
+                        mode=sync_mode, code=code)
     # Peak on |correlation|, then read the polarity off its sign. A receiver
     # knows the preamble, so it can resolve which way round the channel is
     # without being told -- which matters because tier 2 is inverted relative
@@ -293,7 +351,8 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0):
             frame_starts.append(t_sync + f * frame_tsc)
             frame_corr.append(float("nan"))
             continue
-        sc = sync_score(trace, cand, chip_tsc, pattern, frame_tsc, 1) * polarity
+        sc = sync_score(trace, cand, chip_tsc, pattern, frame_tsc, 1,
+                        mode=sync_mode, code=code) * polarity
         j = int(np.argmax(sc))
         frame_starts.append(float(cand[j]))
         frame_corr.append(float(sc[j]))
@@ -577,6 +636,13 @@ def main():
     ap.add_argument("--freq-column", type=int, default=0,
                     help="for tier-2 runs watching several CPUs, which one to "
                          "decode (index into the receiver's --watch list)")
+    ap.add_argument("--sync-mode", choices=("raw", "diff"), default="raw",
+                    help="what the preamble correlation runs on: 'raw' "
+                         "correlates the chip levels and is what every "
+                         "published summary used; 'diff' differences each "
+                         "Manchester symbol's two chips first, which changes "
+                         "the normalisation and raises the noise floor with "
+                         "it -- see sync_score for what it measured")
     ap.add_argument("--json", metavar="PATH", help="also write the rows as JSON")
     args = ap.parse_args()
 
@@ -591,6 +657,7 @@ def main():
             if args.sync_span_symbols is not None:
                 span = args.sync_span_symbols * float(entry["tx"]["symbol_tsc"])
             rows.append(decode_run(entry, d / entry["csv"], sync_span=span,
+                                   sync_mode=args.sync_mode,
                                    freq_column=args.freq_column))
 
     if not rows:

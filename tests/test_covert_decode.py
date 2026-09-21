@@ -150,13 +150,13 @@ def synth_freq_run(payload, symbol_us, delta_khz, base_khz=3600.0,
     return entry, rows
 
 
-def write_and_decode(entry, rows, tmp):
+def write_and_decode(entry, rows, tmp, **kw):
     csv = Path(tmp) / entry["csv"]
     with open(csv, "w") as f:
         f.write("tsc,ticks,dtsc,daperf,dmperf\n")
         for tsc, ticks, dtsc in rows:
             f.write(f"{tsc},{ticks},{dtsc},0,0\n")
-    return decode_run(entry, csv)
+    return decode_run(entry, csv, **kw)
 
 
 def main():
@@ -253,6 +253,30 @@ def main():
         check("A/A decodes at chance", 0.25 < d["ber"] < 0.75, f"BER {d['ber']:.4f}")
         check("A/A sync correlation is weak", abs(d["sync_corr"]) < 0.5,
               f"corr {d['sync_corr']:.3f}")
+
+        print("\nthe differential sync correlator, which is not the default")
+        # Kept as an option because it was measured, and the measurement is
+        # the point: correlating against a Manchester pattern already is a
+        # within-symbol difference, since the pattern is pair-antisymmetric,
+        # so differencing first cannot add drift rejection to the numerator.
+        # What it changes is the normalisation, and that lifts every peak --
+        # including the ones that are pure noise. On the real sweeps it buys
+        # one tier-1 acquisition at 4 ms and costs the tier-2 headline at
+        # 2 bit/s; see sync_score for the numbers.
+        ec, rc = synth_run(payload, symbol_us=8000, delta_w=2.0)
+        c_raw = write_and_decode(ec, rc, tmp, sync_mode="raw")
+        c_dif = write_and_decode(ec, rc, tmp, sync_mode="diff")
+        check("on a clean channel both modes find the same frame",
+              abs(c_raw["sync_error_chips"] - c_dif["sync_error_chips"]) < 0.5,
+              f"{c_raw['sync_error_chips']:+.3f} vs "
+              f"{c_dif['sync_error_chips']:+.3f} chips")
+        ea, ra = synth_run(payload, symbol_us=8000, delta_w=0.0, noise_w=0.3)
+        a_raw = write_and_decode(ea, ra, tmp, sync_mode="raw")
+        a_dif = write_and_decode(ea, ra, tmp, sync_mode="diff")
+        check("but it lifts the peak on a trace carrying nothing",
+              abs(a_dif["sync_peak"]) > abs(a_raw["sync_peak"]),
+              f"A/A |pk| {abs(a_raw['sync_peak']):.3f} -> "
+              f"{abs(a_dif['sync_peak']):.3f}")
 
         print("\ntier 2: a frequency trace, inverted and polled on a grid")
         # The tier-2 channel runs the other way round -- the heavier operand

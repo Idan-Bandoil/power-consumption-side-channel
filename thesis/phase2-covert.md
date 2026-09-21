@@ -392,6 +392,35 @@ two successful ones. An attacker can therefore discard the frames it did not acq
 cost of a few percent of the good ones — and the A/A control sits at 0.26–0.28, far below
 anything the threshold would accept.
 
+**A better correlator was tried, and it is not better.** The demodulator decides a bit by
+differencing the two chips of a Manchester symbol, and the paired d′ that produces runs
+5–30× the marginal one on tier 2 (§8.1). The acquisition correlator appeared not to be
+getting that rejection, so it was rebuilt to difference each symbol before correlating and
+re-run over both sweeps (`results/20260903-115606-phase2_tier1_rate`,
+`results/20260903-143109-phase2_tier2_covert`). It buys one run and costs another. On
+tier 1 `sym_04ms` goes from 1/3 to 2/3 acquired — `sym_04ms_r1`, the run above, finally
+lands on the frame and decodes at its own oracle value of 0.087 — lifting that row from
+BER 0.339 to 0.197 and its capacity from 78 to 125 bit/s. On tier 2 the 2 bit/s row falls
+from 3/3 acquired to 1/3, the recovered sync moving from +0.1/+0.2 chips to +0.6 and past
+the half-chip criterion, although the voted BER stays at zero. Every other tier-1 rate
+pays a little: 0.048 → 0.060 at 3 ms, 0.060 → 0.066 at 6 ms, 0.016 → 0.022 at 24 ms.
+
+The reason it cannot do better is that the correlator was never missing that rejection. A
+Manchester chip pattern is pair-antisymmetric, so correlating against it *is* a
+within-symbol difference: drift constant across a symbol already cancels in the numerator.
+On a clean tier-1 trace the two numerators correlate at 0.93, and they differ at all only
+because the 13-bit Barker preamble is unbalanced — nine ones to four zeros — which gives
+the differenced pattern a DC term the raw one does not have. What differencing really
+changes is the *denominator*: the score is normalised by the energy of 13 differences
+rather than of all 26 chips, so every peak rises, by a median factor of 1.33. The noise
+peaks rise with the signal peaks, and that is what disqualifies it. The A/A controls go
+from 0.26–0.28 to 0.35–0.38 on tier 1 and from 0.20–0.26 to 0.38–0.55 on tier 2, where
+failed runs then reach 0.80 against 0.79 for the single acquired one: the statistic in the
+paragraph above stops separating. A correlator whose floor on a transmission carrying
+nothing nearly doubles is a worse instrument than one that finds an extra frame, so `raw`
+remains the decoder's default and `--sync-mode diff` is kept only as an option. The lever
+acquisition needs is a longer preamble, not a different normalisation of this one.
+
 The practical value of separating the two is that it says which knob to turn. A low Δ is a
 weak channel; a high σ is a poor measurement; a low correlation peak is a preamble that is
 too short for the σ it has to survive. The next section is about a case where the first two
