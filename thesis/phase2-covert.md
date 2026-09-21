@@ -4,9 +4,11 @@
 placement matrix, a controlled comparison across the tiers, and the literature comparison
 are not, and §9 says what is missing. Every number here is reproducible from `results/`
 plus the run manifests, cited inline as a run directory, and every rate figure is the mean
-over three repeats rather than any single run. Tier-1 measurements are Config-A (turbo
-disabled, frequency pinned); tiers 2 and 3 are necessarily Config-B, and §9 explains why
-that makes them not directly comparable with tier 1.*
+over repeats rather than any single run — three for the first tier-1 sweep and for tiers 2
+and 3, five for the tier-1 replication in §5.1, which supersedes the first sweep's headline.
+Tier-1 measurements are Config-A (turbo disabled, frequency pinned); tiers 2 and 3 are
+necessarily Config-B, and §9 explains why that makes them not directly comparable with
+tier 1.*
 
 ## 1. What this chapter asks
 
@@ -32,10 +34,14 @@ Three things have to be true, and each is a place the result could fail:
 
 The results, in order of how much they constrain the rest:
 
-1. The channel works. Under a privileged receiver it carries **241 bit/s of capacity** at
-   a 3 ms symbol, and clears to zero observed errors after an eight-frame vote from
-   167 bit/s down (§5). That is an order of magnitude above the expectation this project
-   set out with, which was "low tens of bits/s".
+1. The channel works, and it is faster than the first sweep could see. Under a privileged
+   receiver it carries **311 bit/s of capacity at a 2 ms symbol** — 250 bit/s once the
+   sync word is charged for its own airtime — and clears to zero observed errors after an
+   eight-frame vote from 167 bit/s down (§5, §5.1). That is an order of magnitude above the
+   expectation this project set out with, which was "low tens of bits/s". The 241 bit/s at
+   3 ms that this chapter previously led with was measured with a 13-bit preamble over
+   three repeats and **does not replicate**: the same configuration at five repeats reads
+   158 bit/s, and the difference is acquisition variance, not the channel (§5.1).
 2. **It also works with no privilege at all.** A receiver reading only world-readable
    `scaling_cur_freq` decodes at 2 bit/s with a bit-error rate of 0.083 and no errors
    after a majority vote (§8.1). That is the result the security claim rests on, and it
@@ -53,8 +59,12 @@ The results, in order of how much they constrain the rest:
 5. **A decode fails two ways, and at the fast end the dominant one is that the receiver
    never finds the frame** (§6.1). Separating acquisition from demodulation changes what
    the rate ceiling means: runs reported at chance turn out to carry a working channel the
-   sync search missed, and every tier's usable rate is set partly by a 13-bit preamble
-   rather than by the leakage or the instrument.
+   sync search missed, and the usable rate was set by a 13-bit preamble rather than by the
+   leakage or the instrument. **This is now demonstrated rather than inferred.** Replacing
+   that preamble with a 63-bit maximal-length sequence takes acquisition from 31 of 40 runs
+   to 25 of 25 (p = 0.010) and roughly doubles capacity at every rate below 8 ms, while
+   leaving demodulation untouched — pooled BER on the true chip grid moves 0.098 → 0.094,
+   which is the control that makes the attribution stick (§5.1).
 6. The run-to-run variation in tier 1's error rate is the *instrument*, not the channel —
    and the artifact responsible was one the measurement chapter had recorded as harmless
    (§7). It is harmless to a mean difference and not to a per-symbol decision.
@@ -222,29 +232,99 @@ more than any one of them admits, and §7 is about why.
 **The headline is the capacity, not a rate at which no errors happened.** A bit-error rate
 is only half of an operating point; the quantity that combines the two, and the one the
 published attacks report, is the capacity of the binary symmetric channel the decoder
-sees — the raw rate times 1 − H(BER). It peaks at **241 bit/s, at a 3 ms symbol**, and
-across the rates where all three repeats acquired sync it stays above 100 bit/s from 333
-down to 125.
+sees — the raw rate times 1 − H(BER). In this sweep it peaks at 241 bit/s at a 3 ms
+symbol, and across the rates where all three repeats acquired sync it stays above
+100 bit/s from 333 down to 125.
 
-The two rates that break that pattern, 500 and 250 bit/s, are exactly the two where
-acquisition failed in two repeats of three — so their capacities of 36.8 and 19.1 bit/s
-are averages over a working channel and two runs that never found the frame, not
-measurements of a channel that got worse. §6.1 takes that apart; it is the reason the
-`acq` column is in the table at all.
+**That 241 is not a property of the channel, and §5.1 replaces it.** The column to read
+alongside it is `acq`. The two rates that break the pattern, 500 and 250 bit/s, are
+exactly the two where acquisition failed in two repeats of three, so their capacities of
+36.8 and 19.1 bit/s average a working channel with two runs that never found the frame.
+The same variance runs the other way at 3 ms, where all three repeats happened to acquire.
+Three repeats cannot tell a rate that always acquires from one that usually does: 3 of 3
+puts the true acquisition probability anywhere in [0.29, 1.00]. The peak and the troughs
+in this table are the same coin, landing differently.
 
-Two things follow that the raw-BER view hides. The best operating point is *not* the
-slowest: above 8 ms the channel is already clean enough that slowing further only costs
-rate. And the fastest rate tested is not the most capable — 36.8 bit/s of capacity at
-500 bit/s against 241 at 333 — even though 500 bit/s is the number the raw table makes
-most tempting to quote.
+Two things follow that the raw-BER view hides, and only one of them survives §5.1. The
+best operating point is *not* the slowest: above 8 ms the channel is already clean enough
+that slowing further only costs rate. The apparent second lesson — that the fastest rate
+tested is not the most capable, 36.8 bit/s of capacity at 500 against 241 at 333 — is an
+artifact of acquisition and reverses once acquisition is fixed.
+
+### 5.1 The sweep replicated, and acquisition tested as a cause
+
+`experiments/phase2_tier1_validate.json` re-runs the fast end of that sweep at **five**
+repeats, and crosses it with the one lever §6.1 leaves open. Two arms carry identical
+payloads at identical rates in one shuffled session (`results/20260921-191108-phase2_tier1_validate`,
+70 runs): **p13** is the 13-bit Barker preamble every number above was measured with, and
+**p63** is a 63-bit maximal-length sequence (x⁶+x+1, peak sidelobe 1, balanced 32 ones of
+63) worth 2.2× in correlation amplitude. A preamble cannot improve demodulation, so if the
+arms differ, acquisition is the only thing that could have made them differ.
+
+| symbol | bit/s | p13 acq | p13 capacity | p63 acq | p63 capacity | BER given sync, p13 / p63 |
+|---|---|---|---|---|---|---|
+| 1.5 ms | 666.7 | 3/5 | 65.0 | 4/5 | 125.2 | 0.257 / 0.238 |
+| **2 ms** | 500.0 | 3/5 | 90.2 | **5/5** | **311.0** | 0.193 / 0.163 |
+| 3 ms | 333.3 | 4/5 | 158.4 | 5/5 | 287.1 | 0.063 / 0.026 |
+| 4 ms | 250.0 | 4/5 | 96.6 | 5/5 | 139.7 | 0.043 / 0.101 |
+| 6 ms | 166.7 | 4/5 | 79.6 | 5/5 | 155.8 | 0.024 / 0.008 |
+| 8 ms | 125.0 | 5/5 | 118.4 | 5/5 | 107.6 | 0.009 / 0.029 |
+
+**The published 241 bit/s does not replicate.** At the identical configuration with five
+repeats instead of three, the 3 ms row reads **158.4 bit/s** — 134.0 if the one repeat that
+failed the `missed_chips` gate is dropped. Its five repeats are BER 0.018, 0.039, 0.027,
+0.011 and 0.498: four clean decodes and one acquisition failure. Pooling both sessions
+gives 7 of 8 repeats acquired and **185.7 bit/s**. The first sweep's 241 was the high side
+of that spread and its 19.1 at 4 ms was the low side; neither was the channel.
+
+**Acquisition was the binding constraint, and it is a receiver parameter.** Over 2–8 ms the
+Barker preamble acquires in 31 of 40 runs across both sessions; the m-sequence acquires in
+**25 of 25** (Fisher exact, one-sided p = 0.010). Capacity roughly doubles at every rate
+below 8 ms, and at 8 ms — where Barker-13 already acquired 5/5 and there was nothing to
+fix — the two arms are level, 118.4 against 107.6. That null at the one rate with no
+headroom is worth as much as the gains.
+
+**The gain is acquisition and nothing else.** Pooled over every non-control run, BER on the
+true chip grid is 0.0981 for p13 against 0.0939 for p63 — indistinguishable, as theory
+requires, and scattering in both directions rate by rate. The arms differ in whether the
+receiver finds the frame, not in what it does once it has.
+
+**The peak moves up and to the left.** Capacity now peaks at **311 bit/s at a 2 ms symbol**,
+above the 241 previously claimed and at a *faster* symbol, with 5/5 acquired, 5/5 clean on
+every gate, and leave-one-out values of 292–360. This is what §5 predicted once acquisition
+was removed: conditional on finding the frame, the old sweep's 2 ms row was already its most
+capable at 385.6 bit/s, on the strength of a single repeat.
+
+**Charged for its own airtime it still wins.** Capacity is quoted on the symbol rate and
+charges nothing for the preamble, which rides in every frame: 63 bits of 319 against 13 of
+269, 19.7% overhead against 4.8%. Net of that the 2 ms m-sequence row delivers **249.6
+payload bit/s** against 229.5 for the published 3 ms Barker figure and 150.7 for tonight's.
+The longer sync word pays for itself roughly fourfold at the fast end.
+
+**Both negative controls are dead.** The A/A transmissions — one per arm, so the longer
+preamble gets its own null, since more correlation gain is also more opportunity to lock
+onto noise — pool to BER 0.502 and 0.501 over 10240 bits each, 0 of 5 acquired in both,
+p = 0.64 and 0.56. The session held PL1 at 200 W and PL2 at 80 W on mains across all 140
+state snapshots, so no power limit moved underneath it.
+
+Two limits this session marks rather than removes. At 1.5 ms — a 0.75 ms chip, below the
+~1 ms RAPL update — even the m-sequence reaches only 4/5 and BER given sync stays at 0.238,
+so the integration ceiling of §8 is real and now has a measured point below it. And four of
+the seventy runs failed `missed_chips` by 1–4 chips of 2048, the transmitter's victims
+going unscheduled for longer than a chip; none of them is at the 2 ms m-sequence row, so
+the headline is untouched, but it is the first time this gate has fired at all and §9
+records it.
 
 **No rate in this sweep is error-free when the repeats are aggregated.** At 83 bit/s the
 three repeats read 0.0303, 0.0020 and 0.0000; one of them was clean and the mean is 0.011.
 The same is true at every rate: the lowest aggregated BER anywhere in the table is 0.003
 at 31 bit/s. An earlier draft of this chapter quoted the best repeat at each rate and
 reported the channel as error-free from 83 bit/s down. That was selection, not a result,
-and it is corrected here — the honest claim is a capacity of 241 bit/s and a raw BER
-around 1% at 83.
+and it is corrected here — the honest claim is a capacity in the low hundreds of bit/s
+(§5.1 puts it at 311) and a raw BER around 1% at 83. The same discipline applied one level
+up is what §5.1 is: aggregating three repeats removes selection *within* a rate, and does
+nothing about selection *across* rates when the quantity being compared is as variable as
+this one. Three repeats made each row honest and still let the best row be a draw.
 
 **What the majority vote does and what it costs.** Voting across the eight repeated frames
 clears the channel to zero observed errors from 167 bit/s down. It is not free: eight
@@ -381,16 +461,53 @@ away (7 runs, BER 0.489–0.519). There is no intermediate regime. So the aggreg
 2 ms and 4 ms in §5 are not "the channel at that rate" — they are a two-thirds chance of
 finding the frame at all, mixed with a working decode.
 
-**A receiver can tell whether it acquired.** This matters for the threat model: an attacker
-who cannot distinguish a good frame from a noise peak has to emit garbage and hope. The
-obvious statistic does not work — the winning correlation over the best sidelobe reads
-1.00–1.19 on failed acquisitions and 1.04–1.43 on successful ones, completely overlapping,
-because with ~10⁵ candidate offsets the largest noise peak sits just under the largest peak
-of any kind. The *absolute* normalised correlation does work: 0.26–0.71 when acquisition
-failed, 0.64–1.00 when it succeeded. A threshold at 0.72 accepts no failed run and rejects
-two successful ones. An attacker can therefore discard the frames it did not acquire, at a
-cost of a few percent of the good ones — and the A/A control sits at 0.26–0.28, far below
-anything the threshold would accept.
+**A receiver can usually tell whether it acquired, and the exception is instructive.** This
+matters for the threat model: an attacker who cannot distinguish a good frame from a noise
+peak has to emit garbage and hope. The obvious statistic does not work — the winning
+correlation over the best sidelobe reads 1.00–1.19 on failed acquisitions and 1.04–1.43 on
+successful ones, completely overlapping, because with ~10⁵ candidate offsets the largest
+noise peak sits just under the largest peak of any kind. The *absolute* normalised
+correlation works against noise: in this sweep it reads 0.26–0.71 when acquisition failed
+and 0.64–1.00 when it succeeded, a threshold at 0.72 accepts no failed run and rejects two
+successful ones, and the A/A control sits at 0.26–0.28, far below anything that threshold
+would accept.
+
+**But it does not work against a false target, and §5.1's session produced one.** Four p13
+runs there failed acquisition with correlation peaks of 0.60, 0.79, 0.91 and **0.97** —
+values the paragraph above would accept without hesitation — and all four landed at the
+same offset of 436.1–436.4 chips despite running at four different symbol rates, where a
+fixed chip offset corresponds to four different times. What they share is a repeat index,
+and therefore a payload seed. At bit 218 of that payload sits `0000011001010`, which is the
+bit-for-bit **complement of the 13-bit Barker preamble**. The decoder peaks on the
+*absolute* correlation so that it can recover channel polarity without being told — the
+property tier 2 depends on, since its channel is inverted (§8.1) — and a perfect complement
+is therefore indistinguishable from a perfect preamble. The receiver did not fail to find a
+sync word; it found a second one, exactly as good.
+
+Two design choices have to hold at once for this to happen, and both are ours. A 13-bit
+word is short enough that a 256-bit random payload contains it, in one polarity or the
+other, about 6% of the time — so meeting it once in five payloads is unremarkable rather
+than unlucky. And every frame carries the *same* payload, because the eight frames exist to
+be majority-voted, so a payload-internal match reinforces across frames coherently, exactly
+as the real preamble does. A transmitter varying its payload per frame would see the spoof
+average down while the preamble accumulated. The September sweep escaped this by luck and
+not by design: its payloads (drawn before balancing was introduced, so not the same bits)
+carry a best in-frame match of 0.85, strong enough to have been dangerous, and none of its
+four failures landed on it — those were the noise mode, with peaks of 0.34–0.72 at
+scattered offsets.
+
+So acquisition fails two ways as well, and the correlation peak separates only one of them:
+
+| mode | correlation peak | recovered offset | caught by |pk|? |
+|---|---|---|---|
+| noise — no peak beats the floor | low, 0.34–0.72 | scattered, run to run | yes |
+| spoof — a second valid sync word | high, up to 0.97 | identical across runs sharing a payload | **no** |
+
+The remedy for the second is the same as for the first and is measured in §5.1: a sync word
+long enough that a payload cannot contain it. The 63-bit m-sequence's best in-frame match is
+0.46 against the Barker word's 1.00, which is a second and independent reason it acquires
+25 of 25 — not only 2.2× the processing gain, but no false target to lose the competition
+to. The one p63 run that did fail acquisition failed in the noise mode, at a peak of 0.21.
 
 **A better correlator was tried, and it is not better.** The demodulator decides a bit by
 differencing the two chips of a Manchester symbol, and the paired d′ that produces runs
@@ -419,7 +536,8 @@ failed runs then reach 0.80 against 0.79 for the single acquired one: the statis
 paragraph above stops separating. A correlator whose floor on a transmission carrying
 nothing nearly doubles is a worse instrument than one that finds an extra frame, so `raw`
 remains the decoder's default and `--sync-mode diff` is kept only as an option. The lever
-acquisition needs is a longer preamble, not a different normalisation of this one.
+acquisition needs is a longer preamble, not a different normalisation of this one — which
+§5.1 then pulled, with the predicted result.
 
 The practical value of separating the two is that it says which knob to turn. A low Δ is a
 weak channel; a high σ is a poor measurement; a low correlation peak is a preamble that is
@@ -462,23 +580,54 @@ rate whose repeats happened to be clean beats a slower rate whose repeats were n
 
 **It is the sampler's overshoot regime**, and this is the part that revises an earlier
 conclusion. An overshoot is a RAPL edge observed more than 1.5 update periods late. The
-measurement chapter investigated them, found them bimodal — a run sits at either ~0.1% or
-~4% of edges and never between, so the sampler phase-locks into one regime and stays
-there — and closed the question: within a run they are balanced across conditions, mean
-`dtsc`/period is 1.00 for both, so they are common-mode and cannot bias a mean
-difference. **That reasoning is correct and every Phase 0 and Phase 1 result stands on
-it.** What does not carry over is the conclusion that they therefore cost only time
-resolution. A mean over tens of thousands of samples averages them away. A per-symbol
-decision has nothing to average: one overshoot is a single RAPL sample spanning two
-chips, smearing them together, and those bits are simply lost. Across the 30 runs the
-overshoot rate correlates with per-chip noise at **r = +0.63**.
+measurement chapter investigated them, found them bimodal, and closed the question: within
+a run they are balanced across conditions, mean `dtsc`/period is 1.00 for both, so they are
+common-mode and cannot bias a mean difference. **That reasoning is correct and every Phase 0
+and Phase 1 result stands on it.** What does not carry over is the conclusion that they
+therefore cost only time resolution. A mean over tens of thousands of samples averages them
+away. A per-symbol decision has nothing to average: one overshoot is a single RAPL sample
+spanning two chips, smearing them together, and those bits are simply lost. The overshoot
+rate correlates with per-chip noise at **r = +0.61** over the first sweep's 30 runs and
+**+0.46** over §5.1's 70, so the relation replicates in a second session at more than twice
+the size.
 
-There is a loose end here that Phase 0 should close rather than this chapter. The
-sampler's period estimate is an EWMA over every observed interval *including* the
-overshoots it has just flagged, so a run at overshoot fraction *p* estimates the period as
-(1 + *p*)·T — and that estimate sets the guard it idles for before polling, which is
-itself what decides how often it overshoots. That is a feedback loop with the right shape
-to produce the observed bistability, and it is testable on data already committed.
+Measured across both sessions the bimodality is sharper than the measurement chapter could
+see: 83 of 100 runs sit at a median of 0.058% and none above 3.00%, 17 sit at a median of
+9.39% and none below 6.38%, and **the band between 3.00% and 6.38% is empty**. The sampler
+phase-locks into one regime at the start of a run and stays there.
+
+**The loose end this section used to record is closed, and closing it broke something.**
+The version of this text written against the first sweep observed that the sampler's period
+estimate was an EWMA over every interval *including* the overshoots it had just flagged, so
+a run at overshoot fraction *p* would estimate the period as (1 + *p*)·T — and since that
+estimate sets the guard the sampler idles for before polling, which is itself what decides
+how often it overshoots, that is a feedback loop with the right shape to produce
+bistability. The loop was real and was cut, by excluding flagged edges from the estimator.
+Cutting it introduced a worse failure. The estimate is seeded from the first observed
+interval, which is a *fragment* of a period rather than a period — the sampler opens at an
+arbitrary phase within one — and once flagged edges no longer feed the EWMA, a seed below
+about two thirds of T puts every subsequent genuine edge over the flagging threshold, where
+the branch that rejects them is also the branch that cannot correct them. The estimate then
+froze for the whole run. Five of the first nine runs of a §5.1 pilot latched this way, at
+0.17–0.23 ms against a true 0.97 ms, each reporting 99.99% of its edges late
+(`results/20260921-185944-phase2_tier1_validate`, kept as evidence and not as a
+measurement).
+
+No published number moves, because the regression postdates the first sweep: that session
+ran with the unconditional EWMA, and its own overshoot counts are corroborated by the
+recomputation below. But it changes what this gate can be built on. A quality statistic
+computed by the instrument against its own running estimate cannot detect the instrument
+being wrong about that estimate — the latched runs were sampling *correctly*, since the
+poll loop runs until the counter actually moves, and were wrong only about themselves;
+recomputed from their recorded intervals they read 0.16–0.29%. The decoder therefore no
+longer asks the sampler. It takes the median recorded interval as a robust period estimate,
+counts late edges against that, and **fails** any run whose sampler disagreed with its own
+trace by more than 25%. The sampler's self-report is printed beside the measured figure so
+a disagreement is visible rather than silently resolved. Every overshoot percentage in this
+section is the measured one; the first sweep's committed summary quotes the sampler's
+laxer self-report, which runs about half as large (mean 0.88% against 1.96%) and, more to
+the point, leaves almost no gap between the two regimes — 2.88% against 3.01% — where the
+measured statistic leaves the clean one above.
 
 The lesson is more general than the artifact. A validity gate is only ever a gate against
 a specific inferential use, and "harmless" is a claim about that use rather than about
@@ -492,18 +641,20 @@ which makes it an instrument-quality criterion of the same kind as the zero-tick
 but a filtered number quoted on its own is how selection bias gets in, so both are always
 printed. The gate flags 7 of the 30 runs.
 
-**The gate is necessary and not sufficient.** `sym_04ms_r1` passes it at 0.29% overshoots
+**The gate is necessary and not sufficient.** `sym_04ms_r1` passes it at 0.20% overshoots
 and still carries 0.69 W of per-chip noise against 0.34 W for the clean repeat at the same
 rate — enough to lose the frame, though not enough to lose the bits once the frame is
 found. Overshoots are the dominant cause of the spread, not the only one, and the second
 source is unidentified.
 
-**An open problem.** The bad regime becomes rarer over a session: 1.66%, 0.89% and 0.09%
-of edges by repeat index, so the first repeat is reliably the noisiest and the last
-reliably the cleanest. This is a session-level warm-up distinct from the per-run transient
-that `--warmup-blocks` was built for, it survives the per-run cooldown, and nothing here
-explains it — though the period-estimate feedback above is a candidate for the bistability
-if not for the session trend.
+**An open problem.** The bad regime becomes rarer over a session: 3.89%, 1.95% and 0.03%
+of edges by repeat index in the first sweep, so the first repeat is reliably the noisiest
+and the last reliably the cleanest. This is a session-level warm-up distinct from the
+per-run transient that `--warmup-blocks` was built for, it survives the per-run cooldown,
+and nothing here explains it. The period-estimate feedback described above was the
+standing candidate for the bistability; it has since been removed from the sampler
+altogether, and the bistability is still there in §5.1's runs, so that explanation is now
+ruled out rather than merely unconfirmed.
 
 Its practical consequence is that the aggregated BERs at 2 ms and 4 ms in §5 average a
 working decode against two failed acquisitions, so they describe an *acquisition
@@ -536,14 +687,24 @@ higher number is where the table stops.
 **But it is not the binding constraint on the rates actually achieved.** §6.1 shows that at
 2 ms and 4 ms the decode fails at acquisition while demodulation still works — 0.087 on the
 true grid for a run reported at 0.519. The integration window sets how far the channel can
-be pushed *in principle*; what stops it first, at these rates, is a 13-bit preamble trying
-to survive a σ the same instrument inflated. That is the more tractable of the two limits:
-integration is fixed by the hardware, while acquisition has obvious headroom —
-a longer or coded sync word, coherent accumulation over more frames than the eight used
-here, or a correlation template matched to the RAPL boxcar rather than the square chip
-the decoder currently slides. None of those has been tried, so the honest statement is
-that **tier 1's measured ceiling is an acquisition ceiling, and the integration ceiling
-lies somewhere above it, unmeasured.**
+be pushed *in principle*; what stopped it first, at these rates, was a 13-bit preamble
+trying to survive a σ the same instrument inflated. That was the more tractable of the two
+limits: integration is fixed by the hardware, while acquisition had obvious headroom — a
+longer or coded sync word, coherent accumulation over more frames than the eight used here,
+or a correlation template matched to the RAPL boxcar rather than the square chip the decoder
+currently slides.
+
+**The first of those has now been tried, and it moved the ceiling.** §5.1 replaces the
+13-bit Barker word with a 63-bit m-sequence and the peak goes from 241 bit/s at 3 ms to
+311 at 2 ms, with acquisition at 25 of 25 over 2–8 ms. So the ceiling this section
+described was indeed an acquisition ceiling, and lifting it exposed the next one rather
+than removing it: at 1.5 ms, a 0.75 ms chip against a ~1 ms update, even the m-sequence
+reaches only 4/5 and its BER given sync stays at 0.238 — a floor that no preamble can move,
+because it is the separation itself eroding. The integration ceiling is therefore no longer
+"somewhere above, unmeasured": it lies **between 2 ms and 1.5 ms**, and the channel now
+runs up against it rather than against the sync search. The two remaining acquisition
+levers, more frames and a boxcar-matched template, are untried and would only matter for
+pushing into that region.
 
 Sub-chip alignment is worth a note in the same connection, because it costs nothing on
 tier 1 and something real on tier 3. Over the 23 tier-1 runs that acquired, the recovered
@@ -579,9 +740,12 @@ and has no other input.
 **An unprivileged process recovers the message at 2 bit/s with no errors after a
 four-frame majority vote**, and the control at the same load and rate sits at chance. Its
 capacity is 1.1 bit/s; after the vote it delivers 0.5 bit/s. Tier 2 is therefore slower
-than tier 1 by a factor of a few hundred on capacity — 1.1 bit/s against 241 — and that
+than tier 1 by a factor of a few hundred on capacity — 1.1 bit/s against 311 — and that
 gap, not the existence of the channel, is the honest headline. (An earlier draft put the
-gap at "about 40" by comparing raw rates, one of which was a cherry-picked repeat.)
+gap at "about 40" by comparing raw rates, one of which was a cherry-picked repeat.) The
+factor is itself provisional in the direction that flatters tier 1: §9 records that the two
+tiers differ in six ways at once, one of them now being the sync word, and tier 2 has not
+been re-measured with the longer one.
 
 The rate ceiling here is not RAPL's integration window but the governor's control loop.
 A 512 ms symbol gives each state a 256 ms chip to settle a clock decision that the
@@ -597,8 +761,10 @@ where it succeeds in all three. So tier 2's usable rate is set by how far its 13
 preamble survives a trace carrying hundreds of MHz of governor wander, and the remedies of
 §8 — a longer sync word, more frames to accumulate over — apply here with more headroom
 than they do on tier 1. This is stated as an unexploited margin rather than a result: no
-run has been done with a longer preamble, so how much of that 0.339 is actually reachable
-is unmeasured.
+tier-2 run has been done with a longer preamble, so how much of that 0.339 is actually
+reachable is unmeasured. What §5.1 adds is that the lever is known to work on the other
+tier, taking acquisition from 31 of 40 to 25 of 25 and roughly doubling capacity below
+8 ms, which makes this a margin worth spending a session on rather than a speculation.
 
 **Where the receiver looks matters, though the control there is weaker.** An attacker need
 not know which cores the victim occupies, so the receiver watched two: its own core and one
@@ -786,18 +952,29 @@ against, and an unbalanced payload silently weakens the null.
 
 This is a partial draft, and the gaps are not incidental.
 
-**The tier comparison is not controlled, in five dimensions rather than one.** The
+**The tier comparison is not controlled, in six dimensions rather than one.** The
 configuration is the one usually named: tier 1 needs Config-A to isolate power leakage from
 DVFS, tiers 2 and 3 need Config-B because Config-A removes the response they read, and a
 fair comparison would run tier 1 under Config-B at a cost that is unmeasured. But the tiers
 also differ in transmitter thread count (4 against 10), core layout (stride 2, one thread
 per physical core, against stride 1 and SMT pairs), vote depth (8 frames against 4), and
-payload length (256 distinct bits against 8). So "241 bit/s against 1" in §10 is a
-comparison across five simultaneous changes, and the honest reading is that each tier was
-measured where it works rather than against the others. One matched sweep — same threads,
-same layout, same frames, same payload length, all three tiers under Config-B — would fix
-all five at once and has not been run. The tier-2 against tier-3 comparison in §8.3 does
-*not* have this problem: same configuration, same load, same transmitter.
+payload length (256 distinct bits against 8), and now sync word length as well, since §5.1
+measured tier 1 with a 63-bit preamble and tiers 2 and 3 were measured with the 13-bit one.
+So "311 bit/s against 1" in §10 is a comparison across six simultaneous changes, and the
+honest reading is that each tier was measured where it works rather than against the others.
+One matched sweep — same threads, same layout, same frames, same payload length, same
+preamble, all three tiers under Config-B — would fix all six at once and has not been run.
+The tier-2 against tier-3 comparison in §8.3 does *not* have this problem: same
+configuration, same load, same transmitter.
+
+**Tiers 2 and 3 have not been re-measured with the longer sync word, and §6.1 says they
+should be.** The preamble was the binding constraint on tier 1 and there is direct evidence
+it binds on tier 2 as well: §6.1 records a tier-2 rate reported at exactly 0.500 that
+decodes at 0.339 on the true chip grid, which is the acquisition signature. Tier 2's 8-bit
+payloads also make the spoof mode of §6.1 much less likely than tier 1's 256-bit ones, so
+the gain there should be processing gain alone rather than both mechanisms. Until that
+sweep is run, the unprivileged tiers are quoted at a receiver design that tier 1 has since
+outgrown, and the ladder's rungs are further apart than the channel requires.
 
 **The transmitter is not the victim Phase 1 characterised.** §5 justifies choosing
 `ws_l3_x8` on the previous chapter's detectability ranking, which was measured at four
@@ -824,6 +1001,18 @@ works regardless, but the stated reason for the choice does not survive the arit
 Re-running the victim selection at ten threads is one sweep, and it should also settle
 whether `ws_l2_x8` — which would still fit L3 at that thread count — is the better
 transmitter.
+
+**The `missed_chips` gate has started firing, and it had never fired before.** Four of
+§5.1's seventy runs report 1–4 chips of 2048 that the transmitter scheduled and no victim
+ever observed — a victim going unscheduled for longer than one chip. The first sweep had
+none in thirty. The obvious suspect is that `isolcpus=0` isolates only the attacker's core,
+so the victim cores still take stray work, which makes this a property of how quiet the
+machine happens to be rather than of the channel; but four runs is not enough to say that,
+and nothing here distinguishes it from a rate effect — all four are at 3 or 4 ms, none at
+6 ms or slower, though none at 1.5 or 2 ms either, which a pure rate effect would not
+predict. None of the four is at the 2 ms m-sequence row, so §5.1's headline does not rest
+on them, and they are excluded where quoted. What is missing is a deliberate test: the same
+sweep under load and idle, which would separate scheduler noise from anything intrinsic.
 
 **The receiver is given an isolated core.** Every run pins the receiver to CPU 0, which the
 kernel is booted to isolate with `isolcpus=0`. For tiers 2 and 3 — whose whole claim is
@@ -886,11 +1075,19 @@ independent clock would need to, and nothing here measures how much that costs.
 - Operand-level power leakage supports a real covert channel between processes sharing no
   memory, not merely a correlation visible to an instrument that knows where to look. The
   receiver recovers frame position from the signal itself.
-- Under a root receiver the channel carries **241 bit/s of capacity**, at a 3 ms symbol and
-  a mean BER of 0.048 over three repeats; an eight-frame majority vote clears it to zero
-  observed errors from 167 bit/s down, delivering 20.8 bit/s. An order of magnitude above
-  this project's stated expectation of low tens of bits/s. No rate is error-free when the
-  repeats are aggregated: the raw BER at 83 bit/s is 0.011, not zero.
+- Under a root receiver the channel carries **311 bit/s of capacity**, at a 2 ms symbol
+  over five repeats, or 250 bit/s once the sync word is charged for the airtime it occupies
+  in every frame; an eight-frame majority vote clears it to zero observed errors from
+  167 bit/s down, delivering 20.8 bit/s. An order of magnitude above this project's stated
+  expectation of low tens of bits/s. No rate is error-free when the repeats are aggregated:
+  the raw BER at 83 bit/s is 0.011, not zero.
+- **The 241 bit/s this chapter previously led with does not replicate**, and the reason is
+  worth more than the number. Measured again at five repeats instead of three, that
+  configuration reads 158 bit/s; pooled over both sessions, 186. Nothing about the channel
+  changed — what changed is that three repeats cannot distinguish a rate that always
+  acquires from one that usually does, so the rate reported as best was partly the rate
+  whose three coins landed the same way. Aggregating repeats removes selection within a
+  row and not between rows.
 - **A receiver with no privilege at all recovers the message.** Reading only
   world-readable `scaling_cur_freq`, it decodes at 2 bit/s with BER 0.083 and no errors
   after a majority vote, against a control at chance. This is the security claim: the
@@ -903,16 +1100,30 @@ independent clock would need to, and nothing here measures how much that costs.
   2, and beats it at 3.9. The entire cost of the ladder is the step from root to
   unprivileged; the last interface is free to give up. Restricting `scaling_cur_freq`, the
   obvious defence against tier 2, therefore buys nothing.
-- The unprivileged channel costs more than two orders of magnitude of capacity — 241 bit/s
+- The unprivileged channel costs more than two orders of magnitude of capacity — 311 bit/s
   to about 1 — and exists only while the part is throttling. Four victim threads on this
   machine do not make it throttle; ten do. An idle machine does not carry this channel.
 - **A decode fails two ways, and telling them apart changes what the rate ceiling means.**
   Demodulated on the true chip grid, runs reported at chance turn out to carry working
   channels their sync search missed: 0.087 for a tier-1 run reported at 0.519, and 0.339
-  for a tier-2 rate reported at exactly 0.500. Every tier's usable rate is bounded partly
-  by a 13-bit preamble rather than by the leakage or the instrument, and a receiver can
-  tell for itself which happened — the absolute correlation peak separates acquired from
-  failed runs where the peak-to-sidelobe ratio does not.
+  for a tier-2 rate reported at exactly 0.500. The usable rate was bounded by a 13-bit
+  preamble rather than by the leakage or the instrument — **demonstrated, not inferred**,
+  by replacing it with a 63-bit m-sequence: acquisition goes from 31 of 40 runs to 25 of
+  25 (p = 0.010), capacity roughly doubles below 8 ms, the two arms are level at 8 ms where
+  Barker-13 already acquired every time, and demodulation is untouched (pooled true-grid BER
+  0.098 against 0.094). With acquisition removed the binding limit becomes RAPL's ~1 ms
+  integration window, which the 1.5 ms row now reaches from above.
+- **A sync word can be spoofed by the payload it is meant to delimit.** Four runs failed
+  acquisition at correlation peaks up to 0.97 — indistinguishable from a clean lock — all
+  at the same chip offset across four different symbol rates, because the payload they
+  shared contained the exact complement of the 13-bit Barker word, and the decoder peaks on
+  absolute correlation so that it can recover polarity for tier 2's inverted channel. Two of
+  our own design choices are required: a sync word short enough for a 256-bit payload to
+  contain (~6% of payloads do) and eight frames carrying the *same* payload, so the false
+  target accumulates across frames exactly as the true one does. The absolute correlation
+  peak, which does let a receiver detect the noise mode of acquisition failure, cannot
+  detect this one. A 63-bit word cannot be spoofed — best in-frame match 0.46 against
+  1.00 — which is a second and independent reason it acquires 25 of 25.
 - The error rate of a demodulated frame is predicted by the separation of the within-symbol
   difference the decision uses, through Q(d′_paired). The marginal per-chip form is a
   white-noise special case: it fits tier 1's true-grid BER with a log-log correlation of
@@ -925,13 +1136,25 @@ independent clock would need to, and nothing here measures how much that costs.
   is the ~1 ms RAPL integration window, which erodes the usable separation from 1.54 W to
   0.64 W as the chip shrinks from 4 ms to 1 ms; for tiers 2 and 3 it is the governor's own
   control loop, which is why tier 3's separation grows from 15 to 75 kTSC as the symbol
-  lengthens from 256 ms to 1 s. Acquisition binds before either of those, so both ceilings
-  remain unmeasured from above.
+  lengthens from 256 ms to 1 s. Acquisition bound before either of those on tier 1 until
+  §5.1 removed it; tier 1's integration ceiling is now bracketed between 2 ms and 1.5 ms,
+  and tiers 2 and 3 are still acquisition-bound and unmeasured from above.
 - A measurement artifact that the previous chapter correctly established as harmless to a
   mean difference is *not* harmless to a per-symbol decision, and accounts for most of the
   run-to-run variation in tier 1's error rate. Validity gates are relative to an
   inferential use, and so are null results: §8.2's mean-difference proxy found nothing on
   a channel that works.
+- **An instrument cannot be its own quality gate.** The sampler counted late edges against
+  its own running estimate of the RAPL period; a change that decoupled the two — correctly
+  identifying and removing a feedback loop this chapter had flagged — left the estimate
+  with no path back from a bad seed, so it could freeze at a quarter of the true period and
+  report 99.99% of its edges late while sampling perfectly well. The gate now recomputes
+  the figure from the recorded intervals and fails any run whose sampler disagrees with its
+  own trace. Doing so also sharpened the bimodality the measurement chapter reported: the
+  two regimes are 0.058% and 9.39% with an empty band between 3.00% and 6.38%, where the
+  sampler's self-report left a gap of 2.88% to 3.01%. No published number moves — the
+  regression postdates the first sweep — but the class of error does not depend on that
+  luck, and a gate computed by the thing it is gating is the general form of it.
 - A negative control is only as good as the null it is compared against. An unbalanced
   payload silently weakened one, and a control that could not have caught anything failed
   anyway on a coincidence (§8.4). Payloads are balanced by construction now, which makes
@@ -939,13 +1162,17 @@ independent clock would need to, and nothing here measures how much that costs.
   balance fixes the expectation and not the variance, and §9 records that the effective
   sample size behind several p-values here is the number of *distinct* payload bits rather
   than the number transmitted.
-- A single repeat is not a result, and this chapter had to learn that twice. Phase 1
+- A single repeat is not a result, and this chapter had to learn that three times. Phase 1
   established it for effect sizes; an earlier draft of §5 nonetheless reported the best
-  repeat at each rate and called the channel error-free at 83 bit/s. Aggregated, it is not.
-  The rule holds for bit-error rates exactly as it does for watts.
+  repeat at each rate and called the channel error-free at 83 bit/s; and §5.1 then found
+  that three repeats, the fix for that, were themselves enough to make the best *row* a
+  draw. Each correction was one level up from the last — best run, best rate, best
+  configuration — and the rule holds for bit-error rates exactly as it does for watts.
 
-What remains is the placement matrix, a controlled comparison across the tiers, and a
-comparison against the published attacks — §9. The ladder is measured end to end, and what
-it says is that **privilege buys rate, not access**: root reads the channel a couple of
-hundred times faster, and a process with no privilege and no interface at all still reads
-it.
+What remains is the placement matrix, a controlled comparison across the tiers, the
+unprivileged tiers re-measured with the longer sync word, and a comparison against the
+published attacks — §9. The ladder is measured end to end, and what it says is that
+**privilege buys rate, not access**: root reads the channel a few hundred times faster, and
+a process with no privilege and no interface at all still reads it. The gap between the
+rungs is now known to be partly a receiver-design gap rather than an intrinsic one, since
+the lever that tripled tier 1's acquisition has not yet been pulled on tiers 2 and 3.
