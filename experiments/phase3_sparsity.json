@@ -1,0 +1,119 @@
+{
+  "name": "phase3_sparsity",
+  "description": [
+    "Is the sparsity (fraction of zero elements) of a streamed operand buffer",
+    "recoverable from package power? This is proposal goal (2) and the Phase 3",
+    "core, and it reproduces the lost Figure 2 -- the Eigen/TensorFlow sparsity",
+    "code was never committed (confirmed absent from git history).",
+    "",
+    "Victim is ws_sparse_l3_x8: the ws_l3_x8 load stream (8 x 32-byte loads per",
+    "iteration from a 4 MB working set), but the buffer is filled to a chosen",
+    "density instead of one repeated word. The selector's low 16 bits are the",
+    "number of nonzero 32-bit words per 1024 (0..1024); the rest are zero, spread",
+    "uniformly by a Bresenham accumulator. The nonzero pattern is 0xFFFFFFFF",
+    "(selector high bits 0 -> default all-ones), chosen for maximum SNR on this",
+    "first pass; a follow-up can set a realistic int8-packed activation pattern",
+    "through the selector's high 32 bits with no code change.",
+    "",
+    "Why this passes work_balance by construction: the byte rate, the addresses",
+    "streamed and the loads issued are identical for every density -- only the",
+    "*content* of the words (how many are zero) changes. So a contrast between",
+    "two densities is a pure operand-content contrast, exactly as the",
+    "Hamming-weight sweep was one level down. Config-A, interleaved blocks, one",
+    "A/A gate, one anchor.",
+    "",
+    "Condition 0 is density 0 (an all-zero buffer) in every run and condition 1",
+    "is the test density, so each run reads as 'power at density d relative to an",
+    "all-zero stream'. The polarity control (phase1_polarity) already showed the",
+    "condition index carries no bias, so no reverse arm is needed; the A/A is",
+    "carried as the per-session gate.",
+    "",
+    "Densities are concentrated at the low-density (high-sparsity) end, which is",
+    "the ML-relevant regime: post-ReLU activations are 50-90% zero, i.e. density",
+    "0.10-0.50. count = 10/51/102 is ~1/5/10% density (90-99% sparse); 256-1024",
+    "brackets the rest for the full curve. Density 1024 (all nonzero, all-ones)",
+    "is bit-identical to ws_l3_x8 holding 0xFFFFFFFF and anchors this session to",
+    "the Phase 1 sweeps (expect ~+1.9 W, cf. hw32 and l3_forward).",
+    "",
+    "Expected shape: monotone rise with density, steepest at the 0->nonzero",
+    "boundary (Phase 1's +349 mW cheap-zero step), so the very sparse levels",
+    "should already separate from baseline -- which is what makes sparsity",
+    "recoverable. Read with analysis.report per run for the gates, then the",
+    "sparsity classifier/regressor over the whole set (see summary.cmd).",
+    "",
+    "warmup_blocks 4: ws_sparse_l3_x8 populates 2 x 4 MB per thread, as ws_l3_x8",
+    "does; four blocks removes the fault-in transient at ~0.5 s cost per run."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 31337,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 31337
+  },
+  "runs": [
+    {
+      "label": "aa_d0",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 0],
+      "comment": "A/A gate: all-zero stream against itself."
+    },
+    {
+      "label": "d01",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 10],
+      "comment": "~1% density (99% sparse). 10 nonzero words per 1024."
+    },
+    {
+      "label": "d05",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 51],
+      "comment": "~5% density (95% sparse)."
+    },
+    {
+      "label": "d10",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 102],
+      "comment": "~10% density (90% sparse)."
+    },
+    {
+      "label": "d25",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 256],
+      "comment": "25% density (75% sparse)."
+    },
+    {
+      "label": "d50",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 512],
+      "comment": "50% density."
+    },
+    {
+      "label": "d75",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 768],
+      "comment": "75% density (25% sparse)."
+    },
+    {
+      "label": "d90",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 922],
+      "comment": "90% density (10% sparse)."
+    },
+    {
+      "label": "d100_anchor",
+      "victim": "ws_sparse_l3_x8",
+      "selectors": [0, 1024],
+      "comment": "100% density, all-ones. Bit-identical to ws_l3_x8 @ 0xFFFFFFFF; anchors to hw32 (~+1.9 W)."
+    }
+  ]
+}

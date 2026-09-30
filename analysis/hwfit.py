@@ -101,7 +101,25 @@ AXES = {
                "Hamming distance between alternating words (bits flipped per transfer)",
                "the constant-word baseline",
                lambda x: popcount((x & 0xFFFFFFFF) ^ (x >> 32))),
+    # A ws_sparse_* / ws_iid_* selector is a density, not an operand: low 16
+    # bits are non-zero words (or, for iid, set bits) per 1024, high 32 the
+    # non-zero pattern with 0 meaning 0xFFFFFFFF. Its mean Hamming weight per
+    # word is popcount(pattern) * density, which puts a mixture on the same
+    # axis as the single-word weight sweep -- the comparison critique E2 needs.
+    "density": Axis("density", "mean Hamming weight",
+                    "mean Hamming weight per 32-bit word (32 x non-zero fraction)",
+                    "the all-zero buffer",
+                    lambda x: mean_hw_of_density(x)),
 }
+
+
+def mean_hw_of_density(x):
+    """Mean bits set per word for a density-encoded selector (see AXES)."""
+    per1024 = min(int(x) & 0xFFFF, 1024)
+    patt = (int(x) >> 32) & 0xFFFFFFFF
+    if patt == 0:
+        patt = 0xFFFFFFFF
+    return popcount(patt) * per1024 / 1024.0
 
 
 def contrast(run, n_boot, axis):
@@ -216,7 +234,7 @@ def main():
     for p in fit_pts:
         by_repeat[p["repeat"]].append(p)
 
-    slopes, r2s = [], []
+    slopes, intercepts, r2s = [], [], []
     print(f"\nper-repeat fit of dP = a + b*{axis_col}")
     print(f"{'repeat':>6} {'n':>3} {'b (mW/bit)':>11} {'a (mW)':>9} {'R^2':>7}")
     for rep in sorted(by_repeat):
@@ -224,6 +242,7 @@ def main():
         b, a, r2 = ols([p["x"] for p in ps], [p["diff"] for p in ps])
         if np.isfinite(b):
             slopes.append(b)
+            intercepts.append(a)
             r2s.append(r2)
             print(f"{rep:>6} {len(ps):>3} {1000 * b:>11.2f} {1000 * a:>9.2f} {r2:>7.3f}")
 
@@ -237,6 +256,18 @@ def main():
         if np.isfinite(se) and se > 0:
             print(f"          95% CI [{1000 * (s.mean() - 1.96 * se):+.2f},"
                   f" {1000 * (s.mean() + 1.96 * se):+.2f}] mW/bit")
+        # The intercept is where the line meets zero on the axis. dP(0) is zero
+        # by construction (the A/A row checks it), so an intercept many SEs
+        # from zero is the step at the all-zero operand -- the quantity the
+        # weight sweep found at the 0 -> 1 boundary and critique E2 asks about
+        # for mixtures. Reported with the same between-repeat error bar.
+        ic = np.array(intercepts)
+        ic_sd = float(ic.std(ddof=1)) if len(ic) > 1 else float("nan")
+        ic_se = ic_sd / np.sqrt(len(ic)) if np.isfinite(ic_sd) else float("nan")
+        print(f"intercept: {1000 * ic.mean():+.1f} mW"
+              + (f"  (SD {1000 * ic_sd:.1f}, SE {1000 * ic_se:.1f};"
+                 f" {abs(ic.mean()) / ic_se:.1f} SE from zero)"
+                 if np.isfinite(ic_se) and ic_se > 0 else ""))
         print(f"mean R^2: {np.mean(r2s):.3f}")
         x_max = max(p["x"] for p in fit_pts)
         print(f"          i.e. {1000 * s.mean() * x_max:+.0f} mW over the full "
@@ -251,7 +282,8 @@ def main():
         b, a, _ = ols([p["x"] for p in fit_pts], [p["diff"] for p in fit_pts])
         out = Path(args.results_dirs[0]) / "figures"
         out.mkdir(exist_ok=True)
-        name = f"hamming-{'weight' if axis.key == 'hw' else 'distance'}-fit.png"
+        name = {"hw": "hamming-weight-fit.png",
+                "hd": "hamming-distance-fit.png"}.get(axis.key, f"{axis.key}-fit.png")
         figure(fit_pts, b, a, axis, out / name)
         print(f"\nfigure -> {out / name}")
 

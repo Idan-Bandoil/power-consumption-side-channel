@@ -425,6 +425,40 @@ struct ws_cache {
 	 * is the alternation period in words: 8 for 32 bytes, 16 for 64.
 	 */
 	int ab_mask;
+	/*
+	 * Phase 3 sparsity mode. When set, ws_get reads the selector as a
+	 * density rather than an operand: its low 16 bits are the number of
+	 * nonzero 32-bit words per 1024 (0..1024), its high 32 bits the nonzero
+	 * pattern (0 is taken as 0xFFFFFFFF). The load stream, the addresses
+	 * touched and the byte rate are identical to ws_l3_x8 at every density,
+	 * so only operand *content* -- how many words are zero -- varies between
+	 * conditions, and work_balance still holds.
+	 */
+	int sparse;
+	/*
+	 * Placement granularity for the sparse fill, in 32-bit words. At a fixed
+	 * density both settings hold the mean Hamming weight identical; they differ
+	 * in switching, and the direction is the opposite of what word-to-word
+	 * distance suggests. 1 (scattered) spreads non-zero words with a period of
+	 * 1-8 words at every density swept, so every 32-byte load carries the same
+	 * 256-bit pattern and NOTHING toggles between consecutive loads or lines --
+	 * the 0/P alternation is spatial, inside one transfer. 16 (blocked) groups
+	 * them into 64-byte runs, so consecutive lines alternate all-zero/all-ones
+	 * and toggle up to 512 bits each. Scattered is therefore the static arm and
+	 * blocked the switching arm; blocked-minus-scattered is the switching term
+	 * (critique E2). tests/fillcheck.c measures and asserts this. Ignored
+	 * unless `sparse`.
+	 */
+	int sparse_block;
+	/*
+	 * I.i.d. fill mode (critique E2b). When set, ws_get reads the selector's
+	 * low 16 bits as a per-1024 *bit* probability and sets every bit of every
+	 * word independently, so the words genuinely differ rather than repeating
+	 * one value. It tests whether the Hamming-weight slope survives on
+	 * non-degenerate data at the same mean bit density. Reads the selector as
+	 * a density like `sparse`, and takes precedence over it.
+	 */
+	int iid;
 };
 
 static void ws_fill(void *p, size_t bytes, uint32_t v)
@@ -446,11 +480,126 @@ static void ws_fill_ab(void *p, size_t bytes, uint32_t a, uint32_t b, int mask)
 		q[i] = (i & (size_t)mask) ? b : a;
 }
 
+/*
+ * Fill the buffer to a controlled density: `per1024` nonzero words out of every
+ * 1024, the rest zero, spread uniformly by a Bresenham accumulator so the
+ * density is the same across the buffer and every streamed 256-byte read sees a
+ * representative mix rather than a run of zeros followed by a run of nonzeros.
+ *
+ * This is the Phase 3 sparsity knob. Because the count of nonzeros changes but
+ * the buffer size, the addresses streamed and the loads issued do not, the two
+ * conditions of a sparsity contrast issue identical loads. Their *achieved* rate
+ * still differs by up to ~2-4%, with random sign: the two conditions live in two
+ * different mmaps, and that is critique C4's two-buffer placement effect, not a
+ * work difference (results/20260930-132043-phase1_sparsity_mixture: corr with
+ * the power effect +0.14; the same-buffer A/A matches to 0.04%).
+ *
+ * Measured by critique E2 in that session, and correcting what this comment
+ * first assumed: (1) at the densities swept the spread has a period of 1-8
+ * words, so every 32-byte load is identical and nothing toggles between
+ * transfers -- the 0/P alternation is inside one load, not between loads, so
+ * this fill does NOT add switching; (2) a mixture does not inherit the cheap
+ * zero word by word -- it pays Phase 1's whole step once any word is non-zero
+ * and then follows the uniform-word law in *mean Hamming weight*. So density is
+ * recoverable, but through the per-bit weight term rather than the zero step,
+ * and what power tracks is mean bit density rather than the zero count as such.
+ */
+static void ws_fill_sparse(void *p, size_t bytes, uint32_t per1024, uint32_t pattern,
+			   int block_words)
+{
+	uint32_t *q = p;
+	size_t n = bytes / sizeof(*q);
+	uint32_t acc = 0;
+
+	if (per1024 > 1024)
+		per1024 = 1024;
+	if (block_words < 1)
+		block_words = 1;
+	/*
+	 * Bresenham at block granularity: decide each block once and fill it
+	 * whole. At block_words = 1 this is the original per-word spread. Density
+	 * is per1024/1024 either way -- the fraction of nonzero *blocks* equals
+	 * the fraction of nonzero words when every block is uniform -- so the mean
+	 * Hamming weight is identical across block sizes and only the switching
+	 * rate changes.
+	 */
+	for (size_t base = 0; base < n; base += (size_t)block_words) {
+		acc += per1024;
+		uint32_t v = 0;
+		if (acc >= 1024) {
+			acc -= 1024;
+			v = pattern;
+		}
+		size_t end = base + (size_t)block_words;
+		if (end > n)
+			end = n;
+		for (size_t i = base; i < end; i++)
+			q[i] = v;
+	}
+}
+
+/*
+ * I.i.d. fill: every bit of every word set independently with probability
+ * per1024/1024. Mean Hamming weight per word is 32*per1024/1024, the same as a
+ * sparse fill at the matching density, but the words differ from one another --
+ * which is the point, since Phase 1's slope was measured on one repeated word.
+ * Seeded from the selector so the buffer is reproducible from the logged value.
+ */
+static void ws_fill_iid(void *p, size_t bytes, uint32_t per1024, uint64_t seed)
+{
+	uint32_t *q = p;
+	size_t n = bytes / sizeof(*q);
+
+	if (per1024 > 1024)
+		per1024 = 1024;
+	/* splitmix-style seed so a small selector still gives well-mixed bits. */
+	uint64_t s = seed * 0x9E3779B97F4A7C15ULL + 1;
+	for (size_t i = 0; i < n; i++) {
+		uint32_t w = 0;
+		for (int b = 0; b < 32; b++) {
+			s ^= s << 13; s ^= s >> 7; s ^= s << 17;	/* xorshift64 */
+			if ((uint32_t)(s & 1023) < per1024)
+				w |= (1u << b);
+		}
+		q[i] = w;
+	}
+}
+
+/*
+ * The one place the fill mode is decoded from the selector, shared by ws_get
+ * (what the victim streams) and ws_fill_probe (what the test measures), so the
+ * test can never drift from the victim. iid takes precedence over sparse; both
+ * read the low 16 bits as a per-1024 density; sparse also reads the high 32 as
+ * the nonzero pattern. ab_mask and the plain single-word fill are the
+ * non-density modes.
+ */
+static void ws_apply_fill(unsigned char *buf, size_t bytes, uint64_t sel,
+			  int sparse, int sparse_block, int iid, int ab_mask)
+{
+	if (iid) {
+		ws_fill_iid(buf, bytes, (uint32_t)(sel & 0xffff), sel);
+	} else if (sparse) {
+		uint32_t per1024 = (uint32_t)(sel & 0xffff);
+		uint32_t patt = (uint32_t)(sel >> 32);
+		if (patt == 0)
+			patt = 0xffffffff;
+		ws_fill_sparse(buf, bytes, per1024, patt,
+			       sparse_block > 0 ? sparse_block : 1);
+	} else if (ab_mask) {
+		ws_fill_ab(buf, bytes, (uint32_t)sel, (uint32_t)(sel >> 32), ab_mask);
+	} else {
+		ws_fill(buf, bytes, (uint32_t)sel);
+	}
+}
+
 static void ws_init(struct ws_cache *c, size_t bytes, int ab_mask)
 {
 	c->bytes = bytes;
 	c->next = 0;
 	c->ab_mask = ab_mask;
+	c->sparse = 0;
+	c->sparse_block = 1;
+	c->iid = 0;
 	for (int i = 0; i < WS_SLOTS; i++) {
 		c->filled[i] = 0;
 		c->slot[i] = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
@@ -470,14 +619,45 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 
 	int i = c->next;
 	c->next = (c->next + 1) % WS_SLOTS;
-	if (c->ab_mask)
-		ws_fill_ab(c->slot[i], c->bytes, (uint32_t)sel,
-			   (uint32_t)(sel >> 32), c->ab_mask);
-	else
-		ws_fill(c->slot[i], c->bytes, (uint32_t)sel);
+	ws_apply_fill(c->slot[i], c->bytes, sel,
+		      c->sparse, c->sparse_block, c->iid, c->ab_mask);
 	c->val[i] = sel;
 	c->filled[i] = 1;
 	return c->slot[i];
+}
+
+/*
+ * Test hook (critique E2): fill a caller-provided buffer exactly as a victim in
+ * the given mode would for `sel`, and report the realised zero-word fraction,
+ * mean Hamming weight per word, and mean per-word Hamming distance. The whole
+ * x-axis of the sparsity sweeps is the requested density; a fill bug would draw
+ * a smooth, monotone, wrong curve that every validity gate would pass, so the
+ * fill is checked against ground truth before a session trusts it. Uses the
+ * same ws_apply_fill the victim does.
+ */
+void ws_fill_probe(unsigned char *buf, size_t bytes, uint64_t sel,
+		   int sparse, int sparse_block, int iid, int ab_mask,
+		   double *zero_frac, double *mean_hw, double *mean_hd)
+{
+	ws_apply_fill(buf, bytes, sel, sparse, sparse_block, iid, ab_mask);
+
+	uint32_t *q = (uint32_t *)buf;
+	size_t n = bytes / sizeof(*q);
+	size_t zeros = 0;
+	uint64_t total_hw = 0, total_hd = 0;
+	for (size_t i = 0; i < n; i++) {
+		if (q[i] == 0)
+			zeros++;
+		total_hw += (uint64_t)__builtin_popcount(q[i]);
+		if (i > 0)
+			total_hd += (uint64_t)__builtin_popcount(q[i] ^ q[i - 1]);
+	}
+	if (zero_frac)
+		*zero_frac = n ? (double)zeros / (double)n : 0.0;
+	if (mean_hw)
+		*mean_hw = n ? (double)total_hw / (double)n : 0.0;
+	if (mean_hd)
+		*mean_hd = n > 1 ? (double)total_hd / (double)(n - 1) : 0.0;
 }
 
 #define WS_LD1 "vmovdqa    0(%[p],%[o]), %%ymm0\n\t"
@@ -493,7 +673,7 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 	"vmovdqa  224(%[p],%[o]), %%ymm7\n\t"
 
 /* Sizes are powers of two so the cursor wraps with a mask. */
-#define DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, ab_mask)             \
+#define DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, ab_mask, is_sparse, blk, is_iid) \
 	static __attribute__((noinline)) int fname(void *varg)                \
 	{                                                                     \
 		struct victim_args_t *a = varg;                               \
@@ -503,7 +683,14 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
                                                                               \
 		victim_pin(a->core_id);                                          \
 		sched_yield();                                                \
+		/* is_sparse, not sparse: a macro parameter named `sparse`    \
+		 * would be textually substituted into `cache.sparse`,        \
+		 * rewriting the member access to `cache.0` and failing to    \
+		 * compile. */                                                \
 		ws_init(&cache, (bytes), (ab_mask));                          \
+		cache.sparse = (is_sparse);                                   \
+		cache.sparse_block = (blk);                                   \
+		cache.iid = (is_iid);                                         \
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
@@ -527,15 +714,45 @@ static unsigned char *ws_get(struct ws_cache *c, uint64_t sel)
 	}
 
 #define DEFINE_WS_VICTIM(fname, bytes, loads, step)                           \
-	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0)
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0, 0, 1, 0)
 
 /* Alternate every 32 bytes: every ymm load differs from the one before it. */
 #define DEFINE_WS_AB_VICTIM(fname, bytes, loads, step)                        \
-	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 8)
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 8, 0, 1, 0)
 
 /* Alternate every 64 bytes: every cache line differs from the one before it. */
 #define DEFINE_WS_AB64_VICTIM(fname, bytes, loads, step)                      \
-	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 16)
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 16, 0, 1, 0)
+
+/*
+ * Phase 3 sparsity: the selector's low 16 bits are the nonzero-word count per
+ * 1024 and its high 32 bits the nonzero pattern (0 -> all-ones). Same load
+ * stream as the plain ws_*_x8 victim at every density. Scattered spread
+ * (block = 1): every 32-byte load is the same pattern, so this is the STATIC
+ * arm -- a mixture with no switching between transfers (see ws_cache).
+ */
+#define DEFINE_WS_SPARSE_VICTIM(fname, bytes, loads, step)                     \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0, 1, 1, 0)
+
+/*
+ * Blocked sparsity (critique E2): the same density and mean Hamming weight, but
+ * non-zero words grouped into 64-byte (16-word) runs, so consecutive lines
+ * alternate between all-zero and all-ones -- the SWITCHING arm. Blocked minus
+ * scattered at a fixed density is the switching term. (Designed first as the
+ * switching-free arm, from word-to-word distance; at transfer granularity it is
+ * the reverse, which tests/fillcheck.c now asserts.)
+ */
+#define DEFINE_WS_SPARSE_BLK_VICTIM(fname, bytes, loads, step)                 \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0, 1, 16, 0)
+
+/*
+ * I.i.d. sparsity (critique E2b): the selector's low 16 bits are a per-1024
+ * *bit* probability and every bit is drawn independently, so words differ from
+ * one another at the same mean bit density. Tests whether the Hamming-weight
+ * slope survives on non-degenerate data.
+ */
+#define DEFINE_WS_IID_VICTIM(fname, bytes, loads, step)                        \
+	DEFINE_WS_VICTIM_MODE(fname, bytes, loads, step, 0, 0, 1, 1)
 
 /* Axis 1: loads per iteration, working set pinned in L1. */
 DEFINE_WS_VICTIM(ws_l1_x1_victim, 16384, WS_LD1, 32)
@@ -582,6 +799,39 @@ DEFINE_WS_AB_VICTIM(ws_l1_x8_ab_victim,   16384, WS_LD8, 256)
 DEFINE_WS_AB_VICTIM(ws_l3_x8_ab_victim, 4194304, WS_LD8, 256)
 DEFINE_WS_AB_VICTIM(ws_dram_x8_ab_victim, 33554432, WS_LD8, 256)
 DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
+
+/* ---- Sparsity, on a traffic-bearing victim (Phase 3) ------------------ *
+ *
+ * These stream an L2/L3/DRAM-resident working set exactly as ws_*_x8 does, but
+ * fill it to a selector-chosen density: fraction f of the 32-bit words carry a
+ * nonzero pattern, the rest are zero, spread uniformly. The byte rate and the
+ * addresses touched are identical for every f, so a contrast between two
+ * densities is a contrast in operand *content* alone and passes work_balance --
+ * the same guarantee the Hamming-weight sweep relied on, one level up.
+ *
+ * This is the direct test of proposal goal (2), reproducing the lost Figure 2:
+ * post-ReLU activations are 50-90% zero and input-dependent, and Phase 1 found
+ * the zero operand anomalously cheap, so density should be recoverable from
+ * package power. ws_sparse_l3_x8 is the primary probe (best-conditioned depth in
+ * Phase 1); L2 and DRAM bracket it for a depth x sparsity cross. At density 1024
+ * (all words nonzero, default all-ones pattern) each is bit-identical to the
+ * plain ws_*_x8 holding 0xFFFFFFFF, which anchors it to the Phase 1 sessions.
+ */
+DEFINE_WS_SPARSE_VICTIM(ws_sparse_l2_x8_victim,     524288, WS_LD8, 256)
+DEFINE_WS_SPARSE_VICTIM(ws_sparse_l3_x8_victim,    4194304, WS_LD8, 256)
+DEFINE_WS_SPARSE_VICTIM(ws_sparse_dram_x8_victim, 33554432, WS_LD8, 256)
+
+/*
+ * Critique E2 controls at L3. The blocked variant holds density and mean Hamming
+ * weight identical to ws_sparse_l3_x8 but groups zeros into cache-line runs, so
+ * it toggles between lines where the scattered one does not: blocked-minus-
+ * scattered is the switching term, and scattered alone is the clean static
+ * per-transfer-vs-per-stream curve. The iid variant fills genuinely differing
+ * words at a controlled mean bit density, to test whether Phase 1's weight slope
+ * survives non-degenerate data.
+ */
+DEFINE_WS_SPARSE_BLK_VICTIM(ws_sparse_l3_x8_blk_victim, 4194304, WS_LD8, 256)
+DEFINE_WS_IID_VICTIM(ws_iid_l3_x8_victim, 4194304, WS_LD8, 256)
 
 /* ---- Instruction family, on a traffic-bearing victim ------------------ *
  *
@@ -656,7 +906,7 @@ DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
 	insn " %%ymm6, %%ymm14\n\t" \
 	insn " %%ymm7, %%ymm15\n\t"
 
-#define DEFINE_WS_OP_VICTIM(fname, bytes, unroll, insn, step, zero)           \
+#define DEFINE_WS_OP_VICTIM(fname, bytes, unroll, insn, step, zero, is_sparse) \
 	static __attribute__((noinline)) int fname(void *varg)                \
 	{                                                                     \
 		struct victim_args_t *a = varg;                               \
@@ -666,7 +916,8 @@ DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
                                                                               \
 		victim_pin(a->core_id);                                       \
 		sched_yield();                                                \
-		ws_init(&cache, (bytes), 0);                                  \
+		/* is_sparse, not sparse -- see DEFINE_WS_VICTIM_MODE. */      \
+		ws_init(&cache, (bytes), 0); cache.sparse = (is_sparse);      \
 		a->bytes_per_burst = (uint64_t)AVX_BURST * (step);            \
                                                                               \
 		while (ctl->run) {                                            \
@@ -693,18 +944,42 @@ DEFINE_WS_AB64_VICTIM(ws_l3_x8_ab64_victim, 4194304, WS_LD8, 256)
 
 #define WS_OP_L3 4194304
 
-DEFINE_WS_OP_VICTIM(ws_op_mov_victim,   WS_OP_L3, WS_OP8_2, "vmovdqa",      256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_and_victim,   WS_OP_L3, WS_OP8_3, "vpand",        256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_or_victim,    WS_OP_L3, WS_OP8_3, "vpor",         256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_xor_victim,   WS_OP_L3, WS_OP8_3, "vpxor",        256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_add_victim,   WS_OP_L3, WS_OP8_3, "vpaddd",       256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_mul_victim,   WS_OP_L3, WS_OP8_3, "vpmuludq",     256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_shift_victim, WS_OP_L3, WS_OP8_3, "vpsllvd",      256, NO_ZERO)
-DEFINE_WS_OP_VICTIM(ws_op_fma_victim,   WS_OP_L3, WS_OP8_3, "vfmadd231ps",  256, ZERO_HI8)
+DEFINE_WS_OP_VICTIM(ws_op_mov_victim,   WS_OP_L3, WS_OP8_2, "vmovdqa",      256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_and_victim,   WS_OP_L3, WS_OP8_3, "vpand",        256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_or_victim,    WS_OP_L3, WS_OP8_3, "vpor",         256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_xor_victim,   WS_OP_L3, WS_OP8_3, "vpxor",        256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_add_victim,   WS_OP_L3, WS_OP8_3, "vpaddd",       256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_mul_victim,   WS_OP_L3, WS_OP8_3, "vpmuludq",     256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_shift_victim, WS_OP_L3, WS_OP8_3, "vpsllvd",      256, NO_ZERO, 0)
+DEFINE_WS_OP_VICTIM(ws_op_fma_victim,   WS_OP_L3, WS_OP8_3, "vfmadd231ps",  256, ZERO_HI8, 0)
 
 #ifdef __AVXVNNI__
 /* See the AVX-VNNI note on avx2_vnni above: %{vex%} is mandatory here too. */
-DEFINE_WS_OP_VICTIM(ws_op_vnni_victim,  WS_OP_L3, WS_OP8_3, "%{vex%} vpdpbusd", 256, ZERO_HI8)
+DEFINE_WS_OP_VICTIM(ws_op_vnni_victim,  WS_OP_L3, WS_OP8_3, "%{vex%} vpdpbusd", 256, ZERO_HI8, 0)
+#endif
+
+/* ---- Sparse activation stream through a compute op (Phase 3, item 2) ---- *
+ *
+ * These are the ws_op_* family with the sparse fill turned on: the load stream
+ * carries a density-controlled operand (selector low 16 bits = nonzero words per
+ * 1024, high 32 bits = the packed activation pattern) and the op runs on it. The
+ * load stream, addresses and op count are identical for every density, so
+ * work_balance holds and the only question is whether the *compute* draws
+ * differently when more of its input is zero, on top of the movement channel
+ * that ws_sparse_l3_x8 already measures.
+ *
+ * ws_sparse_op_vnni is the headline: vpdpbusd is exactly the int8 dot product
+ * quantised inference issues, so this is activation sparsity seen through the
+ * MAC array (Phase 1 found vpdpbusd leaks +0.20 W register-resident). Read it
+ * paired against ws_sparse_op_mov -- movement-only at the same density -- to
+ * separate the compute channel from the load channel, as the instruction table
+ * is read against loads_only. Both source operands of each op are the same
+ * loaded activation word, so a zero word contributes a zero partial product;
+ * a follow-up can hold a dense weight fixed and vary only the activation.
+ */
+DEFINE_WS_OP_VICTIM(ws_sparse_op_mov_victim, WS_OP_L3, WS_OP8_2, "vmovdqa", 256, NO_ZERO, 1)
+#ifdef __AVXVNNI__
+DEFINE_WS_OP_VICTIM(ws_sparse_op_vnni_victim, WS_OP_L3, WS_OP8_3, "%{vex%} vpdpbusd", 256, ZERO_HI8, 1)
 #endif
 
 /* ---- Lookup table ----------------------------------------------------- */
@@ -748,6 +1023,11 @@ static const struct victim_entry victims[] = {
 	{ "ws_l3_x8_ab",   ws_l3_x8_ab_victim,   "as ws_l3_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_dram_x8_ab", ws_dram_x8_ab_victim, "as ws_dram_x8, alternating the selector's two 32-bit halves" },
 	{ "ws_l3_x8_ab64", ws_l3_x8_ab64_victim, "as ws_l3_x8_ab, but alternating every 64 bytes (one cache line)" },
+	{ "ws_sparse_l2_x8",   ws_sparse_l2_x8_victim,   "ws_l2_x8 stream at selector-controlled density (Phase 3 sparsity)" },
+	{ "ws_sparse_l3_x8",   ws_sparse_l3_x8_victim,   "ws_l3_x8 stream at selector-controlled density (Phase 3 sparsity)" },
+	{ "ws_sparse_dram_x8", ws_sparse_dram_x8_victim, "ws_dram_x8 stream at selector-controlled density (Phase 3 sparsity)" },
+	{ "ws_sparse_l3_x8_blk", ws_sparse_l3_x8_blk_victim, "as ws_sparse_l3_x8 but zeros in 64-byte runs: toggles between lines (E2 switching arm)" },
+	{ "ws_iid_l3_x8",      ws_iid_l3_x8_victim,      "ws_l3_x8 stream, each bit iid at selector density (E2 slope control)" },
 	{ "ws_op_mov",   ws_op_mov_victim,   "ws_l3_x8 loads + 8 vmovdqa reg-reg (movement, no compute)" },
 	{ "ws_op_and",   ws_op_and_victim,   "ws_l3_x8 loads + 8 vpand (result HW tracks operand)" },
 	{ "ws_op_or",    ws_op_or_victim,    "ws_l3_x8 loads + 8 vpor (result HW tracks operand)" },
@@ -758,6 +1038,10 @@ static const struct victim_entry victims[] = {
 	{ "ws_op_fma",   ws_op_fma_victim,   "ws_l3_x8 loads + 8 vfmadd231ps" },
 #ifdef __AVXVNNI__
 	{ "ws_op_vnni",  ws_op_vnni_victim,  "ws_l3_x8 loads + 8 vpdpbusd (AVX-VNNI int8 dot product)" },
+#endif
+	{ "ws_sparse_op_mov",  ws_sparse_op_mov_victim,  "sparse activation stream + 8 vmovdqa (movement-only reference)" },
+#ifdef __AVXVNNI__
+	{ "ws_sparse_op_vnni", ws_sparse_op_vnni_victim, "sparse activation stream + 8 vpdpbusd (Phase 3 int8 activation sparsity)" },
 #endif
 };
 

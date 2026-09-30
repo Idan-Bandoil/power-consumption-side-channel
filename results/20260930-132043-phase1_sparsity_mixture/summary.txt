@@ -1,0 +1,2189 @@
+
+==============================================================================
+Run 20260930-132043-phase1_sparsity_mixture
+==============================================================================
+  cpu       : 12th Gen Intel(R) Core(TM) i7-12700H
+  commit    : 459df875e13e4e3ac40936206073a838cdd4c5f8 (DIRTY)
+  config    : A
+  no_turbo  : 1   governor: powersave
+  pkg temp  : 38.0 C at start
+
+==============================================================================
+scat_d75  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.930    1.450     2298     2300     140.5
+     1          768   18000    17.103    1.406     2298     2300     138.8
+
+  work balance     : 1.226% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 203 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.67  15.86  15.78  16.46  15.83  15.71  15.87  16.04  16.02  16.04
+    cond 1:  17.07  17.00  17.07  17.21  17.01  17.05  17.19  17.19  17.07  17.17
+    within-condition span: cond 0 0.789 W, cond 1 0.202 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 8.9 mW  (imbalance 0.011 x drift span 0.789 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1737 W  95% CI [+1.0828, +1.2563]  (+7.37% of baseline)
+  Cohen's d        : +0.8219  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.975 at n<=120
+      n=   1  acc=0.824  #########################
+      n=   2  acc=0.862  ############################
+      n=   3  acc=0.886  ##############################
+      n=   5  acc=0.913  #################################
+      n=   8  acc=0.926  ##################################
+      n=  13  acc=0.928  ##################################
+      n=  21  acc=0.922  #################################
+      n=  34  acc=0.940  ###################################
+      n=  55  acc=0.975  ######################################
+      n=  89  acc=0.975  #####################################
+      n= 120  acc=0.975  ######################################
+  n for 95%        : 55  ->  18.3 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d125  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.590    3.251     2298     2300     139.8
+     1          128   18000    16.284    3.568     2299     2300     142.4
+
+  work balance     : 1.848% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 294 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.62  15.67  15.27  15.31  15.56  15.54  15.71  15.73  15.75  15.74
+    cond 1:  16.07  16.28  16.04  15.81  16.27  17.09  16.28  16.33  16.34  16.34
+    within-condition span: cond 0 0.480 W, cond 1 1.279 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 14.4 mW  (imbalance 0.011 x drift span 1.279 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6945 W  95% CI [+0.5586, +0.8971]  (+4.45% of baseline)
+  Cohen's d        : +0.2035  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.843 at n<=120
+      n=   1  acc=0.596  #######
+      n=   2  acc=0.593  #######
+      n=   3  acc=0.620  #########
+      n=   5  acc=0.652  ############
+      n=   8  acc=0.694  ###############
+      n=  13  acc=0.734  ##################
+      n=  21  acc=0.743  ###################
+      n=  34  acc=0.753  ####################
+      n=  55  acc=0.774  #####################
+      n=  89  acc=0.821  #########################
+      n= 120  acc=0.843  ###########################
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d25  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.001 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.543    0.564     2299     2300     147.1
+     1          256   18000    15.906    0.580     2299     2300     144.7
+
+  work balance     : 1.613% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 254 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.51  15.59  15.51  15.49  15.52  15.52  15.53  15.58  15.59  15.58
+    cond 1:  15.93  15.94  15.94  15.84  15.86  15.87  15.87  15.97  15.93  15.90
+    within-condition span: cond 0 0.096 W, cond 1 0.128 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 1.4 mW  (imbalance 0.011 x drift span 0.128 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3629 W  95% CI [+0.3480, +0.3779]  (+2.33% of baseline)
+  Cohen's d        : +0.6345  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.836  ##########################
+      n=   2  acc=0.865  #############################
+      n=   3  acc=0.887  ##############################
+      n=   5  acc=0.927  ##################################
+      n=   8  acc=0.951  ####################################
+      n=  13  acc=0.969  #####################################
+      n=  21  acc=0.986  ######################################
+      n=  34  acc=0.993  #######################################
+      n=  55  acc=0.998  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.9 bit/s raw
+  n for 99%        : 34  ->  29.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+aa_sparse  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [512, 512]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0          512   18000    16.285    0.792     2299     2300     147.3
+     1          512   18000    16.261    0.645     2299     2300     147.4
+
+  work balance     : 0.045% throughput spread  [OK]
+                     bounds a work-attributable difference at 7 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.38  16.25  16.25  16.44  16.22  16.18  16.21  16.24  16.32  16.36
+    cond 1:  16.33  16.28  16.23  16.24  16.21  16.21  16.22  16.24  16.34  16.31
+    within-condition span: cond 0 0.263 W, cond 1 0.129 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.0 mW  (imbalance 0.011 x drift span 0.263 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0238 W  95% CI [-0.0839, +0.0199]  (-0.15% of baseline)
+  Cohen's d        : -0.0329  (per sample)
+  permutation p    : 0.49045  (10000 block relabelings)
+  detector         : best accuracy 0.486 at n<=120
+      n=   1  acc=0.481  
+      n=   2  acc=0.475  
+      n=   3  acc=0.476  
+      n=   5  acc=0.474  
+      n=   8  acc=0.470  
+      n=  13  acc=0.478  
+      n=  21  acc=0.475  
+      n=  34  acc=0.470  
+      n=  55  acc=0.486  
+      n=  89  acc=0.483  
+      n= 120  acc=0.473  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d25  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.992 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.602    3.524     2297     2300     140.4
+     1          256   18000    16.741    3.789     2297     2300     145.8
+
+  work balance     : 3.771% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 610 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.67  15.59  15.65  15.54  15.62  15.63  15.66  15.67  15.51  15.48
+    cond 1:  16.82  16.69  16.70  16.66  16.69  16.66  16.65  16.68  16.59  17.26
+    within-condition span: cond 0 0.192 W, cond 1 0.667 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 7.5 mW  (imbalance 0.011 x drift span 0.667 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.1387 W  95% CI [+1.0558, +1.2367]  (+7.30% of baseline)
+  Cohen's d        : +0.3112  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.987 at n<=120
+      n=   1  acc=0.631  ##########
+      n=   2  acc=0.635  ##########
+      n=   3  acc=0.701  ################
+      n=   5  acc=0.772  #####################
+      n=   8  acc=0.834  ##########################
+      n=  13  acc=0.874  #############################
+      n=  21  acc=0.903  ################################
+      n=  34  acc=0.932  ##################################
+      n=  55  acc=0.964  #####################################
+      n=  89  acc=0.979  ######################################
+      n= 120  acc=0.987  ######################################
+  n for 95%        : 55  ->  18.3 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p75  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.004 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.429    2.432     2297     2300     144.4
+     1          768   18000    17.944    2.799     2297     2300     146.7
+
+  work balance     : 1.591% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 265 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.65  15.36  15.41  15.37  15.40  15.39  15.43  15.46  15.46  15.36
+    cond 1:  18.02  17.94  17.99  17.92  17.92  17.94  17.94  17.98  17.92  17.87
+    within-condition span: cond 0 0.298 W, cond 1 0.150 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.4 mW  (imbalance 0.011 x drift span 0.298 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.5144 W  95% CI [+2.4744, +2.5537]  (+16.30% of baseline)
+  Cohen's d        : +0.9590  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.994 at n<=120
+      n=   1  acc=0.834  ##########################
+      n=   2  acc=0.870  #############################
+      n=   3  acc=0.908  ################################
+      n=   5  acc=0.980  ######################################
+      n=   8  acc=0.991  #######################################
+      n=  13  acc=0.994  #######################################
+      n=  21  acc=0.993  #######################################
+      n=  34  acc=0.994  #######################################
+      n=  55  acc=0.992  #######################################
+      n=  89  acc=0.988  #######################################
+      n= 120  acc=0.989  #######################################
+  n for 95%        : 5  ->  199.3 bit/s raw
+  n for 99%        : 8  ->  124.6 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d100  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.580    0.733     2298     2300     145.2
+     1         1024   18000    17.379    0.774     2298     2300     144.9
+
+  work balance     : 0.161% throughput spread  [OK]
+                     bounds a work-attributable difference at 27 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.50  15.48  15.55  15.57  15.60  15.60  15.61  15.64  15.65  15.59
+    cond 1:  17.38  17.31  17.34  17.39  17.39  17.42  17.41  17.44  17.39  17.31
+    within-condition span: cond 0 0.178 W, cond 1 0.126 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 2.0 mW  (imbalance 0.011 x drift span 0.178 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.7989 W  95% CI [+1.7823, +1.8162]  (+11.55% of baseline)
+  Cohen's d        : +2.3875  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.944  ###################################
+      n=   2  acc=0.972  #####################################
+      n=   3  acc=0.988  #######################################
+      n=   5  acc=0.996  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  500.2 bit/s raw
+  n for 99%        : 5  ->  200.1 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p50  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.487    0.692     2298     2300     146.6
+     1          512   18000    17.973    0.811     2298     2300     145.9
+
+  work balance     : 0.479% throughput spread  [OK]
+                     bounds a work-attributable difference at 80 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.51  15.46  15.50  15.50  15.49  15.47  15.54  15.53  15.43  15.46
+    cond 1:  18.03  17.93  17.98  18.01  17.98  18.02  18.04  17.99  17.88  17.88
+    within-condition span: cond 0 0.113 W, cond 1 0.158 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 1.8 mW  (imbalance 0.011 x drift span 0.158 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.4858 W  95% CI [+2.4684, +2.5029]  (+16.05% of baseline)
+  Cohen's d        : +3.2981  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.963  #####################################
+      n=   2  acc=0.984  ######################################
+      n=   3  acc=0.993  #######################################
+      n=   5  acc=0.997  #######################################
+      n=   8  acc=1.000  #######################################
+      n=  13  acc=1.000  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  994.7 bit/s raw
+  n for 99%        : 3  ->  331.6 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d75  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.524    1.038     2298     2300     145.7
+     1          768   18000    17.417    1.050     2298     2300     143.0
+
+  work balance     : 1.822% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 300 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.48  15.44  15.48  15.54  15.53  15.54  15.58  15.52  15.71  15.42
+    cond 1:  17.43  17.36  17.37  17.47  17.46  17.47  17.45  17.42  17.35  17.38
+    within-condition span: cond 0 0.297 W, cond 1 0.122 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.3 mW  (imbalance 0.011 x drift span 0.297 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.8929 W  95% CI [+1.8291, +1.9349]  (+12.19% of baseline)
+  Cohen's d        : +1.8129  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.996 at n<=120
+      n=   1  acc=0.940  ###################################
+      n=   2  acc=0.972  #####################################
+      n=   3  acc=0.977  ######################################
+      n=   5  acc=0.984  ######################################
+      n=   8  acc=0.986  ######################################
+      n=  13  acc=0.995  #######################################
+      n=  21  acc=0.996  #######################################
+      n=  34  acc=0.996  #######################################
+      n=  55  acc=0.994  #######################################
+      n=  89  acc=0.993  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 2  ->  503.2 bit/s raw
+  n for 99%        : 13  ->  77.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d100  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.526    0.856     2298     2300     144.9
+     1         1024   18000    17.188    0.906     2297     2300     143.2
+
+  work balance     : 1.223% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 200 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.42  15.52  15.53  15.57  15.53  15.51  15.61  15.52  15.54  15.51
+    cond 1:  17.07  17.11  17.18  17.27  17.28  17.24  17.25  17.19  17.16  17.13
+    within-condition span: cond 0 0.190 W, cond 1 0.217 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 2.4 mW  (imbalance 0.011 x drift span 0.217 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6620 W  95% CI [+1.6406, +1.6835]  (+10.70% of baseline)
+  Cohen's d        : +1.8857  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.940  ###################################
+      n=   2  acc=0.973  #####################################
+      n=   3  acc=0.980  ######################################
+      n=   5  acc=0.988  #######################################
+      n=   8  acc=0.990  #######################################
+      n=  13  acc=0.997  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  501.7 bit/s raw
+  n for 99%        : 13  ->  77.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d50  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.245    1.278     2298     2300     145.3
+     1          512   18000    16.578    1.243     2298     2300     144.0
+
+  work balance     : 0.887% throughput spread  [OK]
+                     bounds a work-attributable difference at 141 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.12  15.21  15.17  15.25  15.20  15.31  15.30  15.28  15.49  15.13
+    cond 1:  16.54  16.55  16.59  16.61  16.60  16.63  16.61  16.62  16.52  16.52
+    within-condition span: cond 0 0.364 W, cond 1 0.110 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 4.1 mW  (imbalance 0.011 x drift span 0.364 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.3332 W  95% CI [+1.2655, +1.3773]  (+8.75% of baseline)
+  Cohen's d        : +1.0580  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.899  ###############################
+      n=   2  acc=0.939  ###################################
+      n=   3  acc=0.962  ####################################
+      n=   5  acc=0.975  #####################################
+      n=   8  acc=0.989  #######################################
+      n=  13  acc=0.996  #######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=0.997  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 3  ->  331.3 bit/s raw
+  n for 99%        : 13  ->  76.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d50  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.999 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.501    0.990     2298     2300     146.1
+     1          512   18000    17.070    1.138     2298     2300     146.8
+
+  work balance     : 0.432% throughput spread  [OK]
+                     bounds a work-attributable difference at 70 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.43  15.53  15.63  15.50  15.50  15.59  15.52  15.44  15.43  15.45
+    cond 1:  17.01  17.10  17.13  17.09  17.12  17.14  17.09  17.04  17.00  16.97
+    within-condition span: cond 0 0.199 W, cond 1 0.173 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 2.2 mW  (imbalance 0.011 x drift span 0.199 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.5682 W  95% CI [+1.5319, +1.6006]  (+10.12% of baseline)
+  Cohen's d        : +1.4705  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.937  ##################################
+      n=   2  acc=0.965  #####################################
+      n=   3  acc=0.969  #####################################
+      n=   5  acc=0.978  ######################################
+      n=   8  acc=0.985  ######################################
+      n=  13  acc=0.995  #######################################
+      n=  21  acc=0.995  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  500.6 bit/s raw
+  n for 99%        : 13  ->  77.0 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d125  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.441    0.900     2298     2300     145.8
+     1          128   18000    15.850    0.721     2298     2300     145.9
+
+  work balance     : 0.063% throughput spread  [OK]
+                     bounds a work-attributable difference at 10 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.36  15.39  15.36  15.69  15.55  15.44  15.48  15.38  15.39  15.36
+    cond 1:  15.98  15.83  15.84  15.84  15.87  15.87  15.87  15.83  15.79  15.76
+    within-condition span: cond 0 0.334 W, cond 1 0.221 W
+
+  interleaving     : imbalance 0.011  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.7 mW  (imbalance 0.011 x drift span 0.334 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.4089 W  95% CI [+0.3415, +0.4566]  (+2.65% of baseline)
+  Cohen's d        : +0.5016  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.843  ###########################
+      n=   2  acc=0.875  ##############################
+      n=   3  acc=0.897  ###############################
+      n=   5  acc=0.934  ##################################
+      n=   8  acc=0.955  ####################################
+      n=  13  acc=0.970  #####################################
+      n=  21  acc=0.986  ######################################
+      n=  34  acc=0.989  #######################################
+      n=  55  acc=0.993  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  125.8 bit/s raw
+  n for 99%        : 55  ->  18.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d125  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.969 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.428    2.674     2298     2300     145.0
+     1          128   18000    15.815    2.703     2298     2300     144.4
+
+  work balance     : 0.373% throughput spread  [OK]
+                     bounds a work-attributable difference at 58 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.39  15.33  15.42  15.44  15.41  15.51  15.47  15.48  15.42  15.38
+    cond 1:  15.80  15.80  15.81  15.86  15.85  15.83  15.89  15.81  15.73  15.76
+    within-condition span: cond 0 0.179 W, cond 1 0.155 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.7 mW  (imbalance 0.026 x drift span 0.179 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.3869 W  95% CI [+0.3662, +0.4081]  (+2.51% of baseline)
+  Cohen's d        : +0.1439  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.972 at n<=120
+      n=   1  acc=0.622  #########
+      n=   2  acc=0.599  #######
+      n=   3  acc=0.657  ############
+      n=   5  acc=0.672  #############
+      n=   8  acc=0.714  #################
+      n=  13  acc=0.786  ######################
+      n=  21  acc=0.854  ############################
+      n=  34  acc=0.910  ################################
+      n=  55  acc=0.955  ####################################
+      n=  89  acc=0.972  #####################################
+      n= 120  acc=0.968  #####################################
+  n for 95%        : 55  ->  18.8 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d50  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.536    0.696     2298     2300     145.5
+     1          512   18000    16.339    0.874     2298     2300     143.7
+
+  work balance     : 1.206% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 192 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.49  15.46  15.52  15.53  15.61  15.64  15.59  15.53  15.49  15.50
+    cond 1:  16.33  16.33  16.52  16.30  16.45  16.40  16.34  16.25  16.22  16.24
+    within-condition span: cond 0 0.180 W, cond 1 0.297 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 7.8 mW  (imbalance 0.026 x drift span 0.297 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8028 W  95% CI [+0.7639, +0.8554]  (+5.17% of baseline)
+  Cohen's d        : +1.0157  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.888  ###############################
+      n=   2  acc=0.925  ##################################
+      n=   3  acc=0.951  ####################################
+      n=   5  acc=0.970  #####################################
+      n=   8  acc=0.983  ######################################
+      n=  13  acc=0.987  ######################################
+      n=  21  acc=0.987  ######################################
+      n=  34  acc=0.990  #######################################
+      n=  55  acc=0.994  #######################################
+      n=  89  acc=0.997  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 3  ->  334.3 bit/s raw
+  n for 99%        : 34  ->  29.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d75  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.248    0.640     2298     2300     144.8
+     1          768   18000    16.971    0.704     2298     2300     144.0
+
+  work balance     : 0.573% throughput spread  [OK]
+                     bounds a work-attributable difference at 92 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.22  15.16  15.25  15.22  15.26  15.39  15.41  15.21  15.18  15.18
+    cond 1:  16.95  16.99  16.97  17.01  17.05  17.04  17.03  16.89  16.91  16.87
+    within-condition span: cond 0 0.246 W, cond 1 0.177 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 6.5 mW  (imbalance 0.026 x drift span 0.246 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.7232 W  95% CI [+1.7007, +1.7461]  (+11.30% of baseline)
+  Cohen's d        : +2.5610  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.941  ###################################
+      n=   2  acc=0.975  #####################################
+      n=   3  acc=0.987  ######################################
+      n=   5  acc=0.997  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=1.000  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  503.1 bit/s raw
+  n for 99%        : 5  ->  201.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d125  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.000 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.505    1.129     2298     2300     145.9
+     1          128   18000    16.011    1.092     2298     2300     145.3
+
+  work balance     : 0.441% throughput spread  [OK]
+                     bounds a work-attributable difference at 69 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.65  15.37  15.42  15.52  15.53  15.55  15.52  15.54  15.49  15.46
+    cond 1:  16.00  15.90  16.01  16.05  16.09  16.03  16.11  16.00  15.95  15.97
+    within-condition span: cond 0 0.278 W, cond 1 0.208 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 7.3 mW  (imbalance 0.026 x drift span 0.278 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.5065 W  95% CI [+0.4500, +0.5444]  (+3.27% of baseline)
+  Cohen's d        : +0.4561  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.993 at n<=120
+      n=   1  acc=0.838  ###########################
+      n=   2  acc=0.879  ##############################
+      n=   3  acc=0.893  ###############################
+      n=   5  acc=0.927  ##################################
+      n=   8  acc=0.949  ###################################
+      n=  13  acc=0.963  #####################################
+      n=  21  acc=0.974  #####################################
+      n=  34  acc=0.982  ######################################
+      n=  55  acc=0.990  #######################################
+      n=  89  acc=0.993  #######################################
+      n= 120  acc=0.992  #######################################
+  n for 95%        : 13  ->  76.9 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d25  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.981 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.367    2.702     2299     2300     146.1
+     1          256   18000    16.416    2.949     2299     2300     145.8
+
+  work balance     : 0.207% throughput spread  [OK]
+                     bounds a work-attributable difference at 33 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.33  15.30  15.37  15.38  15.36  15.45  15.47  15.39  15.31  15.31
+    cond 1:  16.41  16.41  16.46  16.41  16.46  16.49  16.48  16.46  16.30  16.28
+    within-condition span: cond 0 0.177 W, cond 1 0.204 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 5.4 mW  (imbalance 0.026 x drift span 0.204 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.0489 W  95% CI [+1.0241, +1.0722]  (+6.83% of baseline)
+  Cohen's d        : +0.3708  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.670  #############
+      n=   2  acc=0.685  ##############
+      n=   3  acc=0.762  ####################
+      n=   5  acc=0.808  ########################
+      n=   8  acc=0.907  ################################
+      n=  13  acc=0.967  #####################################
+      n=  21  acc=0.992  #######################################
+      n=  34  acc=0.995  #######################################
+      n=  55  acc=0.997  #######################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 13  ->  78.4 bit/s raw
+  n for 99%        : 21  ->  48.6 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p75  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.462    0.820     2299     2300     142.9
+     1          768   18000    18.045    0.917     2299     2300     146.9
+
+  work balance     : 2.766% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 463 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.45  15.43  15.49  15.50  15.54  15.55  15.41  15.43  15.42  15.40
+    cond 1:  18.03  18.10  18.09  18.08  18.12  18.12  18.00  17.97  17.97  17.98
+    within-condition span: cond 0 0.149 W, cond 1 0.151 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.0 mW  (imbalance 0.026 x drift span 0.151 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.5827 W  95% CI [+2.5596, +2.6098]  (+16.70% of baseline)
+  Cohen's d        : +2.9706  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.967  #####################################
+      n=   2  acc=0.981  ######################################
+      n=   3  acc=0.991  #######################################
+      n=   5  acc=0.998  #######################################
+      n=   8  acc=0.998  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1007.3 bit/s raw
+  n for 99%        : 3  ->  335.8 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d75  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.006 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.458    0.990     2298     2300     145.5
+     1          768   18000    17.280    1.085     2298     2300     146.6
+
+  work balance     : 0.806% throughput spread  [OK]
+                     bounds a work-attributable difference at 132 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.38  15.40  15.48  15.48  15.54  15.54  15.47  15.44  15.42  15.42
+    cond 1:  17.30  17.29  17.28  17.32  17.32  17.34  17.26  17.23  17.27  17.21
+    within-condition span: cond 0 0.160 W, cond 1 0.136 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.2 mW  (imbalance 0.026 x drift span 0.160 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.8219 W  95% CI [+1.8025, +1.8414]  (+11.79% of baseline)
+  Cohen's d        : +1.7535  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.915  #################################
+      n=   2  acc=0.957  ####################################
+      n=   3  acc=0.974  #####################################
+      n=   5  acc=0.987  ######################################
+      n=   8  acc=0.993  #######################################
+      n=  13  acc=0.993  #######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  497.1 bit/s raw
+  n for 99%        : 8  ->  124.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p50  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.993 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.448    0.617     2298     2300     144.5
+     1          512   18000    17.922    0.756     2298     2300     144.9
+
+  work balance     : 0.287% throughput spread  [OK]
+                     bounds a work-attributable difference at 48 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.40  15.36  15.46  15.50  15.53  15.48  15.45  15.41  15.43  15.45
+    cond 1:  17.87  17.93  17.96  18.01  18.03  17.89  17.90  17.88  17.89  17.87
+    within-condition span: cond 0 0.162 W, cond 1 0.157 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.3 mW  (imbalance 0.026 x drift span 0.162 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.4744 W  95% CI [+2.4556, +2.4936]  (+16.02% of baseline)
+  Cohen's d        : +3.5865  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.967  #####################################
+      n=   2  acc=0.989  #######################################
+      n=   3  acc=0.996  #######################################
+      n=   5  acc=0.998  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=1.000  ########################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1007.5 bit/s raw
+  n for 99%        : 3  ->  335.8 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d50  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.301    2.616     2298     2300     144.4
+     1          512   18000    16.871    2.899     2298     2300     147.1
+
+  work balance     : 1.814% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 292 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.24  15.28  15.32  15.29  15.35  15.37  15.37  15.33  15.24  15.22
+    cond 1:  16.85  16.86  16.85  16.94  16.90  16.95  16.88  16.85  16.83  16.81
+    within-condition span: cond 0 0.152 W, cond 1 0.143 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.0 mW  (imbalance 0.026 x drift span 0.152 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.5703 W  95% CI [+1.5505, +1.5901]  (+10.26% of baseline)
+  Cohen's d        : +0.5687  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.748  ###################
+      n=   2  acc=0.800  ########################
+      n=   3  acc=0.847  ###########################
+      n=   5  acc=0.912  ################################
+      n=   8  acc=0.975  #####################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.4 bit/s raw
+  n for 99%        : 13  ->  76.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+aa_sparse  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [512, 512]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0          512   18000    16.488    0.961     2299     2300     148.5
+     1          512   18000    16.476    0.978     2299     2300     148.5
+
+  work balance     : 0.007% throughput spread  [OK]
+                     bounds a work-attributable difference at 1 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.53  16.48  16.51  16.50  16.54  16.55  16.52  16.45  16.42  16.39
+    cond 1:  16.57  16.48  16.53  16.44  16.53  16.55  16.50  16.38  16.38  16.40
+    within-condition span: cond 0 0.163 W, cond 1 0.196 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 5.1 mW  (imbalance 0.026 x drift span 0.196 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0118 W  95% CI [-0.0368, +0.0152]  (-0.07% of baseline)
+  Cohen's d        : -0.0122  (per sample)
+  permutation p    : 0.38696  (10000 block relabelings)
+  detector         : best accuracy 0.529 at n<=120
+      n=   1  acc=0.505  
+      n=   2  acc=0.519  #
+      n=   3  acc=0.520  #
+      n=   5  acc=0.511  
+      n=   8  acc=0.526  ##
+      n=  13  acc=0.516  #
+      n=  21  acc=0.529  ##
+      n=  34  acc=0.492  
+      n=  55  acc=0.490  
+      n=  89  acc=0.506  
+      n= 120  acc=0.517  #
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d25  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.975 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.196    2.550     2299     2300     145.5
+     1          256   18000    16.081    2.696     2299     2300     146.0
+
+  work balance     : 0.338% throughput spread  [OK]
+                     bounds a work-attributable difference at 53 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.11  15.14  15.12  15.24  15.18  15.19  15.33  15.30  15.17  15.19
+    cond 1:  16.05  16.04  16.09  16.11  16.05  16.12  16.19  16.12  16.01  16.03
+    within-condition span: cond 0 0.217 W, cond 1 0.175 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 5.7 mW  (imbalance 0.026 x drift span 0.217 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.8850 W  95% CI [+0.8595, +0.9094]  (+5.82% of baseline)
+  Cohen's d        : +0.3373  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.677  ##############
+      n=   2  acc=0.680  ##############
+      n=   3  acc=0.757  ####################
+      n=   5  acc=0.786  ######################
+      n=   8  acc=0.870  #############################
+      n=  13  acc=0.952  ####################################
+      n=  21  acc=0.978  ######################################
+      n=  34  acc=0.993  #######################################
+      n=  55  acc=0.995  #######################################
+      n=  89  acc=0.998  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 13  ->  78.9 bit/s raw
+  n for 99%        : 34  ->  30.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d100  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.225    0.586     2298     2300     145.6
+     1         1024   18000    17.370    0.674     2298     2300     145.0
+
+  work balance     : 0.460% throughput spread  [OK]
+                     bounds a work-attributable difference at 75 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.16  15.17  15.29  15.23  15.18  15.27  15.29  15.25  15.15  15.26
+    cond 1:  17.36  17.38  17.40  17.41  17.43  17.41  17.35  17.32  17.31  17.33
+    within-condition span: cond 0 0.145 W, cond 1 0.118 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 3.8 mW  (imbalance 0.026 x drift span 0.145 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.1452 W  95% CI [+2.1267, +2.1630]  (+14.09% of baseline)
+  Cohen's d        : +3.3963  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.963  #####################################
+      n=   2  acc=0.985  ######################################
+      n=   3  acc=0.994  #######################################
+      n=   5  acc=0.998  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=1.000  #######################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1006.4 bit/s raw
+  n for 99%        : 3  ->  335.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d100  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.997 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.471    0.985     2299     2300     144.8
+     1         1024   18000    17.488    1.059     2299     2300     145.4
+
+  work balance     : 0.412% throughput spread  [OK]
+                     bounds a work-attributable difference at 68 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.42  15.44  15.47  15.50  15.53  15.57  15.49  15.41  15.42  15.46
+    cond 1:  17.45  17.52  17.54  17.54  17.56  17.55  17.45  17.43  17.42  17.45
+    within-condition span: cond 0 0.156 W, cond 1 0.144 W
+
+  interleaving     : imbalance 0.026  (mean position cond 0 0.49, cond 1 0.51)  [OK]
+  admitted bias    : 4.1 mW  (imbalance 0.026 x drift span 0.156 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.0177 W  95% CI [+2.0003, +2.0344]  (+13.04% of baseline)
+  Cohen's d        : +1.9735  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.944  ###################################
+      n=   2  acc=0.965  #####################################
+      n=   3  acc=0.970  #####################################
+      n=   5  acc=0.991  #######################################
+      n=   8  acc=0.999  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  501.3 bit/s raw
+  n for 99%        : 5  ->  200.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d25  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.996 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.526    0.845     2298     2300     146.5
+     1          256   18000    16.172    0.862     2299     2300     143.4
+
+  work balance     : 2.182% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 346 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.47  15.53  15.49  15.56  15.59  15.66  15.51  15.53  15.47  15.45
+    cond 1:  16.11  16.15  16.18  16.22  16.26  16.23  16.20  16.15  16.10  16.11
+    within-condition span: cond 0 0.202 W, cond 1 0.156 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 4.8 mW  (imbalance 0.024 x drift span 0.202 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6458 W  95% CI [+0.6206, +0.6692]  (+4.16% of baseline)
+  Cohen's d        : +0.7564  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.987 at n<=120
+      n=   1  acc=0.870  #############################
+      n=   2  acc=0.906  ################################
+      n=   3  acc=0.925  #################################
+      n=   5  acc=0.945  ###################################
+      n=   8  acc=0.963  #####################################
+      n=  13  acc=0.976  ######################################
+      n=  21  acc=0.977  ######################################
+      n=  34  acc=0.987  ######################################
+      n=  55  acc=0.987  ######################################
+      n=  89  acc=0.980  ######################################
+      n= 120  acc=0.985  ######################################
+  n for 95%        : 8  ->  125.5 bit/s raw
+  n for 99%        : None  (not reached)
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p75  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.994 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.466    1.037     2298     2300     146.5
+     1          768   18000    18.059    1.213     2298     2300     145.6
+
+  work balance     : 0.600% throughput spread  [OK]
+                     bounds a work-attributable difference at 101 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.42  15.46  15.48  15.49  15.51  15.53  15.43  15.45  15.43  15.46
+    cond 1:  18.02  18.12  18.06  18.07  18.13  18.06  18.04  18.05  17.99  18.03
+    within-condition span: cond 0 0.110 W, cond 1 0.140 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.3 mW  (imbalance 0.024 x drift span 0.140 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.5930 W  95% CI [+2.5714, +2.6147]  (+16.77% of baseline)
+  Cohen's d        : +2.2986  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.957  ####################################
+      n=   2  acc=0.974  #####################################
+      n=   3  acc=0.979  ######################################
+      n=   5  acc=0.994  #######################################
+      n=   8  acc=0.996  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1006.5 bit/s raw
+  n for 99%        : 5  ->  201.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d100  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.490    1.027     2298     2300     145.8
+     1         1024   18000    17.353    1.142     2298     2300     146.3
+
+  work balance     : 0.368% throughput spread  [OK]
+                     bounds a work-attributable difference at 60 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.47  15.47  15.51  15.51  15.55  15.55  15.50  15.46  15.47  15.41
+    cond 1:  17.34  17.35  17.37  17.40  17.42  17.37  17.36  17.27  17.33  17.32
+    within-condition span: cond 0 0.133 W, cond 1 0.146 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.5 mW  (imbalance 0.024 x drift span 0.146 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.8631 W  95% CI [+1.8482, +1.8784]  (+12.03% of baseline)
+  Cohen's d        : +1.7150  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.931  ##################################
+      n=   2  acc=0.958  ####################################
+      n=   3  acc=0.975  #####################################
+      n=   5  acc=0.987  ######################################
+      n=   8  acc=0.998  #######################################
+      n=  13  acc=1.000  ########################################
+      n=  21  acc=1.000  ########################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  504.6 bit/s raw
+  n for 99%        : 8  ->  126.1 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+aa_sparse  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [512, 512]   << A/A CONTROL
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.958 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0          512   18000    16.399    2.609     2298     2300     146.7
+     1          512   18000    16.396    2.627     2298     2300     146.8
+
+  work balance     : 0.039% throughput spread  [OK]
+                     bounds a work-attributable difference at 6 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  16.42  16.35  16.47  16.44  16.43  16.41  16.36  16.30  16.27  16.55
+    cond 1:  16.33  16.36  16.45  16.44  16.45  16.51  16.39  16.31  16.33  16.38
+    within-condition span: cond 0 0.278 W, cond 1 0.203 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 6.6 mW  (imbalance 0.024 x drift span 0.278 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : -0.0027 W  95% CI [-0.0581, +0.0419]  (-0.02% of baseline)
+  Cohen's d        : -0.0010  (per sample)
+  permutation p    : 0.94461  (10000 block relabelings)
+  detector         : best accuracy 0.504 at n<=120
+      n=   1  acc=0.499  
+      n=   2  acc=0.498  
+      n=   3  acc=0.489  
+      n=   5  acc=0.493  
+      n=   8  acc=0.498  
+      n=  13  acc=0.498  
+      n=  21  acc=0.504  
+      n=  34  acc=0.494  
+      n=  55  acc=0.487  
+      n=  89  acc=0.486  
+      n= 120  acc=0.454  
+  n for 95%        : None  (not reached)
+  n for 99%        : None  (not reached)
+  A/A GATE         : PASS (CI must contain 0, accuracy must stay near chance)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d75  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.007 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.307    2.736     2298     2300     144.3
+     1          768   18000    16.727    3.008     2298     2300     147.1
+
+  work balance     : 1.880% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 301 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.22  15.30  15.33  15.36  15.34  15.34  15.34  15.26  15.29  15.29
+    cond 1:  16.69  16.69  16.72  16.76  16.76  16.79  16.74  16.70  16.72  16.69
+    within-condition span: cond 0 0.143 W, cond 1 0.107 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.4 mW  (imbalance 0.024 x drift span 0.143 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.4204 W  95% CI [+1.4022, +1.4387]  (+9.28% of baseline)
+  Cohen's d        : +0.4940  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.728  ##################
+      n=   2  acc=0.774  #####################
+      n=   3  acc=0.819  #########################
+      n=   5  acc=0.877  ##############################
+      n=   8  acc=0.968  #####################################
+      n=  13  acc=0.992  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=0.998  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.2 bit/s raw
+  n for 99%        : 13  ->  76.4 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d125  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.002 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.498    0.800     2299     2300     145.0
+     1          128   18000    16.151    0.891     2298     2300     146.8
+
+  work balance     : 1.271% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 201 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.44  15.52  15.54  15.56  15.56  15.52  15.50  15.45  15.45  15.44
+    cond 1:  16.10  16.13  16.17  16.17  16.18  16.18  16.14  16.31  16.03  16.10
+    within-condition span: cond 0 0.121 W, cond 1 0.278 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 6.6 mW  (imbalance 0.024 x drift span 0.278 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6534 W  95% CI [+0.6174, +0.7064]  (+4.22% of baseline)
+  Cohen's d        : +0.7717  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.993 at n<=120
+      n=   1  acc=0.836  ##########################
+      n=   2  acc=0.892  ###############################
+      n=   3  acc=0.924  #################################
+      n=   5  acc=0.950  ####################################
+      n=   8  acc=0.964  #####################################
+      n=  13  acc=0.976  ######################################
+      n=  21  acc=0.987  ######################################
+      n=  34  acc=0.986  ######################################
+      n=  55  acc=0.986  ######################################
+      n=  89  acc=0.992  #######################################
+      n= 120  acc=0.993  #######################################
+  n for 95%        : 5  ->  199.7 bit/s raw
+  n for 99%        : 89  ->  11.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d100  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 1024]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.967 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.325    2.973     2299     2300     144.4
+     1         1024   18000    16.976    3.313     2298     2300     145.9
+
+  work balance     : 1.075% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 174 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.21  15.24  15.37  15.39  15.39  15.45  15.34  15.29  15.25  15.32
+    cond 1:  16.84  16.88  16.98  16.97  17.05  17.03  17.06  17.03  16.95  16.98
+    within-condition span: cond 0 0.240 W, cond 1 0.220 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 5.7 mW  (imbalance 0.024 x drift span 0.240 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.6513 W  95% CI [+1.6260, +1.6761]  (+10.78% of baseline)
+  Cohen's d        : +0.5247  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.649  ###########
+      n=   2  acc=0.712  ################
+      n=   3  acc=0.822  #########################
+      n=   5  acc=0.902  ################################
+      n=   8  acc=0.974  #####################################
+      n=  13  acc=0.991  #######################################
+      n=  21  acc=0.997  #######################################
+      n=  34  acc=0.999  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  129.2 bit/s raw
+  n for 99%        : 13  ->  79.5 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d25  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 256]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.998 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.237    0.875     2299     2300     143.7
+     1          256   18000    16.540    1.119     2299     2300     146.2
+
+  work balance     : 1.762% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 280 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.19  15.19  15.20  15.20  15.37  15.37  15.25  15.30  15.16  15.15
+    cond 1:  16.48  16.50  16.50  16.52  16.58  16.60  16.81  16.50  16.50  16.40
+    within-condition span: cond 0 0.218 W, cond 1 0.410 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 9.8 mW  (imbalance 0.024 x drift span 0.410 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.3023 W  95% CI [+1.2660, +1.3458]  (+8.55% of baseline)
+  Cohen's d        : +1.2965  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 0.995 at n<=120
+      n=   1  acc=0.919  #################################
+      n=   2  acc=0.949  ###################################
+      n=   3  acc=0.961  ####################################
+      n=   5  acc=0.979  ######################################
+      n=   8  acc=0.982  ######################################
+      n=  13  acc=0.991  #######################################
+      n=  21  acc=0.994  #######################################
+      n=  34  acc=0.994  #######################################
+      n=  55  acc=0.994  #######################################
+      n=  89  acc=0.995  #######################################
+      n= 120  acc=0.994  #######################################
+  n for 95%        : 3  ->  334.0 bit/s raw
+  n for 99%        : 13  ->  77.1 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d75  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 768]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.003 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.481    1.219     2297     2300     145.7
+     1          768   18000    17.222    1.383     2298     2300     145.0
+
+  work balance     : 0.517% throughput spread  [OK]
+                     bounds a work-attributable difference at 84 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.37  15.45  15.52  15.53  15.54  15.54  15.45  15.43  15.49  15.49
+    cond 1:  17.12  17.19  17.25  17.30  17.30  17.29  17.21  17.15  17.18  17.23
+    within-condition span: cond 0 0.174 W, cond 1 0.180 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 4.3 mW  (imbalance 0.024 x drift span 0.180 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.7410 W  95% CI [+1.7202, +1.7615]  (+11.25% of baseline)
+  Cohen's d        : +1.3356  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.923  #################################
+      n=   2  acc=0.936  ##################################
+      n=   3  acc=0.947  ###################################
+      n=   5  acc=0.967  #####################################
+      n=   8  acc=0.989  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=1.000  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 5  ->  199.4 bit/s raw
+  n for 99%        : 13  ->  76.7 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d50  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.009 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.290    0.876     2298     2300     146.4
+     1          512   18000    16.574    0.781     2298     2300     148.6
+
+  work balance     : 1.508% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 240 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.24  15.34  15.25  15.15  15.52  15.33  15.36  15.30  15.16  15.25
+    cond 1:  16.58  16.57  16.56  16.54  16.62  16.64  16.63  16.61  16.52  16.47
+    within-condition span: cond 0 0.371 W, cond 1 0.165 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 8.8 mW  (imbalance 0.024 x drift span 0.371 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2833 W  95% CI [+1.2202, +1.3256]  (+8.39% of baseline)
+  Cohen's d        : +1.5467  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.918  #################################
+      n=   2  acc=0.961  ####################################
+      n=   3  acc=0.972  #####################################
+      n=   5  acc=0.989  #######################################
+      n=   8  acc=0.998  #######################################
+      n=  13  acc=0.999  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  #######################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  495.4 bit/s raw
+  n for 99%        : 8  ->  123.8 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+iid_p50  [victim=ws_iid_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.991 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.491    0.716     2299     2300     145.2
+     1          512   18000    17.989    0.817     2299     2300     144.3
+
+  work balance     : 0.653% throughput spread  [OK]
+                     bounds a work-attributable difference at 109 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.46  15.50  15.55  15.51  15.57  15.52  15.46  15.45  15.43  15.46
+    cond 1:  17.99  18.03  18.03  18.05  18.06  17.98  17.95  17.93  17.93  17.93
+    within-condition span: cond 0 0.142 W, cond 1 0.139 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 3.4 mW  (imbalance 0.024 x drift span 0.142 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +2.4977 W  95% CI [+2.4792, +2.5152]  (+16.12% of baseline)
+  Cohen's d        : +3.2522  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.961  ####################################
+      n=   2  acc=0.986  ######################################
+      n=   3  acc=0.992  #######################################
+      n=   5  acc=0.996  #######################################
+      n=   8  acc=0.997  #######################################
+      n=  13  acc=0.997  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 1  ->  1008.6 bit/s raw
+  n for 99%        : 3  ->  336.2 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+blk_d50  [victim=ws_sparse_l3_x8_blk, mode=edge]
+==============================================================================
+  selectors        : [0, 512]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 0.995 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.544    0.825     2298     2300     145.4
+     1          512   18000    16.841    0.722     2298     2300     143.0
+
+  work balance     : 1.671% throughput spread  [FAIL — conditions did different amounts of work]
+                     bounds a work-attributable difference at 271 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.49  15.52  15.80  15.51  15.59  15.62  15.51  15.46  15.47  15.46
+    cond 1:  16.82  16.71  16.91  16.89  16.92  16.94  16.91  16.79  16.75  16.78
+    within-condition span: cond 0 0.341 W, cond 1 0.233 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 8.1 mW  (imbalance 0.024 x drift span 0.341 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +1.2976 W  95% CI [+1.2356, +1.3387]  (+8.35% of baseline)
+  Cohen's d        : +1.6745  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.919  #################################
+      n=   2  acc=0.963  #####################################
+      n=   3  acc=0.978  ######################################
+      n=   5  acc=0.990  #######################################
+      n=   8  acc=0.996  #######################################
+      n=  13  acc=0.998  #######################################
+      n=  21  acc=0.999  #######################################
+      n=  34  acc=1.000  ########################################
+      n=  55  acc=1.000  ########################################
+      n=  89  acc=1.000  ########################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 2  ->  502.3 bit/s raw
+  n for 99%        : 5  ->  200.9 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+scat_d125  [victim=ws_sparse_l3_x8, mode=edge]
+==============================================================================
+  selectors        : [0, 128]
+  samples          : 36000 over 300 blocks
+  RAPL period      : 1.005 ms
+  zero-tick samples: 0.00%  [OK]
+
+  cond     selector       n    mean W     sd W  MHz mon  MHz vic      GB/s
+     0            0   18000    15.276    0.907     2298     2300     146.4
+     1          128   18000    15.935    0.915     2299     2300     145.8
+
+  work balance     : 0.441% throughput spread  [OK]
+                     bounds a work-attributable difference at 69 mW if all package power scaled with traffic
+  victim frequency : cpu2, spread 0 kHz (0.000%)  [OK]
+
+  drift check (mean W per decile of chronological block order):
+    cond 0:  15.12  15.32  15.36  15.15  15.27  15.36  15.30  15.28  15.28  15.31
+    cond 1:  15.87  15.95  15.97  15.93  15.96  15.96  15.99  15.90  15.91  15.91
+    within-condition span: cond 0 0.237 W, cond 1 0.119 W
+
+  interleaving     : imbalance 0.024  (mean position cond 0 0.51, cond 1 0.49)  [OK]
+  admitted bias    : 5.7 mW  (imbalance 0.024 x drift span 0.237 W)
+                     an effect smaller than this is not separated from drift by the design alone
+
+  --- condition 0 vs 1 ---
+  mean difference  : +0.6593 W  95% CI [+0.6383, +0.6806]  (+4.32% of baseline)
+  Cohen's d        : +0.7235  (per sample)
+  permutation p    : 0.00010  (10000 block relabelings)
+  detector         : best accuracy 1.000 at n<=120
+      n=   1  acc=0.855  ############################
+      n=   2  acc=0.898  ###############################
+      n=   3  acc=0.924  #################################
+      n=   5  acc=0.948  ###################################
+      n=   8  acc=0.962  ####################################
+      n=  13  acc=0.982  ######################################
+      n=  21  acc=0.988  #######################################
+      n=  34  acc=0.993  #######################################
+      n=  55  acc=0.987  ######################################
+      n=  89  acc=0.997  #######################################
+      n= 120  acc=1.000  ########################################
+  n for 95%        : 8  ->  124.4 bit/s raw
+  n for 99%        : 34  ->  29.3 bit/s raw
+  effect is SIGNIFICANT (bootstrap CI excludes zero)
+
+  figures -> results/20260930-132043-phase1_sparsity_mixture/figures
+
+==============================================================================
+Platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    mains                          78 snapshots
+
+  platform power state: constant
+
+==============================================================================
+Validity gates
+==============================================================================
+  scat_d75                     zero_ticks       PASS
+  scat_d75                     work_balance     FAIL
+  scat_d75                     frequency_balance PASS
+  scat_d75                     interleaving     PASS
+  blk_d125                     zero_ticks       PASS
+  blk_d125                     work_balance     FAIL
+  blk_d125                     frequency_balance PASS
+  blk_d125                     interleaving     PASS
+  scat_d25                     zero_ticks       PASS
+  scat_d25                     work_balance     FAIL
+  scat_d25                     frequency_balance PASS
+  scat_d25                     interleaving     PASS
+  aa_sparse                    zero_ticks       PASS
+  aa_sparse                    work_balance     PASS
+  aa_sparse                    frequency_balance PASS
+  aa_sparse                    interleaving     PASS
+  aa_sparse                    aa_0v1           PASS
+  blk_d25                      zero_ticks       PASS
+  blk_d25                      work_balance     FAIL
+  blk_d25                      frequency_balance PASS
+  blk_d25                      interleaving     PASS
+  iid_p75                      zero_ticks       PASS
+  iid_p75                      work_balance     FAIL
+  iid_p75                      frequency_balance PASS
+  iid_p75                      interleaving     PASS
+  blk_d100                     zero_ticks       PASS
+  blk_d100                     work_balance     PASS
+  blk_d100                     frequency_balance PASS
+  blk_d100                     interleaving     PASS
+  iid_p50                      zero_ticks       PASS
+  iid_p50                      work_balance     PASS
+  iid_p50                      frequency_balance PASS
+  iid_p50                      interleaving     PASS
+  blk_d75                      zero_ticks       PASS
+  blk_d75                      work_balance     FAIL
+  blk_d75                      frequency_balance PASS
+  blk_d75                      interleaving     PASS
+  scat_d100                    zero_ticks       PASS
+  scat_d100                    work_balance     FAIL
+  scat_d100                    frequency_balance PASS
+  scat_d100                    interleaving     PASS
+  scat_d50                     zero_ticks       PASS
+  scat_d50                     work_balance     PASS
+  scat_d50                     frequency_balance PASS
+  scat_d50                     interleaving     PASS
+  blk_d50                      zero_ticks       PASS
+  blk_d50                      work_balance     PASS
+  blk_d50                      frequency_balance PASS
+  blk_d50                      interleaving     PASS
+  scat_d125                    zero_ticks       PASS
+  scat_d125                    work_balance     PASS
+  scat_d125                    frequency_balance PASS
+  scat_d125                    interleaving     PASS
+  scat_d125                    zero_ticks       PASS
+  scat_d125                    work_balance     PASS
+  scat_d125                    frequency_balance PASS
+  scat_d125                    interleaving     PASS
+  scat_d50                     zero_ticks       PASS
+  scat_d50                     work_balance     FAIL
+  scat_d50                     frequency_balance PASS
+  scat_d50                     interleaving     PASS
+  scat_d75                     zero_ticks       PASS
+  scat_d75                     work_balance     PASS
+  scat_d75                     frequency_balance PASS
+  scat_d75                     interleaving     PASS
+  blk_d125                     zero_ticks       PASS
+  blk_d125                     work_balance     PASS
+  blk_d125                     frequency_balance PASS
+  blk_d125                     interleaving     PASS
+  blk_d25                      zero_ticks       PASS
+  blk_d25                      work_balance     PASS
+  blk_d25                      frequency_balance PASS
+  blk_d25                      interleaving     PASS
+  iid_p75                      zero_ticks       PASS
+  iid_p75                      work_balance     FAIL
+  iid_p75                      frequency_balance PASS
+  iid_p75                      interleaving     PASS
+  blk_d75                      zero_ticks       PASS
+  blk_d75                      work_balance     PASS
+  blk_d75                      frequency_balance PASS
+  blk_d75                      interleaving     PASS
+  iid_p50                      zero_ticks       PASS
+  iid_p50                      work_balance     PASS
+  iid_p50                      frequency_balance PASS
+  iid_p50                      interleaving     PASS
+  blk_d50                      zero_ticks       PASS
+  blk_d50                      work_balance     FAIL
+  blk_d50                      frequency_balance PASS
+  blk_d50                      interleaving     PASS
+  aa_sparse                    zero_ticks       PASS
+  aa_sparse                    work_balance     PASS
+  aa_sparse                    frequency_balance PASS
+  aa_sparse                    interleaving     PASS
+  aa_sparse                    aa_0v1           PASS
+  scat_d25                     zero_ticks       PASS
+  scat_d25                     work_balance     PASS
+  scat_d25                     frequency_balance PASS
+  scat_d25                     interleaving     PASS
+  blk_d100                     zero_ticks       PASS
+  blk_d100                     work_balance     PASS
+  blk_d100                     frequency_balance PASS
+  blk_d100                     interleaving     PASS
+  scat_d100                    zero_ticks       PASS
+  scat_d100                    work_balance     PASS
+  scat_d100                    frequency_balance PASS
+  scat_d100                    interleaving     PASS
+  scat_d25                     zero_ticks       PASS
+  scat_d25                     work_balance     FAIL
+  scat_d25                     frequency_balance PASS
+  scat_d25                     interleaving     PASS
+  iid_p75                      zero_ticks       PASS
+  iid_p75                      work_balance     PASS
+  iid_p75                      frequency_balance PASS
+  iid_p75                      interleaving     PASS
+  blk_d100                     zero_ticks       PASS
+  blk_d100                     work_balance     PASS
+  blk_d100                     frequency_balance PASS
+  blk_d100                     interleaving     PASS
+  aa_sparse                    zero_ticks       PASS
+  aa_sparse                    work_balance     PASS
+  aa_sparse                    frequency_balance PASS
+  aa_sparse                    interleaving     PASS
+  aa_sparse                    aa_0v1           PASS
+  scat_d75                     zero_ticks       PASS
+  scat_d75                     work_balance     FAIL
+  scat_d75                     frequency_balance PASS
+  scat_d75                     interleaving     PASS
+  blk_d125                     zero_ticks       PASS
+  blk_d125                     work_balance     FAIL
+  blk_d125                     frequency_balance PASS
+  blk_d125                     interleaving     PASS
+  scat_d100                    zero_ticks       PASS
+  scat_d100                    work_balance     FAIL
+  scat_d100                    frequency_balance PASS
+  scat_d100                    interleaving     PASS
+  blk_d25                      zero_ticks       PASS
+  blk_d25                      work_balance     FAIL
+  blk_d25                      frequency_balance PASS
+  blk_d25                      interleaving     PASS
+  blk_d75                      zero_ticks       PASS
+  blk_d75                      work_balance     PASS
+  blk_d75                      frequency_balance PASS
+  blk_d75                      interleaving     PASS
+  scat_d50                     zero_ticks       PASS
+  scat_d50                     work_balance     FAIL
+  scat_d50                     frequency_balance PASS
+  scat_d50                     interleaving     PASS
+  iid_p50                      zero_ticks       PASS
+  iid_p50                      work_balance     PASS
+  iid_p50                      frequency_balance PASS
+  iid_p50                      interleaving     PASS
+  blk_d50                      zero_ticks       PASS
+  blk_d50                      work_balance     FAIL
+  blk_d50                      frequency_balance PASS
+  blk_d50                      interleaving     PASS
+  scat_d125                    zero_ticks       PASS
+  scat_d125                    work_balance     PASS
+  scat_d125                    frequency_balance PASS
+  scat_d125                    interleaving     PASS
+
+FAILED GATES: scat_d75/work_balance, blk_d125/work_balance, scat_d25/work_balance, blk_d25/work_balance, iid_p75/work_balance, blk_d75/work_balance, scat_d100/work_balance, scat_d50/work_balance, iid_p75/work_balance, blk_d50/work_balance, scat_d25/work_balance, scat_d75/work_balance, blk_d125/work_balance, scat_d100/work_balance, blk_d25/work_balance, scat_d50/work_balance, blk_d50/work_balance
+label                 n   mean dW   between    within  ratio    sign    acc     GB/s    dpJ/B
+----------------------------------------------------------------------------------------------------
+aa_sparse (A/A)       3   -0.0127    0.0106    0.0425   0.25   all -  0.506   147.55     -0.1
+                        per-repeat: -0.0238  -0.0118  -0.0027
+blk_d100              3   +1.9357    0.1842    0.0165  11.15   all +  1.000   145.46     13.3
+                        per-repeat: +1.7989  +2.1452  +1.8631
+blk_d125              3   +0.6181    0.0988    0.0866   1.14   all +  0.943   144.22      4.3
+                        per-repeat: +0.6945  +0.5065  +0.6534
+blk_d25               3   +1.1633    0.1285    0.0508   2.53   all +  0.994   144.66      8.0
+                        per-repeat: +1.1387  +1.0489  +1.3023
+blk_d50               3   +1.4787    0.1568    0.0346   4.53   all +  1.000   145.46     10.2
+                        per-repeat: +1.5682  +1.5703  +1.2976
+blk_d75               3   +1.8186    0.0760    0.0315   2.41   all +  0.999   145.25     12.5
+                        per-repeat: +1.8929  +1.8219  +1.7410
+iid_p50               3   +2.4859    0.0117    0.0181   0.64   all +  1.000   145.22     17.1
+                        per-repeat: +2.4858  +2.4744  +2.4977
+iid_p75               3   +2.5634    0.0427    0.0289   1.48   all +  0.998   145.49     17.6
+                        per-repeat: +2.5144  +2.5827  +2.5930
+scat_d100             3   +1.7770    0.2085    0.0212   9.81   all +  1.000   144.79     12.3
+                        per-repeat: +1.6620  +2.0177  +1.6513
+scat_d125             3   +0.4851    0.1513    0.0333   4.54   all +  0.990   145.57      3.3
+                        per-repeat: +0.4089  +0.3869  +0.6593
+scat_d25              3   +0.6312    0.2614    0.0217  12.04   all +  0.996   145.53      4.3
+                        per-repeat: +0.3629  +0.8850  +0.6458
+scat_d50              3   +1.1398    0.2929    0.0512   5.72   all +  1.000   145.56      7.8
+                        per-repeat: +1.3332  +0.8028  +1.2833
+scat_d75              3   +1.4391    0.2752    0.0424   6.50   all +  0.992   143.23     10.0
+                        per-repeat: +1.1737  +1.7232  +1.4204
+
+mean dW  : mean of the per-repeat condition differences, in watts
+between  : SD of those differences across repeats
+within   : mean half-width of each run's own 95% bootstrap CI
+ratio    : between/within. >1 means single-run CIs are optimistic
+sign     : whether every repeat agrees on the direction of the effect
+GB/s     : measured operand throughput summed over victim threads
+dpJ/B    : mean dW normalised to traffic rate -- mW/(GB/s), which is
+           picojoules per byte. It is a DIFFERENCE between two operands,
+           not the energy needed to move a byte; that quantity is much
+           larger and is not measured anywhere in this project. The
+           distinction matters because published DRAM transport figures
+           of 10-20 pJ/bit are the other one.
+====================================================================================
+Sparsity mixture (critique E2): per-transfer or per-stream?
+====================================================================================
+A/A (same density both sides): -0.0127 W, SD 0.0106 over 3 -- the density-mode path reads zero
+
+1. STATIC arm (scattered, nothing toggles between transfers)
+   anchor dP(d=1) = +1.777 W; Phase 1 law rescaled by 0.900
+        d  mean HW     dP W     SD  per-transfer  per-stream  resid PT  resid PS
+   -----------------------------------------------------------------------------
+    0.125      4.0   +0.485  0.151         0.222       0.497    +0.263    -0.012
+    0.250      8.0   +0.631  0.261         0.444       0.680    +0.187    -0.049
+    0.500     16.0   +1.140  0.293         0.889       1.046    +0.251    +0.094
+    0.750     24.0   +1.439  0.275         1.333       1.411    +0.106    +0.028
+    1.000     32.0   +1.777  0.209         1.777       1.777    +0.000    +0.000
+   per-transfer: d * dP(1), through the origin. per-stream: Phase 1's
+   step + slope * mean HW -- the mixture pays the whole step.
+
+2. PAIRED test of per-transfer on the static arm
+   per repeat, mean over d<1 of [dP(d)/dP(1) - d]: +0.087  +0.064  +0.201
+   mean +0.117 (SD 0.073); per-transfer predicts 0.000
+   t = 2.78 on 2 df, two-sided p = 0.109  (95% needs |t| > 4.30)
+   per-stream predicts +0.105 from the rescaled Phase 1 law
+
+3. SWITCHING term = blocked - scattered, same density
+        d  line toggle  blocked W  scattered W  switch W  Phase1 line+load
+   -------------------------------------------------------------------------
+    0.125         0.25     +0.618       +0.485    +0.133             0.195
+    0.250         0.50     +1.163       +0.631    +0.532             0.390
+    0.500         1.00     +1.479       +1.140    +0.339             0.780
+    0.750         0.50     +1.819       +1.439    +0.380             0.390
+    1.000         0.00     +1.936       +1.777    +0.159             0.000
+   d = 1 holds bit-identical buffers, so its blocked - scattered is pure
+   run-to-run and placement noise: the floor the other rows sit on.
+
+4. IID words against the static arm plus Phase 1's switching
+        p  iid dP W     SD   static  +switch   model  excess W
+   ------------------------------------------------------------
+    0.500    +2.486  0.012   +1.140   +0.675  +1.815    +0.671
+    0.750    +2.563  0.043   +1.439   +0.506  +1.945    +0.618
+   static: this session's scattered arm at the same mean HW (32p).
+   switch: Phase 1's load+line terms scaled to iid's mean HD, 64p(1-p).
+
+Verdict rule (pre-committed in the spec, read on the static arm):
+  per-transfer -> dP(d)/dP(1) = d;  per-stream -> the mixture carries the
+  whole step and follows the uniform-word law. Either way, density is
+  recoverable if dP rises monotonically with d; what changes is whether
+  the cheap zero or the per-bit weight term is what carries it.
+label        DENSITY               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+scat_d125    4.0                   128  3   +0.4851    0.1513    0.0333   121.26
+scat_d25     8.0                   256  3   +0.6312    0.2614    0.0217    78.91
+scat_d50     16.0                   512  3   +1.1398    0.2929    0.0512    71.24
+scat_d75     24.0                   768  3   +1.4391    0.2752    0.0424    59.96
+scat_d100    32.0                  1024  3   +1.7770    0.2085    0.0212    55.53
+(A/A)          0                   512  3   -0.0127    0.0106
+
+per-repeat fit of dP = a + b*DENSITY
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   5       46.15    212.85   0.838
+     1   5       56.58    212.57   0.906
+     2   5       38.45    486.09   0.928
+
+slope   : +47.06 mW/bit  (SD 9.10 over 3 repeats, SE 5.25)
+          95% CI [+36.76, +57.36] mW/bit
+intercept: +303.8 mW  (SD 157.8, SE 91.1; 3.3 SE from zero)
+mean R^2: 0.891
+          i.e. +1506 mW over the full 0 -> 32.0 bit range
+          +0.3247 mW/bit per GB/s at 145 GB/s aggregate operand throughput
+
+figure -> results/20260930-132043-phase1_sparsity_mixture/figures/density-fit.png
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one mean Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+label        DENSITY               operand  n   mean dW   between    within   mW/bit
+---------------------------------------------------------------------------------------
+blk_d125     4.0                   128  3   +0.6181    0.0988    0.0866   154.53
+blk_d25      8.0                   256  3   +1.1633    0.1285    0.0508   145.41
+blk_d50      16.0                   512  3   +1.4787    0.1568    0.0346    92.42
+blk_d75      24.0                   768  3   +1.8186    0.0760    0.0315    75.78
+blk_d100     32.0                  1024  3   +1.9357    0.1842    0.0165    60.49
+(A/A)          0                   512  3   -0.0127    0.0106
+
+per-repeat fit of dP = a + b*DENSITY
+repeat   n  b (mW/bit)    a (mW)     R^2
+     0   5       39.65    752.49   0.829
+     1   5       54.79    498.04   0.937
+     2   5       38.09    731.49   0.842
+
+slope   : +44.18 mW/bit  (SD 9.22 over 3 repeats, SE 5.33)
+          95% CI [+33.74, +54.62] mW/bit
+intercept: +660.7 mW  (SD 141.2, SE 81.5; 8.1 SE from zero)
+mean R^2: 0.869
+          i.e. +1414 mW over the full 0 -> 32.0 bit range
+          +0.3047 mW/bit per GB/s at 145 GB/s aggregate operand throughput
+
+Read the slope against the A/A row, not against zero. Spread across
+patterns at one mean Hamming weight larger than the between-repeat SD would
+mean the leakage depends on which bits, not on how many.
+label               n    dPKG W   dCORE W  dUNCORE W  core%     baseW pkg/core/unc
+--------------------------------------------------------------------------------------------
+aa_sparse (A/A)     3   -0.0127   -0.0108    -0.0020   nan%         16.4/15.8/0.62
+                      between-run SD  pkg 0.0106  core 0.0137  unc 0.0032   (per-repeat dPKG: -0.024 -0.012 -0.003)
+blk_d100            3   +1.9357   +1.9313    +0.0045   100%         15.4/14.8/0.66
+                      between-run SD  pkg 0.1842  core 0.1628  unc 0.0227   (per-repeat dPKG: +1.799 +2.145 +1.863)
+blk_d125            3   +0.6181   +0.6434    -0.0253   104%         15.5/14.8/0.74
+                      between-run SD  pkg 0.0988  core 0.1291  unc 0.0303   (per-repeat dPKG: +0.694 +0.506 +0.653)
+blk_d25             3   +1.1633   +1.1943    -0.0310   103%         15.4/14.7/0.74
+                      between-run SD  pkg 0.1285  core 0.1453  unc 0.0389   (per-repeat dPKG: +1.139 +1.049 +1.302)
+blk_d50             3   +1.4787   +1.4910    -0.0123   101%         15.4/14.8/0.67
+                      between-run SD  pkg 0.1568  core 0.1990  unc 0.0472   (per-repeat dPKG: +1.568 +1.570 +1.298)
+blk_d75             3   +1.8186   +1.8084    +0.0102    99%         15.5/14.8/0.66
+                      between-run SD  pkg 0.0760  core 0.0739  unc 0.0435   (per-repeat dPKG: +1.893 +1.822 +1.741)
+iid_p50             3   +2.4859   +2.4763    +0.0096   100%         15.5/14.8/0.66
+                      between-run SD  pkg 0.0117  core 0.0071  unc 0.0083   (per-repeat dPKG: +2.486 +2.474 +2.498)
+iid_p75             3   +2.5634   +2.5963    -0.0329   101%         15.5/14.8/0.68
+                      between-run SD  pkg 0.0427  core 0.0520  unc 0.0513   (per-repeat dPKG: +2.514 +2.583 +2.593)
+scat_d100           3   +1.7770   +1.7877    -0.0107   101%         15.4/14.8/0.68
+                      between-run SD  pkg 0.2085  core 0.2166  unc 0.0239   (per-repeat dPKG: +1.662 +2.018 +1.651)
+scat_d125           3   +0.4851   +0.4807    +0.0044    99%         15.4/14.7/0.67
+                      between-run SD  pkg 0.1513  core 0.1409  unc 0.0157   (per-repeat dPKG: +0.409 +0.387 +0.659)
+scat_d25            3   +0.6312   +0.5990    +0.0323    95%         15.4/14.8/0.64
+                      between-run SD  pkg 0.2614  core 0.2827  unc 0.0284   (per-repeat dPKG: +0.363 +0.885 +0.646)
+scat_d50            3   +1.1398   +1.1269    +0.0129    99%         15.4/14.7/0.65
+                      between-run SD  pkg 0.2929  core 0.3003  unc 0.0468   (per-repeat dPKG: +1.333 +0.803 +1.283)
+scat_d75            3   +1.4391   +1.4406    -0.0016   100%         15.5/14.7/0.75
+                      between-run SD  pkg 0.2752  core 0.2809  unc 0.0505   (per-repeat dPKG: +1.174 +1.723 +1.420)
+
+dPKG/dCORE/dUNCORE : cond-difference in each domain, mean over repeats
+core%    : core's share of the package effect (blank when pkg ~ 0)
+uncore   : package minus core; PP1 (graphics) is folded in but idle
+A run splitting cleanly and reproducibly across independently metered
+sub-domains is evidence the package counter is structured, not a flat
+activity estimate -- the RAPL-internal half of the cross-validation.
