@@ -258,6 +258,79 @@ for the rest of the thesis is that **no single run's CI is quoted as an error ba
 every reported effect is aggregated over at least three repeats, with victim order
 reshuffled between repeats so that position in the session is not confounded with victim.
 
+### 5.1 The instrument is corroborated, not assumed
+
+Every power number in this thesis comes from one software counter,
+`MSR_PKG_ENERGY_STATUS`, and on client Intel silicon that counter is a partly-modelled
+quantity rather than a direct measurement of dissipated energy. The gates above catch a
+bad *experiment*; none of them catches a bad *instrument*. The objection they leave open
+is not "the effect is not real" but "the effect is in RAPL's activity model rather than in
+the die" — and because the whole leakage model of the next chapter is RAPL-only under
+Config-A, that objection has to be answered directly. Three checks answer it, each sharing
+progressively less with the package counter.
+
+**The strongest one reads no RAPL at all.** The Phase 2 timing receiver
+(`src/covert/rx_timing.c`, chapter 3 §8.3) infers the transmitter's activity purely from
+the dilation of its *own* fixed instruction stream, timed against the invariant TSC. It
+holds no MSR, opens no file, and shares no memory with the victim. When it recovers the
+transmitted message — which it does, error-free at 1 bit/s — the part must have physically
+clocked down under the victim's load, because a clock change is the only thing it can
+observe. Throttling is a physical power response, so a channel decoded by a receiver that
+touches nothing but its own runtime is direct evidence that the modulated quantity was real
+power and not a number RAPL invented. That result is presented in chapter 3 as a
+security claim; it is repeated here because it is also the best independent corroboration in
+the thesis that the instrument is not hallucinating, and it costs nothing, being already in
+hand.
+
+The other two checks are reported where the operand effect they corroborate is established,
+and are summarised here so the instrument's validation lives in one place. A **battery
+cross-check** (§5.2) measures the same operand contrast on the laptop's own current and
+voltage sensors — an instrument that shares nothing with RAPL but the die it draws from —
+and a **sub-domain split** (chapter 2) decomposes the package counter into its
+independently metered core and uncore rails and checks that the effect appears in them
+consistently. None of the three is a formal calibration of RAPL against a reference
+wattmeter, which this project does not have; together they make the alternative — that the
+effect is a modelling artifact of one counter — require an implausible coincidence across
+three instruments that do not share a mechanism.
+
+### 5.2 The battery sees it too
+
+The battery cross-check is the one that shares nothing with RAPL at all. Run on battery,
+the laptop reports its own discharge current and voltage through sysfs; their product is
+the power being drawn from the pack, measured by the battery's own sensors rather than by
+any model inside the CPU. If the operand effect is real, the heavier operand should drain
+the battery faster, and by an amount close to what RAPL reports for the same contrast.
+
+`src/battery_xcheck.c` alternates the `ws_l3_x8` victim between the all-zero and all-ones
+operand on long interleaved arms — four seconds each, because the battery telemetry updates
+only about once a second and is far too coarse for the millisecond arms the RAPL driver
+uses — and over every arm records both the RAPL package power and the mean battery power.
+`results/20260929-145805-phase0_battery_xcheck`, Config-A, two conditions × two repeats of
+twenty arms each, discharging throughout:
+
+| contrast | RAPL Δ | battery Δ | battery within-run 95% CI |
+|---|---|---|---|
+| `l3_hw32`, repeat 0 | +1.926 W | +1.206 W | [+0.99, +1.42] |
+| `l3_hw32`, repeat 1 | +1.928 W | +1.724 W | [+1.49, +1.96] |
+| `aa_l3` (A/A), repeat 0 | +0.005 W | −0.094 W | [−0.22, +0.04] |
+| `aa_l3` (A/A), repeat 1 | −0.010 W | −0.029 W | [−0.17, +0.12] |
+
+The battery independently confirms the effect. On the heavy-against-light contrast it draws
+1.2–1.7 W more, with both repeats' intervals excluding zero; on the A/A control, where both
+sides run the same operand, it reads zero within noise, exactly as RAPL does. Two
+instruments that share no mechanism agree that the heavier operand costs real power.
+
+The battery figure runs a little *below* RAPL's (a ratio of about 0.76, not the slightly
+*above* that voltage-regulator losses would predict). The reason is the instrument, not the
+effect: the battery gauge is coarse and updates slowly, so it smears the four-second arms
+into each other and under-captures the step between them — the same reason its numbers vary
+between repeats (1.21 W then 1.72 W) while RAPL's are steady to a milliwatt (1.926, 1.928).
+The claim rests on the direction and the scale, both of which are unambiguous, not on the
+exact ratio. Two caveats stated for honesty: on battery the platform runs different power
+limits than on mains, so only the operand *difference* is compared here and never the
+absolute watts; and the gauge's coarseness is why this is a confirmation of the effect's
+reality rather than a second precise measurement of its size.
+
 ## 6. What the rebuilt pipeline measures
 
 Validation run `results/20260822-192822-phase0_validate`, Config-A, 2.3 GHz pinned,
@@ -301,8 +374,12 @@ Stated rather than worked around:
   expected ceiling. That is weaker than a counter.
 - **The detector is a mean threshold** and cannot see an effect that lives purely in
   variance.
-- **`turbostat` cross-validation of the RAPL integration is not yet done.** It is in the
-  verification plan and remains open.
+- **`turbostat` cross-validation of the RAPL integration is not done**, and is now largely
+  superseded: `turbostat` reads the same RAPL MSRs the driver does, so it would check the
+  integration arithmetic but not the counter itself. The three checks of §5.1 — a receiver
+  that reads no RAPL, the battery's own sensors, and the package sub-domains — corroborate
+  the counter against instruments that do not share its mechanism, which is the stronger
+  question. A calibration against an external reference wattmeter remains genuinely open.
 - **A run-level startup transient is possible for large working sets.** The `settle`
   parameter discards samples at the start of each *block*, not blocks at the start of a
   *run*. A victim that faults in hundreds of megabytes under `MAP_POPULATE` can therefore

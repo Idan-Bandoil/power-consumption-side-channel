@@ -12,6 +12,8 @@
 
 #define MSR_RAPL_POWER_UNIT   0x606
 #define MSR_PKG_ENERGY_STATUS 0x611
+#define MSR_PP0_ENERGY_STATUS 0x639	/* core domain (P+E cores) */
+#define MSR_PP1_ENERGY_STATUS 0x641	/* client graphics domain, when present */
 
 /*
  * Fraction of the estimated RAPL update period spent idling before we begin
@@ -83,6 +85,22 @@ static inline uint32_t rd_energy(int fd)
 	return (uint32_t)v;
 }
 
+/*
+ * Reads an energy-status MSR, returning its low 32 bits (the counter; the upper
+ * half is reserved). Returns 0 and clears *ok on failure -- reading an
+ * unimplemented domain MSR faults and the pread returns an error, which is how
+ * a domain's absence is detected rather than assumed.
+ */
+static inline uint32_t rd_energy_msr(int fd, off_t msr, int *ok)
+{
+	uint64_t v = 0;
+	if (pread(fd, &v, sizeof(v), msr) != sizeof(v)) {
+		*ok = 0;
+		return 0;
+	}
+	return (uint32_t)v;
+}
+
 static double read_energy_unit(int fd)
 {
 	uint64_t unit = 0;
@@ -109,6 +127,26 @@ void rapl_sampler_init(struct rapl_sampler_t *s, int core, int mode,
 	s->prev_e = rd_energy(s->fd);
 	s->prev_tsc = _rdtsc();
 	s->prev_f = frequency_msr_raw(core);
+}
+
+void rapl_sampler_enable_domains(struct rapl_sampler_t *s)
+{
+	int ok_pp0 = 1, ok_pp1 = 1;
+	uint32_t pp0 = rd_energy_msr(s->fd, MSR_PP0_ENERGY_STATUS, &ok_pp0);
+	uint32_t pp1 = rd_energy_msr(s->fd, MSR_PP1_ENERGY_STATUS, &ok_pp1);
+
+	s->read_domains = 1;
+	s->has_pp0 = ok_pp0;
+	s->has_pp1 = ok_pp1;
+	s->prev_pp0 = pp0;
+	s->prev_pp1 = pp1;
+
+	if (!ok_pp0)
+		fprintf(stderr, "note: PP0 (core) RAPL domain not readable; "
+			"core/uncore split unavailable\n");
+	if (!ok_pp1)
+		fprintf(stderr, "note: PP1 (graphics) RAPL domain not present; "
+			"uncore will be reported as package minus core\n");
 }
 
 struct rapl_edge_t rapl_sampler_next(struct rapl_sampler_t *s)
@@ -146,6 +184,32 @@ struct rapl_edge_t rapl_sampler_next(struct rapl_sampler_t *s)
 	e.dtsc = tsc - s->prev_tsc;
 	e.daperf = cur_f.aperf - s->prev_f.aperf;
 	e.dmperf = cur_f.mperf - s->prev_f.mperf;
+
+	/*
+	 * Sub-domains, read once now that the package edge has been caught. The
+	 * cores' energy MSRs advance on their own schedule, but differencing two
+	 * reads taken at consecutive package edges yields the domain's energy
+	 * over exactly the [prev edge, this edge] interval regardless, since the
+	 * counters are cumulative. The few hundred nanoseconds between the
+	 * package read above and these is negligible against a ~1 ms period and
+	 * is common-mode across conditions.
+	 */
+	e.pp0_ticks = 0;
+	e.pp1_ticks = 0;
+	if (s->read_domains) {
+		if (s->has_pp0) {
+			int ok = 1;
+			uint32_t pp0 = rd_energy_msr(s->fd, MSR_PP0_ENERGY_STATUS, &ok);
+			e.pp0_ticks = pp0 - s->prev_pp0;	/* wraps correctly */
+			s->prev_pp0 = pp0;
+		}
+		if (s->has_pp1) {
+			int ok = 1;
+			uint32_t pp1 = rd_energy_msr(s->fd, MSR_PP1_ENERGY_STATUS, &ok);
+			e.pp1_ticks = pp1 - s->prev_pp1;
+			s->prev_pp1 = pp1;
+		}
+	}
 
 	if (s->mode == SAMPLE_EDGE) {
 		/*

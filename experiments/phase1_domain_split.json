@@ -1,0 +1,91 @@
+{
+  "name": "phase1_domain_split",
+  "description": [
+    "Where in the package does the operand-movement effect sit -- the cores, or",
+    "the uncore? And does that answer change with the depth the operand is drawn",
+    "from? This is critique item B1.3: the package RAPL counter is never checked",
+    "against anything, and its sub-domains are a free internal cross-check plus a",
+    "mechanism result.",
+    "",
+    "This part exposes two package sub-domains besides the package counter: PP0",
+    "(MSR 0x639, 'core' -- the P/E cores and their caches on a client SKU) and",
+    "PP1 (MSR 0x641, client graphics, idle here). The driver now records both at",
+    "every RAPL edge, so every condition difference can be read in three domains:",
+    "package, core (PP0), and uncore (package minus core). analysis.domains prints",
+    "the split; analysis.report enforces the usual gates unchanged.",
+    "",
+    "Two things this buys. (1) Cross-validation: if the package effect also shows",
+    "up cleanly and reproducibly in the independently metered PP0 counter, the",
+    "package number is structured rather than a flat activity estimate -- the",
+    "RAPL-internal complement to the tier-3 timing check (which needs no RAPL at",
+    "all) and the battery cross-check (a different instrument entirely). (2)",
+    "Mechanism: which rail carries the leak, and whether it migrates toward the",
+    "uncore at DRAM depth, where the memory controller does the most work.",
+    "",
+    "Design: the hw32-against-zero contrast (0 vs 0xFFFFFFFF, the canonical",
+    "+1.9 W L3 effect) at three depths -- L1, L3, DRAM -- plus the L3 A/A gate and",
+    "the standard HW-16 anchor for cross-session comparison. Driver settings match",
+    "phase1_hamming_weight exactly (threads 4, 150 blocks, 120 samples, settle 8),",
+    "so l3_hw32's package delta must reproduce that session's hw32 (+1.90 W) and",
+    "the anchor must land near the corpus's +1.133/+1.215/+1.228/+1.160 W. That",
+    "reproduction IS the success criterion: the split must not move the package",
+    "number, only decompose it.",
+    "",
+    "warmup_blocks is raised for DRAM: ws_dram_x8 faults in far more under",
+    "MAP_POPULATE than the L1/L3 variants, and the run-level transient is real.",
+    "",
+    "Config-A throughout: the split is a power question, and pinning the frequency",
+    "keeps a DVFS response from confounding it. work_balance still applies -- at",
+    "DRAM the heavier operand tends to move ~2% more bytes, and that qualification",
+    "carries over to the domain figures exactly as it does to the package one."
+  ],
+  "config": "A",
+  "repeats": 3,
+  "shuffle_runs": true,
+  "run_order_seed": 71177,
+  "cooldown_s": 40,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 71177
+  },
+  "runs": [
+    {
+      "label": "aa_l3",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 0],
+      "comment": "A/A gate; every domain delta must sit at zero."
+    },
+    {
+      "label": "l1_hw32",
+      "victim": "ws_l1_x8",
+      "selectors": [0, 4294967295],
+      "comment": "Smallest effect (~+0.17 W); is even that core-localised?"
+    },
+    {
+      "label": "l3_hw32",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 4294967295],
+      "comment": "Canonical +1.90 W effect; package delta must reproduce phase1_hamming_weight."
+    },
+    {
+      "label": "dram_hw32",
+      "victim": "ws_dram_x8",
+      "selectors": [0, 4294967295],
+      "warmup_blocks": 12,
+      "comment": "Does the uncore share rise here, where the IMC does the most work?"
+    },
+    {
+      "label": "anchor_hw16",
+      "victim": "ws_l3_x8",
+      "selectors": [0, 94757711],
+      "comment": "HW 16, 0x05A5E34F. Cross-session anchor: +1.133/+1.215/+1.228/+1.160 W."
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "name": "phase0_battery_xcheck",
+  "description": [
+    "Cross-validate RAPL against the battery's own current and voltage sensors",
+    "(critique item B1.2). Every power number in this thesis comes from one",
+    "software counter, MSR_PKG_ENERGY_STATUS, which on client Intel silicon is",
+    "partly modelled. The standing objection is that the operand effect lives in",
+    "RAPL's activity model rather than in the die. This answers it with an",
+    "instrument that shares nothing with RAPL.",
+    "",
+    "MUST RUN ON BATTERY. On mains current_now reports charge current and there",
+    "is no discharge to measure, so the runner needs --allow-battery here (the",
+    "one place in the project where measuring on battery is the point, not a",
+    "mistake). Unplug the charger before launching.",
+    "",
+    "The harness alternates ws_l3_x8 between the all-zero and all-ones operand on",
+    "long interleaved arms -- seconds, not the milliseconds the RAPL driver uses,",
+    "because battery telemetry updates ~1 Hz and is coarse -- and over each arm",
+    "records BOTH the RAPL package power and the mean battery V*I. If the heavier",
+    "operand draws more measured discharge power, by an amount comparable to what",
+    "RAPL reports (a little more, since the battery also pays the VRM conversion",
+    "loss), the +1.9 W effect is physically real. analysis.battery reports the two",
+    "deltas side by side and their ratio.",
+    "",
+    "Config-A so the frequency is pinned and the delta is a power delta, keeping",
+    "it comparable to the Config-A RAPL figure -- though the on-battery power",
+    "state is its own regime, so only the operand DELTA is compared, never the",
+    "absolute watts. The aa_l3 control must read ~zero on both instruments.",
+    "",
+    "Each run is 2 conditions x 20 rounds x ~4.8 s ~= 3.2 min of battery drain;",
+    "two labels x two repeats is ~13 min, a few watt-hours."
+  ],
+  "kind": "battery",
+  "config": "A",
+  "repeats": 2,
+  "shuffle_runs": true,
+  "run_order_seed": 24601,
+  "cooldown_s": 20,
+  "cooldown_target_c": 55,
+  "battery": {
+    "victim": "ws_l3_x8",
+    "threads": 4,
+    "monitor_core": 0,
+    "arm_ms": 4000,
+    "settle_ms": 800,
+    "rounds": 20,
+    "poll_ms": 150,
+    "seed": 24601
+  },
+  "runs": [
+    {
+      "label": "l3_hw32",
+      "victim": "ws_l3_x8",
+      "on": 4294967295,
+      "off": 0,
+      "comment": "The +1.9 W effect. Battery must see it too."
+    },
+    {
+      "label": "aa_l3",
+      "victim": "ws_l3_x8",
+      "on": 0,
+      "off": 0,
+      "comment": "A/A: both instruments must read ~zero."
+    }
+  ]
+}

@@ -26,11 +26,13 @@
 struct sample_t {
 	uint32_t block;
 	uint32_t cond;
-	uint32_t ticks;		/* raw RAPL energy units since previous edge */
-	uint32_t _pad;
+	uint32_t ticks;		/* raw RAPL package energy units since previous edge */
+	uint32_t core_ticks;	/* PP0 (core) energy over the same interval */
 	uint64_t dtsc;
 	uint64_t daperf;
 	uint64_t dmperf;
+	uint32_t pp1_ticks;	/* PP1 (graphics) energy, 0 if the domain is absent */
+	uint32_t _pad;
 };
 
 static void write_csv(const char *path, const struct sample_t *log, uint64_t n)
@@ -41,11 +43,15 @@ static void write_csv(const char *path, const struct sample_t *log, uint64_t n)
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(f, "block,cond,ticks,dtsc,daperf,dmperf\n");
+	/* core_ticks and pp1_ticks are appended so that a reader of the older
+	 * six-column schema still parses the first six unchanged. */
+	fprintf(f, "block,cond,ticks,dtsc,daperf,dmperf,core_ticks,pp1_ticks\n");
 	for (uint64_t i = 0; i < n; i++) {
-		fprintf(f, "%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
+		fprintf(f, "%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64
+			",%" PRIu32 ",%" PRIu32 "\n",
 			log[i].block, log[i].cond, log[i].ticks,
-			log[i].dtsc, log[i].daperf, log[i].dmperf);
+			log[i].dtsc, log[i].daperf, log[i].dmperf,
+			log[i].core_ticks, log[i].pp1_ticks);
 	}
 	fclose(f);
 }
@@ -74,6 +80,12 @@ int main(int argc, char *argv[])
 
 	struct rapl_sampler_t smp;
 	rapl_sampler_init(&smp, cfg.attacker_core, cfg.mode, cfg.fixed_cycles);
+	/* Record the core (PP0) and, where present, graphics (PP1) sub-domains
+	 * alongside the package, so an operand effect can be localised to the
+	 * cores or to the uncore (package minus core) rather than only reported
+	 * at package granularity. Off on the covert receiver, which never calls
+	 * this and so keeps its validated single-pread-per-edge timing. */
+	rapl_sampler_enable_domains(&smp);
 
 	struct ctl_t *ctl = calloc(1, sizeof(*ctl));
 	if (!ctl) {
@@ -204,6 +216,8 @@ int main(int argc, char *argv[])
 				log[idx].block = (uint32_t)(b - warmup);
 				log[idx].cond = cond;
 				log[idx].ticks = e.ticks;
+				log[idx].core_ticks = e.pp0_ticks;
+				log[idx].pp1_ticks = e.pp1_ticks;
 				log[idx].dtsc = e.dtsc;
 				log[idx].daperf = e.daperf;
 				log[idx].dmperf = e.dmperf;
@@ -266,6 +280,8 @@ int main(int argc, char *argv[])
 	printf("  \"order\": \"%s\",\n", cfg.sequential ? "sequential" : "shuffled");
 	printf("  \"seed\": %" PRIu64 ",\n", cfg.seed);
 	printf("  \"energy_unit_j\": %.17g,\n", smp.energy_unit_j);
+	printf("  \"has_pp0\": %s,\n", smp.has_pp0 ? "true" : "false");
+	printf("  \"has_pp1\": %s,\n", smp.has_pp1 ? "true" : "false");
 	printf("  \"max_frequency_khz\": %u,\n", maximum_frequency);
 	printf("  \"tsc_hz\": %.17g,\n", smp.tsc_hz);
 	printf("  \"rapl_period_tsc\": %" PRIu64 ",\n", smp.period_est);

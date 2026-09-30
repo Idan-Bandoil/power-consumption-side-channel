@@ -26,6 +26,13 @@ class Run:
     dtsc: np.ndarray
     daperf: np.ndarray
     dmperf: np.ndarray
+    # Sub-domain energy per interval, in the same RAPL units as `ticks`. Empty
+    # for runs written before the core/uncore split existed; has_domains says
+    # which. core_ticks is PP0 (cores + caches on this client part); pp1_ticks
+    # is the graphics domain, which is idle here.
+    core_ticks: np.ndarray = None
+    pp1_ticks: np.ndarray = None
+    has_domains: bool = False
     meta: dict = field(default_factory=dict)
 
     @property
@@ -40,6 +47,26 @@ class Run:
         Edge-triggered sampling gives the real interval per sample, so no
         assumption is needed."""
         return (self.ticks * self.energy_unit_j) / self.dt_s
+
+    @property
+    def core_power_w(self):
+        """Package sub-domain PP0: the cores and their caches."""
+        return (self.core_ticks * self.energy_unit_j) / self.dt_s
+
+    @property
+    def pp1_power_w(self):
+        """Package sub-domain PP1: client graphics (idle on this platform)."""
+        return (self.pp1_ticks * self.energy_unit_j) / self.dt_s
+
+    @property
+    def uncore_power_w(self):
+        """Package minus core: the rail that meters everything outside PP0.
+
+        On this consumer part it is small and nearly constant, so an operand
+        effect that appears in the package but not here is localised to the
+        core+cache domain. Not a pure ring/LLC/IMC figure -- PP1 is folded in --
+        but PP1 is idle, so pkg-core is uncore to within the graphics floor."""
+        return self.power_w - self.core_power_w
 
     @property
     def freq_khz(self):
@@ -89,6 +116,11 @@ def load_run(csv_path, entry):
     raw = np.loadtxt(csv_path, delimiter=",", skiprows=1, dtype=np.int64, ndmin=2)
     if raw.size == 0:
         raise ValueError(f"{csv_path} contains no samples")
+    # Runs written before the core/uncore split have six columns; newer ones
+    # append core_ticks and pp1_ticks. Detect by width so both parse.
+    has_domains = raw.shape[1] >= 8
+    core_ticks = raw[:, 6].astype(np.float64) if has_domains else None
+    pp1_ticks = raw[:, 7].astype(np.float64) if has_domains else None
     return Run(
         label=entry.get("label", entry["victim"]),
         victim=entry["victim"],
@@ -110,6 +142,9 @@ def load_run(csv_path, entry):
         dtsc=raw[:, 3].astype(np.float64),
         daperf=raw[:, 4].astype(np.float64),
         dmperf=raw[:, 5].astype(np.float64),
+        core_ticks=core_ticks,
+        pp1_ticks=pp1_ticks,
+        has_domains=has_domains,
         meta=entry,
     )
 

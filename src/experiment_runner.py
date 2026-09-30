@@ -194,7 +194,8 @@ MAX_START_LOAD = 2.0
 # Anything that spawns victims or holds an MSR open. A survivor from an older
 # run spins at 100% on a pinned core and quietly poisons every later
 # measurement, so a run refuses to start while one is alive.
-MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl", "rx_freq", "rx_timing")
+MEASURING_PROCS = ("driver", "smoke", "tx", "rx_rapl", "rx_freq", "rx_timing",
+                   "battery_xcheck")
 
 
 def load1():
@@ -592,6 +593,103 @@ def run_covert(run_spec, tx_opts, rx_opts, out_dir, tag, repeat=0):
 
 
 # ---------------------------------------------------------------------------
+# Battery cross-validation (critique B1.2)
+# ---------------------------------------------------------------------------
+
+BATTERY_DEFAULTS = {
+    "victim": "ws_l3_x8",
+    "threads": 4,
+    "monitor_core": 0,
+    "victim_core_start": 2,
+    "victim_core_stride": 2,
+    "max_victim_core": 11,
+    "on": 4294967295,
+    "off": 0,
+    "arm_ms": 4000,
+    "settle_ms": 800,
+    "rounds": 20,
+    "poll_ms": 150,
+    "seed": 12345,
+}
+
+BATTERY_FLAGS = {
+    "victim": "--victim",
+    "threads": "--threads",
+    "monitor_core": "--monitor-core",
+    "victim_core_start": "--victim-core-start",
+    "victim_core_stride": "--victim-core-stride",
+    "max_victim_core": "--max-victim-core",
+    "on": "--on",
+    "off": "--off",
+    "arm_ms": "--arm-ms",
+    "settle_ms": "--settle-ms",
+    "rounds": "--rounds",
+    "poll_ms": "--poll-ms",
+    "seed": "--seed",
+}
+
+
+def run_battery(run_spec, bx_opts, out_dir, tag, repeat=0):
+    """One battery-vs-RAPL cross-check run.
+
+    Reads the package MSR (root) and the battery's own current/voltage over the
+    same long arms, alternating the operand, so an operand effect can be seen on
+    an instrument that shares nothing with RAPL. Only meaningful on battery,
+    which the runner allows solely under --allow-battery.
+    """
+    csv_path = out_dir / f"{tag}.csv"
+
+    opts = dict(BATTERY_DEFAULTS)
+    opts.update(bx_opts)
+    opts.update({k: v for k, v in run_spec.items() if k in BATTERY_FLAGS})
+
+    cmd = [str(BIN / "battery_xcheck"), "--out", str(csv_path)]
+    for key, flag in BATTERY_FLAGS.items():
+        cmd += [flag, str(opts[key])]
+
+    logger.info("running %s: battery xcheck victim=%s rounds=%s arm=%sms",
+                tag, opts["victim"], opts["rounds"], opts["arm_ms"])
+    before = system_state()
+    started = time.time()
+    proc = subprocess.run(cmd, cwd=SRC, capture_output=True, text=True)
+    elapsed = time.time() - started
+
+    if proc.returncode != 0:
+        logger.error("battery_xcheck failed (%d):\n%s", proc.returncode,
+                     proc.stderr[-2000:])
+        raise SystemExit(proc.returncode)
+    try:
+        summary = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        logger.error("battery_xcheck produced no JSON summary:\n%s",
+                     proc.stdout[-2000:])
+        raise SystemExit(1)
+
+    after = system_state()
+    logger.info("  %s arms in %.1fs, battery %s -> %s", summary["arms_written"],
+                elapsed, summary["battery_status_start"],
+                summary["battery_status_end"])
+    if summary["battery_status_start"] != "Discharging":
+        logger.warning("  battery was %s, not Discharging -- no discharge to "
+                       "compare. Unplug the charger and re-run.",
+                       summary["battery_status_start"])
+
+    return {
+        "tag": tag,
+        "repeat": repeat,
+        "label": run_spec.get("label", run_spec.get("victim", tag)),
+        "victim": opts["victim"],
+        "selectors": [opts["off"], opts["on"]],
+        "csv": csv_path.name,
+        "elapsed_s": elapsed,
+        "battery": summary,
+        "battery_argv": cmd,
+        "state_before": before,
+        "state_after": after,
+    }
+
+
+# ---------------------------------------------------------------------------
 
 def _raise_interrupt(signum, frame):
     """Turn a termination signal into the exception the cleanup path expects."""
@@ -678,8 +776,12 @@ def main():
         time.sleep(2)
 
         repeats = int(spec.get("repeats", 1))
-        covert = spec.get("kind") == "covert"
-        section = spec.get("tx", {}) if covert else spec.get("driver", {})
+        kind = spec.get("kind", "driver")
+        covert = kind == "covert"
+        battery = kind == "battery"
+        section = (spec.get("tx", {}) if covert
+                   else spec.get("battery", {}) if battery
+                   else spec.get("driver", {}))
         base_seed = int(section.get("seed", 12345))
         order_rng = random.Random(spec.get("run_order_seed", 20260822))
 
@@ -705,6 +807,9 @@ def main():
                 if covert:
                     result = run_covert(rs, spec.get("tx", {}), spec.get("rx", {}),
                                         out_dir, tag, repeat=rep)
+                elif battery:
+                    result = run_battery(rs, spec.get("battery", {}), out_dir, tag,
+                                         repeat=rep)
                 else:
                     result = run_driver(rs, spec.get("driver", {}), out_dir, tag,
                                         repeat=rep)
@@ -727,7 +832,8 @@ def main():
         give_back([RESULTS, SRC / "obj", SRC / "bin", *REPO.glob("util/*.o")])
 
     logger.info("results in %s", out_dir)
-    entry = "analysis.covert" if spec.get("kind") == "covert" else "analysis.report"
+    entry = {"covert": "analysis.covert",
+             "battery": "analysis.battery"}.get(spec.get("kind"), "analysis.report")
     print(f"\nNext: ./venv/bin/python3 -m {entry} {out_dir}")
 
 

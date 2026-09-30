@@ -1,0 +1,19 @@
+====================================================================================
+Battery vs RAPL cross-validation
+====================================================================================
+  battery status: Discharging throughout -- valid cross-check
+
+label             n          RAPL dW         battery dW batt/RAPL    verdict
+------------------------------------------------------------------------------------
+aa_l3             2   -0.003+/-0.095     -0.062+/-0.414     22.06    null OK
+                    per-repeat RAPL: +0.005 -0.010   battery: -0.094 -0.029
+                    absolute W  RAPL off/on 14.01/14.02   battery off/on 25.29/25.20   arms (20, 20)
+l3_hw32           2   +1.927+/-0.012     +1.465+/-3.290      0.76      agree
+                    per-repeat RAPL: +1.926 +1.928   battery: +1.206 +1.724
+                    absolute W  RAPL off/on 14.05/15.98   battery off/on 25.78/26.99   arms (20, 20)
+
+RAPL dW    : package power difference (heavy - zero operand), per arm
+battery dW : battery discharge V*I difference, same arms, same contrast
+batt/RAPL  : >1 expected -- the battery also pays the VRM conversion loss
+             on the package delta. 0.7-1.6 is the two instruments agreeing
+             that the effect is physically present, not a RAPL artefact.

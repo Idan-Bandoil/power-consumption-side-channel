@@ -24,6 +24,19 @@ struct rapl_edge_t {
 	uint64_t dtsc;		/* TSC elapsed since the previous edge */
 	uint64_t daperf;
 	uint64_t dmperf;
+	/*
+	 * Sub-domain energy over the same interval as `ticks`, in the same
+	 * energy units, and zero unless rapl_sampler_enable_domains() was
+	 * called and the domain is present on this part. pp0 is the core
+	 * (P+E cores) domain; pp1 is the client graphics domain when exposed.
+	 * Package minus core is where operand movement through the LLC, ring
+	 * and memory controller would show up, so recording the split turns
+	 * "package power leaks" into a claim about *which* part of the package.
+	 * Read once at the package edge, not inside the poll loop, so the loop
+	 * stays a single pread against MSR_PKG_ENERGY_STATUS.
+	 */
+	uint32_t pp0_ticks;	/* core (PP0) energy over this interval */
+	uint32_t pp1_ticks;	/* graphics (PP1) energy, if the domain exists */
 };
 
 struct rapl_sampler_t {
@@ -42,6 +55,20 @@ struct rapl_sampler_t {
 	uint64_t period_est;	/* EWMA of the RAPL update period, in TSC cycles */
 	uint64_t edges_seen;
 	uint64_t overshoots;	/* edges observed more than 1.5 periods late */
+
+	/*
+	 * Sub-domain sampling, off by default so the covert receiver -- whose
+	 * overshoot behaviour is validated with a single pread per edge --
+	 * measures exactly as it did. The driver turns it on;
+	 * rapl_sampler_enable_domains() probes which domains the part exposes
+	 * (reading an unimplemented energy MSR faults, so this is a runtime
+	 * question) and latches the first reading of each.
+	 */
+	int read_domains;
+	int has_pp0;
+	int has_pp1;
+	uint32_t prev_pp0;
+	uint32_t prev_pp1;
 };
 
 /*
@@ -65,6 +92,15 @@ void busy_wait_until(uint64_t deadline);
  */
 void rapl_sampler_init(struct rapl_sampler_t *s, int core, int mode,
 		       uint64_t fixed_cycles);
+
+/*
+ * Enables per-edge core (PP0) and graphics (PP1) energy sampling, probing at
+ * call time which domains the part actually implements. Call after
+ * rapl_sampler_init() and before the first rapl_sampler_next(). Sets has_pp0 /
+ * has_pp1 to what was found. Leaves the covert receiver's default (disabled)
+ * untouched, since it never calls this.
+ */
+void rapl_sampler_enable_domains(struct rapl_sampler_t *s);
 
 /* Blocks until the next RAPL counter edge (or fixed window) and returns it. */
 struct rapl_edge_t rapl_sampler_next(struct rapl_sampler_t *s);
