@@ -7,9 +7,15 @@ CFLAGS:= -D_GNU_SOURCE -m64 -falign-functions=64 -Wall -Wextra -march=native -O2
 LIBS:= -lpthread -lrt -lm
 UTILS:= ../util/util.o ../util/msr-utils.o ../util/rapl-utils.o ../util/freq-utils.o ../util/victim-utils.o ../util/victim-pool.o ../util/sampler.o
 
-all: obj bin out data driver hybrid_detect tx rx_rapl rx_freq rx_timing
+all: obj bin out data driver hybrid_detect tx rx_rapl rx_freq rx_timing battery_xcheck
 
 driver: obj/driver.o $(UTILS) | bin
+	$(CC) -o bin/$@ $^ $(LIBS)
+
+# Battery-discharge cross-validation of RAPL (critique B1.2). Root, since it
+# reads the package MSR alongside the world-readable battery telemetry, and it
+# only means anything on battery -- the runner gates that behind --allow-battery.
+battery_xcheck: obj/battery_xcheck.o $(UTILS) | bin
 	$(CC) -o bin/$@ $^ $(LIBS)
 
 # Covert channel (Phase 2). tx is unprivileged -- it only runs AVX loads and
@@ -46,6 +52,15 @@ smoke: obj/victim_smoke.o ../util/util.o ../util/victim-utils.o | bin
 	$(CC) -o bin/$@ $^ $(LIBS)
 
 obj/victim_smoke.o: ../tests/victim_smoke.c | obj
+	$(CC) -c $(CFLAGS) -I../util -o $@ $<
+
+# Non-root check that the sparsity/iid fills hit the density the selector asks
+# for (critique E2). A fill bug would draw a smooth, wrong curve every gate
+# passes, so this is checked before a session trusts the x-axis.
+fillcheck: obj/fillcheck.o ../util/victim-utils.o ../util/util.o | bin
+	$(CC) -o bin/$@ $^ $(LIBS)
+
+obj/fillcheck.o: ../tests/fillcheck.c | obj
 	$(CC) -c $(CFLAGS) -I../util -o $@ $<
 
 check: smoke

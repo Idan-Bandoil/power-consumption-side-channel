@@ -19,3 +19,8 @@ util/*.d
 __pycache__/
 *.pyc
 venv/
+
+# Claude Code scratch state. settings.local.json is already covered by the global
+# gitignore, but worktrees/ is not: it holds whole repo copies (~95 MB) left by
+# agent runs, and this repo is public.
+.claude/worktrees/

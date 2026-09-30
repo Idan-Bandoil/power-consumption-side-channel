@@ -160,7 +160,23 @@ earned (§3.1, the `artifact_demo` run, the zero-tick class) and separate it fro
 
 ## B. Instrument validity
 
-### B1. RAPL is never cross-validated against anything physical
+### B1. RAPL is never cross-validated against anything physical — DONE 2026-09-29
+
+> **Done.** All three corroborations built and measured. (1) The tier-3 timing receiver,
+> which reads no RAPL, is promoted into `phase0` §5.1 as the check that shares least with the
+> counter. (2) The battery cross-check (`src/battery_xcheck.c`, `kind:"battery"`,
+> `analysis.battery`, `results/20260929-145805-phase0_battery_xcheck`) measures the operand
+> contrast on the battery's own V×I on battery power: the heavy operand draws +1.2–1.7 W
+> more against RAPL's +1.93 W, A/A at zero on both — `phase0` §5.2. (3) The core/uncore
+> split (sampler now reads PP0/PP1 at each edge, `analysis.domains`,
+> `results/20260929-134751-phase1_domain_split`) shows the effect is **99–100% in the core
+> (PP0) sub-domain at every depth**, reproduces the +1.90 W L3 effect, A/A flat everywhere —
+> `phase1` §4.1. Mechanism finding along the way: the uncore rail's baseline tracks traffic
+> *volume* (0.6→1.7 W L1→DRAM) but its operand *delta* is ~0, so value-dependent energy is
+> collected on the core rail. `turbostat` (B1's original framing) reads the same MSRs and is
+> superseded by these; an external reference wattmeter is the one validation still open.
+>
+> *Original finding:*
 
 `phase0` §7 lists "turbostat cross-validation not yet done" as one bullet among six. It is
 not one bullet among six — **the entire thesis is one counter on one part**, and RAPL on
@@ -596,7 +612,21 @@ one session.
 one victim/operand combination, predict it, run it, report the residual. Add a §12
 subsection on where the model breaks down.
 
-### E2. Everything is measured on zero-entropy data, and Phase 3 depends on the extrapolation
+### E2. Everything is measured on zero-entropy data, and Phase 3 depends on the extrapolation — DONE 2026-09-30
+
+> **Done, and the answer is neither of the two this item posed.** `results/20260930-
+> 132043-phase1_sparsity_mixture` (13 labels × 3 repeats). The mixture neither falls
+> linearly through the origin (per-transfer) nor stays flat until *q* → 1 (the item's
+> description of per-stream). It follows Phase 1's single-word line in *mean* Hamming
+> weight — +47 mW/bit, +304 mW intercept — so it pays the whole step once any word is
+> non-zero and then rises with weight. Per-transfer is disfavoured (paired test *p* = 0.11
+> over three repeats; not rejected). **Phase 3 is not "gone"**: density is recoverable, a
+> 1.3 W range at L3, through the per-bit weight term rather than the cheap zero, and what it
+> recovers is mean bit density. (b) came back **partly negative**: random words leak
+> ~0.65 W more than the weight-plus-distance model predicts. The item's own design had the
+> scattered/blocked roles reversed — see *Outcomes — item 4* below. Phase 1 §8.3.
+>
+> *Original finding:*
 
 Every `ws_*` victim fills its buffer with **one repeated 32-bit word** (or two alternating
 words). So the entire leakage model is calibrated on maximally-compressible, zero-entropy
@@ -740,7 +770,10 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
    `results/20260904-103411-phase1_depth_operand`. A2 settled — the step scales with depth
    and §4 survives at 55×. C4 closed and *positive*: the two-buffer A/A fails at −0.23 W.
    See *Outcomes — item 3* below.
-4. **The sparsity mixture sweep** (E2a). *Phase 3's foundation. Belongs in Phase 1.*
+4. ~~**The sparsity mixture sweep** (E2a). *Phase 3's foundation. Belongs in Phase 1.*~~
+   **DONE 2026-09-30**, with E2b. Density is recoverable through the weight term; the
+   cheap zero is favoured per-stream; random data leaks more than the model. See
+   *Outcomes — item 4* below.
 5. ~~**Gates and instrumentation**~~ **DONE 2026-09-04**: per-condition throughput (B3),
    victim-core frequency + `frequency_balance` (B2), robust period estimator (B4.2),
    receiver-trace gate (became a throttling gate, see F), `late_chips` with teeth.
@@ -752,7 +785,10 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
    plus the unpinned-receiver run (D2) and the thread-count/duty-cycle sweep (D3). *Turns
    the ladder into a controlled comparison and the threat model's weakest point into a
    result.*
-7. **Battery cross-validation of RAPL** (B1.2) and the core/uncore split (B1.3).
+7. ~~**Battery cross-validation of RAPL** (B1.2) and the core/uncore split (B1.3).~~
+   **DONE 2026-09-29** — plus B1.1 (tier 3 promoted into `phase0` §5.1). Both instruments
+   confirm the effect: battery +1.2–1.7 W against RAPL +1.93 W, and the effect is 99–100%
+   core-domain at every depth. See the B1 status block above and *Outcomes — item 7* below.
 8. Placement at 6 repeats (C5) and the committed model-comparison script (C6), if time
    allows. Both are honest to drop to "not resolved" instead.
 
@@ -1017,3 +1053,169 @@ do not yet carry the admitted-bias line**; they will pick it up whenever they ar
 regenerated, and the corpus-wide figures live in `results/_crosscheck/instrument.txt`
 instead. The real lesson is that `summary.txt` regeneration needs a per-session record of
 the commands that built it, rather than a convention that has quietly drifted.
+
+## Outcomes — item 7, B1 (2026-09-29)
+
+The RAPL package counter that every result rests on is now corroborated three ways, each
+sharing less with it. The objection this closes is the one an examiner reaches for first:
+that the operand effect lives in RAPL's activity model rather than in the die.
+
+### The instrument is real, on three independent readings
+
+**B1.1 — a receiver that reads no RAPL already existed.** The tier-3 timing receiver infers
+throttling purely from the dilation of its own instruction stream against the invariant TSC.
+A decoded message means the part physically clocked down, which is a physical power response.
+This was buried in the Phase 2 security result; it is now promoted into `phase0` §5.1 as the
+corroboration that shares least with the package counter. Zero machine time.
+
+**B1.3 — the package splits cleanly into its sub-domains, and the effect is on the core
+rail.** The sampler now reads PP0 (cores + caches) and PP1 (graphics) at each package edge,
+behind a `read_domains` flag the covert receiver leaves off so its validated timing is
+untouched; `analysis.domains` reports the split. On `results/20260929-134751-phase1_domain_split`
+(5 labels × 3 repeats, `power_state` constant at PL1 200 W):
+
+| contrast | Δ package | Δ core (PP0) | Δ uncore | core share |
+|---|---|---|---|---|
+| `l1_hw32` | +0.365 W | +0.364 | +0.000 | 100% |
+| `l3_hw32` | +1.938 W | +1.927 | +0.011 | 99% |
+| `dram_hw32` | +0.679 W | +0.679 | +0.000 | 100% |
+| `aa_l3` (A/A) | −0.024 W | −0.025 | +0.001 | — |
+
+The `l3_hw32` package figure reproduces the +1.90 W of earlier sessions, and it appears
+almost entirely in an independently addressed sub-counter, with the A/A flat in every domain.
+A flat package-level model manufacturing the effect would have to manufacture it consistently
+in PP0 too. **Mechanism finding, not anticipated by the critique:** the effect is 99–100%
+core-domain *at every depth including DRAM*, where the intuition (memory-controller traffic →
+uncore) points the other way. The uncore rail's *baseline* does rise with traffic volume
+(0.6 → 1.7 W, L1 → DRAM) but its operand *delta* stays at zero — so traffic volume drives the
+uncore while operand value drives the core. In `phase1` §4.1.
+
+**B1.2 — the battery sees it too.** `src/battery_xcheck.c` (new `kind:"battery"` run mode)
+alternates the operand on four-second arms and records RAPL package power and the battery's
+own current×voltage over each arm. Run on battery (`results/20260929-145805-phase0_battery_xcheck`):
+
+| contrast | RAPL Δ | battery Δ | battery within-run 95% CI |
+|---|---|---|---|
+| `l3_hw32` r0 | +1.926 W | +1.206 W | [+0.99, +1.42] |
+| `l3_hw32` r1 | +1.928 W | +1.724 W | [+1.49, +1.96] |
+| `aa_l3` (A/A) | ~0 | ~0 | contains 0 |
+
+An instrument that shares no circuitry or software with RAPL draws 1.2–1.7 W more on the
+heavy operand, both intervals excluding zero, control at zero. It reads a little below RAPL
+(ratio ≈ 0.76) because the battery gauge is coarse and slow and smears the arm boundaries —
+the direction and scale are the claim, not the exact ratio. In `phase0` §5.2.
+
+### Refined, not refuted
+
+The critique hoped the effect might localise to the *uncore* ("a much sharper claim"). It
+localises to the *core* rail instead, which is a different but equally sharp mechanism
+statement and is measured rather than hoped. The critique's B1 also framed the check around
+`turbostat`; that reads the same MSRs the driver does, so it would validate the integration
+arithmetic and not the counter, and it is superseded by the three checks above. A calibration
+against an external reference wattmeter is the one validation genuinely still open.
+
+### New tooling and code
+
+- `util/sampler.c` / `.h` — per-edge PP0/PP1 reads behind `rapl_sampler_enable_domains()`;
+  off by default, so the covert receiver is byte-for-byte unchanged.
+- `src/driver.c` — CSV schema gains `core_ticks,pp1_ticks` (backward-compatible; the loader
+  detects width). Manifest gains `has_pp0`/`has_pp1`.
+- `src/battery_xcheck.c` + runner `kind:"battery"` path + `MEASURING_PROCS` entry.
+- `analysis/domains.py`, `analysis/battery.py`; `analysis/load.py` exposes the sub-domains.
+- `experiments/phase1_domain_split.json`, `experiments/phase0_battery_xcheck.json`.
+
+## Outcomes — item 4, E2 (2026-09-30)
+
+`results/20260930-132043-phase1_sparsity_mixture`, 13 labels × 3 repeats, Config-A, PL1
+200 W on mains in all 78 snapshots, A/A −0.013 W. Written up as `phase1` §8.3.
+
+### The answer was a third shape
+
+E2 posed two readings — per-transfer (dP linear in density through the origin; Phase 3
+safe) and per-stream (dP flat until the buffer is almost all zero; Phase 3 gone). The
+switching-free arm fits neither. It follows Phase 1's single-word law in *mean* Hamming
+weight: +47.1 mW/bit and a +304 mW intercept, against +50.75 and +349 pooled. The mixture
+pays the whole step once any word is non-zero, then rises with weight. Residuals against
+that law, rescaled to the session's anchor, are ≤ 0.09 W with no trend; against the
+per-transfer line they are +0.11 to +0.26 W, all positive, largest at low density.
+
+That is per-stream *for the step* — and the item's prediction that per-stream would leave
+"the ML chapter's foundation gone" assumed the step was the only thing that could carry a
+density signal. It is not. The weight term rises across the whole range, +0.49 W at
+one-eighth non-zero to +1.78 W fully non-zero, so density is recoverable. What changes is
+what is recovered — mean bit density, not the number of zero words — and the mechanism
+Phase 1 §8 credited for it, which is corrected in place.
+
+**Not decisive on its own.** A paired per-repeat test (Δ(*d*)/Δ(1) against *d*, which
+cancels the session scale) gives +0.117 against per-stream's +0.105 and per-transfer's 0:
+*t* = 2.78 on two degrees of freedom, *p* = 0.11. This session is about four times noisier
+than the weight sweep at the same content, and three repeats cannot reject per-transfer at
+95%. The weight of evidence is agreement, at every density, with a law whose step is 23 SE
+from zero. Three more repeats of the static arm's low-density points would likely settle
+it (~16 min); the Phase 3 decision does not depend on it, because mean bit density is the
+correct axis label under either reading.
+
+### The design had its two arms backwards — caught before the conclusion was drawn
+
+The spec was written to read the verdict off a *blocked* victim (zeros in 64-byte runs),
+on the reasoning that it minimises the Hamming distance between neighbouring 32-bit words
+and so removes the switching confound; `tests/fillcheck.c` asserted exactly that. It is the
+wrong granularity. The datapath moves 32-byte loads and 64-byte lines, and Phase 1's
+ab/ab64 pair already showed that toggling *between consecutive transfers* is what costs
+power. Measured at that granularity with the victim's own fill code, the *scattered*
+fill toggles 0 bits at every density swept — its spread has a period of 1–8 words, so every
+load is the same 256-bit pattern — and the blocked fill toggles 128–512 bits per line. The
+roles were reversed at analysis time; fillcheck now measures and asserts transfer-level
+toggling; the spec keeps its pre-registered rule verbatim with a dated note saying which
+victim it was read on. The same error sat in the original `ws_fill_sparse` comment and in
+`phase3-inference.md`'s Model C, and both are corrected.
+
+The data are unaffected — both arms were run at every density — and the error surfaced
+because the "switching term" came out *negative* under the original labels, which no
+physical account allows.
+
+### E2b came back partly negative
+
+Random words (every bit i.i.d. at probability *p*) leak **+0.67 W** (*p* = 1/2) and
+**+0.62 W** (*p* = 3/4) more than the static arm at the same mean weight plus Phase 1's
+switching terms predict — about a quarter of the total, robust to how the switching is
+decomposed, with a between-repeat SD of only 0.012–0.043 W. Phase 1's coefficients were
+all calibrated on one repeated word or two alternating ones, and they under-predict data
+that varies freely. For E1 this means a combined model built from them is a floor, and
+needs checking against, or recalibrating on, varied data before it predicts a real victim.
+Recorded in `phase1` §8.3, §12 and §13.
+
+### Refuted along the way
+
+**`work_balance` fails in 17 of 36 contrasting runs — and it is not a work confound.** It
+looked like the obvious alternative explanation for the step: if every non-zero stream ran
+a constant ~2% faster than the all-zero one, the extra work would add a constant chunk of
+power that looks exactly like a step. It does not operate. The imbalance runs from −2.2%
+to +3.8% with both signs at every density (mean +0.15%), its correlation with the power
+effect is +0.14, the same-buffer A/A matches to 0.04%, and the lowest-density scattered
+runs carry the step with throughput differences of +0.06%, −0.37% and −0.44%. It is C4's
+two-buffer placement term — a variance source, large per allocation and near zero in the
+mean — showing up in a second session. The 1% gate is tight against it on this victim.
+
+### Also established
+
+- The effect stays on the core rail (PP0) for every contrast in the session, 95–104% of the
+  package difference, mixtures and random words alike: B1.3's localisation extends past
+  repeated words.
+- `hwfit` now reports the intercept with a between-repeat error bar (it previously
+  aggregated only the slope), and takes `--axis density` for density-encoded selectors.
+  Regression-tested against `phase1_hamming_weight`: every per-repeat fit, the slope, its
+  interval and R² reproduce exactly; the new line reads +362.2 mW there, matching the
+  published intercept.
+
+### Code
+
+- `util/victim-utils.c`: the compile bug blocking the whole Phase 3 scaffolding (a macro
+  parameter named `sparse` substituted into `cache.sparse`) fixed; `ws_fill_sparse` gains a
+  block size; `ws_fill_iid`; fill dispatch factored into `ws_apply_fill` so the test and
+  the victim share one path; `ws_fill_probe` test hook; victims `ws_sparse_l3_x8_blk`,
+  `ws_iid_l3_x8`. All 46 victims pass `make check`, the Phase 3 ones for the first time.
+- `tests/fillcheck.c` (+ `make fillcheck`): realised zero fraction, mean weight, and
+  word-, load- and line-level toggling, asserted against each mode's promise.
+- `analysis/mixture.py`; `analysis/hwfit.py` `--axis density` and intercept aggregation.
+- `experiments/phase1_sparsity_mixture.json`.

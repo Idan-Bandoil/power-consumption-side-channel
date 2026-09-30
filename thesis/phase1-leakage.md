@@ -196,6 +196,59 @@ working set — is **not** usable as a dose axis. It gives 0.50 / 1.10 / 1.05 / 
 does (217 → 741 GB/s across a nominal 8× increase). Volume of traffic at fixed distance
 is not a clean independent variable on this machine; depth is.
 
+### 4.1 Which rail: core or uncore?
+
+The package counter is a sum of independently metered sub-domains, and reading them apart
+does two things at once — it says *where* in the package the operand effect sits, and it
+cross-checks the package number against a counter the package model does not itself
+produce. This part exposes two sub-domains beside the package: PP0 (`MSR_PP0_ENERGY_STATUS`,
+the cores and, on a client SKU, their caches) and PP1 (graphics, idle here). The driver
+records both at every RAPL edge, so every condition difference is available in three
+domains: package, core (PP0), and uncore, taken as package minus core. Repeating the
+hw32-against-zero contrast at three depths, plus the HW-16 anchor and the L3 A/A
+(`results/20260929-134751-phase1_domain_split`, 5 labels × 3 repeats, `power_state`
+constant at PL1 200 W across all 30 snapshots):
+
+| contrast | Δ package | Δ core (PP0) | Δ uncore (pkg−core) | core share | uncore base |
+|---|---|---|---|---|---|
+| `l1_hw32` | +0.365 W | +0.364 | +0.000 | 100% | 0.61 W |
+| `l3_hw32` | +1.938 W | +1.927 | +0.011 | 99% | 0.67 W |
+| `dram_hw32` | +0.679 W | +0.679 | +0.000 | 100% | 1.69 W |
+| `anchor_hw16` | +1.093 W | +1.091 | +0.002 | 100% | 0.67 W |
+| `aa_l3` (A/A) | −0.024 W | −0.025 | +0.001 | — | 0.78 W |
+
+Two readings. **As a mechanism result, the operand effect is a core-domain effect at every
+depth.** Between 99% and 100% of each package difference is in PP0, and the separately
+metered uncore rail does not move with the operand — Δ uncore is +11 mW at its largest and
+within noise of zero elsewhere. This holds at DRAM, where the intuition points the other
+way: streaming from DRAM lights up the memory controller and the ring, and the uncore's
+*baseline* does rise with traffic volume (0.61 W at L1 to 1.69 W at DRAM). But its
+operand-dependent *difference* stays at zero. The clean statement is that traffic volume
+drives the uncore while operand value drives the core: the bytes cost energy in the ring
+and controller regardless of what they are, and the data-dependent part — the Hamming-weight
+term this chapter is built on — is paid where the bits are toggled at rate, in the load
+path, caches and register file that PP0 meters. This localises the leak more sharply than
+"package power" did, and it does so without a new victim, from two extra MSR reads per edge.
+
+**As a cross-check, it is the RAPL-internal answer to whether the counter is physical.**
+The l3_hw32 package difference reproduces the +1.90 W measured across earlier sessions
+(+1.938 W here, between-run SD 14 mW), and it does so while also appearing, cleanly and
+reproducibly, in the PP0 sub-counter — with the A/A control flat in every domain
+(≤ 1 mW). A flat package-level activity model that manufactured the effect would have to
+manufacture it consistently in an independently addressed sub-counter as well, which is a
+much stronger thing to have to assume. This is the weakest-sharing of the three
+corroborations gathered for the counter (it is still RAPL); the battery cross-check in the
+measurement chapter (§5.2) and the timing receiver of chapter 3, which reads no RAPL at
+all, share progressively less with it.
+
+Two honest limits. On this consumer part PP0 bundles the cores with their caches rather
+than isolating the execution units, and "uncore" as computed here folds in the idle
+graphics domain, so neither figure is a pure structural attribution — the result is
+core-rail against everything-else, not ALU against ring. And it does not contradict the
+depth ladder of §4: depth still moves the *package* effect 55×, and what §4.1 adds is that
+whatever depth the operand is drawn from, the value-dependent energy is collected on the
+core rail.
+
 ## 5. The effect is the operand's, not the harness's
 
 Every experiment above assigned the all-zero operand to condition 0 and the test operand
@@ -368,13 +421,20 @@ step sits at the 0 → 1 boundary and nowhere else. How large it is at depths ot
 is a separate question, and §8.1 answers it; the figure of +349 mW above is a measurement
 on `ws_l3_x8` and not a platform constant.
 
-And a zero operand being disproportionately cheap is not a nuisance for this thesis; it
-is the mechanism the application chapter depends on. Post-ReLU activations in a quantized
-network are 50–90% zero and input-dependent, and a channel whose first set bit costs eight
-times its marginal bit makes the *presence* of non-zero data far more visible than a
-linear weight model would predict. Sparsity is exactly the property this leakage is best
-at reporting. No mechanism is claimed here — zero-detection or clock gating on the data
-path would produce this signature, but nothing in these measurements identifies which.
+An earlier draft of this paragraph drew the obvious conclusion for the application
+chapter: post-ReLU activations are 50–90% zero, so a channel whose first set bit costs
+eight times its marginal bit should make sparsity exactly the property this leakage is
+best at reporting. That conclusion was an extrapolation — every buffer measured so far
+holds one repeated word, so it is either entirely zero or entirely not, and real
+activations are a *mixture* — and §8.3 tests it. It does not survive in that form. A
+mixture does not inherit the cheap zero word by word: a buffer that is 87.5% zero words
+pays the whole step, and power then tracks the buffer's *mean* Hamming weight along the
+same line as a single repeated word. The step therefore separates "entirely zero" from
+"anything else" and says nothing about how sparse a non-zero buffer is; what makes
+partial sparsity readable is the per-bit weight term, and what it reads is mean bit
+density rather than the count of zeros as such. No mechanism for the step is claimed here —
+zero-detection or clock gating on the data path would produce this signature, but nothing
+in these measurements identifies which.
 
 ### 8.1 The step scales with depth
 
@@ -478,6 +538,127 @@ top of the full ~1.2 W of common load signal. It reads −0.174 W with a between
 0.094. Everything in the grid above at HW 8 and HW 32 clears that comfortably; the HW 1
 and HW 2 rows at L1 and DRAM do not, and are not quoted individually anywhere in this
 chapter.
+
+### 8.3 A mixture does not inherit the cheap zero
+
+Every buffer so far holds one repeated word, so it is either entirely zero or entirely
+not. Real data — a post-ReLU activation tensor, a sparse matrix — is a *mixture* of zero
+and non-zero words, and the step of §8 could reach a mixture in two ways that give
+opposite answers for the application chapter:
+
+- **per-transfer**: each zero word carries its own share of the discount, so a buffer
+  that is a fraction *d* non-zero costs *d* times the fully non-zero one — a line through
+  the origin in mean Hamming weight, and sparsity is exactly what power reports;
+- **per-stream**: the discount belongs to the all-zero *stream* — an idle detector, a
+  clock-gating condition that needs sustained zeros — and is lost as soon as any word is
+  non-zero, so a mixture pays the whole step and then follows §8's line in its mean weight.
+
+The measurement fills a `ws_l3_x8`-shaped buffer with 0x00000000 and 0xFFFFFFFF words at
+density *d* ∈ {1/8, 1/4, 1/2, 3/4, 1} (fraction non-zero, so mean Hamming weight 32*d*) and
+contrasts each against the all-zero buffer, exactly as §6 did
+(`results/20260930-132043-phase1_sparsity_mixture`, 13 labels × 3 repeats, Config-A; PL1
+200 W on mains in all 78 snapshots; A/A −0.013 W, SD 0.011).
+
+**Mixing zero and non-zero words can add switching, and the design has to keep it out.**
+§9 shows that toggling between consecutive transfers leaks at +34 mW per flipped bit, so a
+mixture that alternates 0 and 0xFFFFFFFF from one transfer to the next would pay for the
+alternation as well as for the weight, and its switching would read as a step. The session
+therefore carries two placements at every density with the same mean weight. The *scattered*
+arm spreads the non-zero words evenly, one at a time; the *blocked* arm groups them into
+64-byte runs. **This design first assigned those two roles the wrong way round**, from the
+Hamming distance between neighbouring 32-bit words, which is highest for the scattered
+fill. But the data path moves 32-byte loads and 64-byte lines, and §9.1's two-point
+comparison showed that toggling *between consecutive transfers* is what costs power. At
+that granularity the fill check (`tests/fillcheck.c`, run against the victim's own fill
+code) measures the scattered fill toggling **0 bits** at every density — its spread has a
+period of one to eight words, so every load carries the identical 256-bit pattern and its
+0/1 alternation is spatial, inside one transfer — while the blocked fill toggles 128, 256,
+512 and 256 bits between consecutive lines at *d* = 1/8, 1/4, 1/2, 3/4. The scattered arm
+is the switching-free one. The session was run as designed and read with the roles
+corrected; the spec keeps its pre-registered decision rule as written, with a dated note
+saying which victim it was read on.
+
+On the scattered arm, against both readings:
+
+| *d* | mean HW | Δ power | between-run SD | per-transfer: *d*·Δ(1) | per-stream: §8's line, rescaled |
+|---|---|---|---|---|---|
+| 1/8 | 4 | +0.485 W | 0.151 | 0.222 | 0.497 |
+| 1/4 | 8 | +0.631 W | 0.261 | 0.444 | 0.680 |
+| 1/2 | 16 | +1.140 W | 0.293 | 0.889 | 1.046 |
+| 3/4 | 24 | +1.439 W | 0.275 | 1.333 | 1.411 |
+| 1 | 32 | +1.777 W | 0.209 | 1.777 | 1.777 |
+
+The per-stream column is §8's pooled line rescaled by 0.90 so that it meets this
+session's own *d* = 1 point; sessions differ in overall level by about that much (§8.1's
+anchor comparison) and it is the shape that separates the readings. Against it the
+residuals are −0.01, −0.05, +0.09 and +0.03 W, with no trend. Against the per-transfer
+line they are +0.26, +0.19, +0.25 and +0.11 W — all positive, largest where the density
+is lowest, which is the per-stream signature.
+
+**The mixture follows the single-word law in mean Hamming weight.** Fitted exactly as §6
+fitted the weight sweep — one line per repeat against mean weight, via `analysis.hwfit
+--axis density` — it gives +47.1 mW/bit (SD 9.1 over three repeats) and an intercept of
++304 mW, against §8's pooled +50.75 mW/bit and +349 mW and §8.1's L3 values of +49.0 and
++194. A buffer that is seven-eighths zero words costs what a buffer of one repeated
+four-bit word costs.
+
+**Per-stream is favoured, and three repeats do not close it.** Per-transfer predicts that
+Δ(*d*)/Δ(1) = *d* in every repeat, and dividing by each repeat's own *d* = 1 point cancels
+the run-to-run scale that dominates the unpaired spread. The mean excess over *d*, one
+value per repeat, is +0.087, +0.064 and +0.201 — positive in all three, averaging +0.117,
+where per-stream predicts +0.105 and per-transfer 0. That is *t* = 2.78 on two degrees of
+freedom, *p* = 0.11 two-sided. Per-transfer is disfavoured and not rejected: this session
+is noisier than the weight sweep — the same all-ones content that varies by 51 mW between
+repeats there varies by about 200 mW here — and the static arm's own intercept, though
+positive in every repeat (+213, +213, +486 mW), has a Student-*t* interval that reaches
+zero. The weight of evidence is the agreement with §8's line, whose step is 23 standard
+errors from zero, at every density; the single-session test alone is suggestive.
+
+**What that changes.** Density is recoverable either way — the static arm rises
+monotonically from +0.49 W at one-eighth non-zero to +1.78 W fully non-zero, a 1.3 W range
+at L3 — so the application chapter's premise stands. What changes is which term carries
+it and what it reads. If the step is per-stream, it separates an entirely zero buffer from
+every other one and adds nothing to how sparse a non-zero buffer is; partial sparsity is
+read through the per-bit weight term, and the quantity recovered is **mean bit density**,
+not the count of zero words. The two coincide only when every non-zero word has the same
+weight. A dense tensor of small values and a sparse tensor of large ones can have the same
+mean weight, and the application chapter's axis has to be labelled accordingly.
+
+**The switching arm sits above the static one everywhere, as it should.** Blocked minus
+scattered is +0.13, +0.53, +0.34 and +0.38 W at *d* = 1/8 to 3/4, the same sign and order
+of magnitude as §9.1's load- and line-path terms predict for the measured toggle rates
+(0.20, 0.39, 0.78, 0.39 W). It is not resolved density by density: at *d* = 1 the two
+victims hold bit-identical buffers and still differ by +0.16 W, which is the run-to-run
+and placement floor that every row above sits on. Not tracking the prediction's peak at
+*d* = 1/2 is within that floor, and §9.1's decomposition was itself an estimate from two
+points.
+
+**Genuinely random words leak more than the model predicts.** A third victim sets every
+bit independently with probability *p*, so words differ from one another at a controlled
+mean weight. Against the static arm at the same mean weight, plus §9's switching terms
+scaled to its mean per-word distance of 64*p*(1 − *p*):
+
+| *p* | random words | static arm | + switching | model | excess |
+|---|---|---|---|---|---|
+| 1/2 | +2.486 W (SD 0.012) | +1.140 | +0.675 | +1.815 | **+0.67 W** |
+| 3/4 | +2.563 W (SD 0.043) | +1.439 | +0.506 | +1.945 | **+0.62 W** |
+
+A consistent ~0.65 W, about a quarter of the total, that the weight-plus-distance model does
+not account for. It is robust to how the switching is decomposed: taking §9's measured
++0.55 to +0.63 W at distance 16 in place of the decomposed terms leaves an excess of
++0.7 W at *p* = 1/2. §9's two terms were calibrated on operands that repeat one word or
+alternate between two, and they under-predict data that varies freely. No mechanism is
+claimed; the practical reading is that this chapter's coefficients are a lower bound on
+what a victim processing real data leaks, not a prediction of it.
+
+Two further checks. The effect stays on the core rail for every contrast in the session,
+95–104% of the package difference in PP0 with the uncore difference inside ±0.03 W,
+mixtures and random words alike, so §4.1's localisation extends past repeated words.
+And `work_balance` fails in 17 of the 36 contrasting runs, at −2.2% to +3.8%; this is §8.2's
+two-buffer placement term and not a work difference, because its sign flips (mean
++0.15%), it does not track the power effect (correlation +0.14), the single-buffer A/A
+matches to 0.04%, and the lowest-density scattered runs carry the step with throughput
+differences of +0.06%, −0.37% and −0.44% — no extra work at all.
 
 ## 9. Weight, or distance?
 
@@ -830,6 +1011,14 @@ tests. The ordering it implies — the fast narrow path dominating — is consis
 relative rates, but a third alternation period would be needed to check the model rather
 than assume it.
 
+**The coefficients were calibrated on degenerate operands.** Every weight and distance
+figure in §6–§9 comes from a buffer holding one repeated word or two alternating ones.
+§8.3 tests what happens when the words genuinely differ, and the model falls short by
+about 0.65 W at L3 — a quarter of the total — on random data at two bit densities. The
+coefficients are therefore a floor on real-data leakage rather than a prediction of it,
+and any combined model built from them has to be checked against, or recalibrated on,
+data that varies freely before it is used to predict a real victim.
+
 **One machine, one microarchitecture.** Everything here is an i7-12700H at 2.3 GHz with
 no AVX-512. Nothing in this chapter establishes that the coefficients transfer.
 
@@ -851,6 +1040,17 @@ A quantitative leakage model for operand movement on this platform:
   on top of a **discontinuity between weight 0 and weight 1** that belongs to the operand
   rather than to the contrast. An all-zero operand is cheap out of proportion to its
   weight; at L3 a single set bit per word costs eight times what the next bit costs.
+- A mixture of zero and non-zero words follows the same line in its *mean* Hamming weight
+  (+47 mW/bit, intercept +304 mW, against +50.75 and +349): a buffer that is seven-eighths
+  zero words costs what a buffer of one repeated four-bit word costs. The cheap zero is
+  therefore favoured as a property of an all-zero *stream* rather than of each zero word —
+  per-transfer is disfavoured at *p* = 0.11 over three repeats, not rejected — so density
+  is recoverable from power through the per-bit weight term, and what it recovers is mean
+  bit density rather than the number of zero words.
+- The weight-plus-distance model under-predicts data whose words genuinely differ: random
+  words at a controlled bit density leak about 0.65 W more than the model allows, a quarter
+  of the total, at two densities. Every coefficient here was calibrated on one repeated
+  word or two alternating ones, and is a lower bound on what real data leaks.
 - Weight and depth are not separable. The step at zero is +349 mW at L3 but −60 mW at L1
   and +52 mW at DRAM, and the weight slope runs 7.2 / 26.0 / 49.0 / 22.5 mW per bit across
   L1 / L2 / L3 / DRAM, so a combined model needs the product of the two terms and not
