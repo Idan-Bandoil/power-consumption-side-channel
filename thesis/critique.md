@@ -443,7 +443,22 @@ signal ~2 W — and quote its between-run spread as the noise floor for large ef
 `placement` run is exactly this; it should be promoted from a footnote to a standing
 control and run at every depth.
 
-### C5. The bit-placement claim is eight uncorrected comparisons against a heuristic
+### C5. The bit-placement claim is eight uncorrected comparisons against a heuristic — DONE 2026-09-30
+
+> **Done, and the claim is withdrawn.** Both halves of the fix. The reanalysis: the two
+> flagged weights (HW 2, HW 8) are the two with the largest *paired* separation (t = 5.3,
+> −3.9), so the heuristic tracked signal — but the exact paired permutation floor at three
+> repeats is 0.25, Šidák-corrected over eight weights 0.90, so the design could not have
+> resolved it either way. The measurement: HW 8 at six repeats (4 + a 2-repeat top-up after
+> a time limit cut the first run; `results/20260930-155653-phase1_placement` +
+> `…-162959-phase1_placement_topup`, `analysis.placement`), four patterns from contiguous to
+> maximally spread, blocked permutation. The spread between patterns is 0.083 W — *below* the
+> 0.094 W effect-scale floor — at p = 0.10, on a design whose paired floor is 0.031 and which
+> therefore had the power to see a real term. The hit that motivated it collapsed from
+> −0.162 W to −0.035 W and flipped sign. §11 rewritten from "matters a little" to "tested and
+> not resolved"; §13 corrected. Hamming weight is the predictor.
+>
+> *Original finding:*
 
 `phase1` §11 concludes *"a placement term exists, is of order 0.1 W … appears at some
 weights and not others"*, from `analysis/hwfit.py:200-212`, whose verdict is
@@ -789,8 +804,10 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
    **DONE 2026-09-29** — plus B1.1 (tier 3 promoted into `phase0` §5.1). Both instruments
    confirm the effect: battery +1.2–1.7 W against RAPL +1.93 W, and the effect is 99–100%
    core-domain at every depth. See the B1 status block above and *Outcomes — item 7* below.
-8. Placement at 6 repeats (C5) and the committed model-comparison script (C6), if time
-   allows. Both are honest to drop to "not resolved" instead.
+8. **Placement at 6 repeats (C5)** — **DONE 2026-09-30**: measured, not dropped. Placement
+   does not matter at fixed weight (spread below the noise floor, p = 0.10 with power to
+   see it, the motivating hit collapsed and flipped sign). See *Outcomes — item 8* below.
+   The committed model-comparison script (C6) remains, if time allows.
 
 ---
 
@@ -1219,3 +1236,66 @@ mean — showing up in a second session. The 1% gate is tight against it on this
   word-, load- and line-level toggling, asserted against each mode's promise.
 - `analysis/mixture.py`; `analysis/hwfit.py` `--axis density` and intercept aggregation.
 - `experiments/phase1_sparsity_mixture.json`.
+
+## Outcomes — item 8, C5 (2026-09-30)
+
+`results/20260930-155653-phase1_placement` (4 repeats) + `…-162959-phase1_placement_topup`
+(2 repeats, after a background time limit cut the first run), pooled to six by
+`analysis.placement`. Written up as `phase1` §11, rewritten from "matters a little" to
+"tested and not resolved"; §13 corrected.
+
+### The heuristic tracked signal, but three repeats could not resolve it
+
+The reanalysis first, on the committed sweep data. The `spread <= 2*between` heuristic fired
+at HW 2 and HW 8, and a paired reading — patterns at a weight were interleaved across the
+same three repeats, so differencing them cancels the shared thermal state — shows those two
+are the weights with the *largest* separation (t = 5.3 and −3.9), consistent in sign. So the
+heuristic was not firing on noise. But the exact paired sign-flip test on three repeats
+cannot return p below 0.25 (only 2³ assignments), and Šidák-corrected over eight weights the
+smallest p is 0.90. The original design's best possible result was "not significant"; it
+could not have established the claim it made.
+
+### Six repeats resolve it, and there is no placement term
+
+HW 8 carried the larger, cleaner hit, so it is the one settled. Four patterns spanning the
+placement axis — the two original scattered operands, eight contiguous bits `0x000000FF`,
+one bit per nibble `0x11111111` — each against the all-zero baseline, six repeats, an
+omnibus permutation that exchanges pattern labels within each repeat (cancelling the
+between-repeat state exactly as the paired reading does):
+
+- pattern means +0.745 / +0.780 / +0.696 / +0.701 W; **spread 0.083 W, below the 0.094 W
+  effect-scale floor** (`sham`, §8.2);
+- omnibus **p = 0.10** — not significant, on a design whose paired floor at six repeats is
+  0.031, so it had the power to see a term of this size;
+- the motivating hit, `hw08_a` vs `hw08_b`, **collapsed from −0.162 W to −0.035 W and flipped
+  sign** — the two added repeats read +0.077 and +0.015 W — for a sign-flip p of 0.31.
+
+Anchor +1.126 W against the corpus's +1.133/+1.215/+1.228/+1.160; pooled A/A −0.006 W (one of
+the four first-session repeats fails the per-run gate marginally, the documented
+single-run-CI pattern, and the aggregate is clean). Hamming weight is the predictor; no
+bit-placement term is established at fixed weight.
+
+### Why measure rather than downgrade
+
+The critique offered the downgrade as defensible and the measurement as more valuable. The
+measurement earned its ~45 minutes: the downgrade alone would have said "not resolved at
+three repeats" and left open whether a real, novel placement term was being missed for want
+of power. The six-repeat test answers that — the design *had* the power (floor 0.031) and the
+term is not there — and it caught the motivating hit reversing sign, which a paper downgrade
+would not have. The negative is now a proper negative, not an absence of evidence.
+
+### Code
+
+- `analysis/placement.py`: per-pattern effects, a blocked omnibus permutation (labels
+  exchanged within each repeat, valid across pooled sessions since each (session, repeat) is
+  its own block), the paired sign-flip on the original hit, against the effect-scale floor.
+- `experiments/phase1_placement.json` and its `…_topup`.
+- No new victim: HW-8 patterns are ordinary `ws_l3_x8` selectors.
+
+### A note on the run
+
+A background time limit killed the first session at 4 of 6 repeats. The runner's signal
+handler restored turbo and handed the output back cleanly (`tests/test_runner_cleanup.py`
+covers exactly this), and the 4 repeats were valid and pooled with a 2-repeat top-up rather
+than re-run — each (session, repeat) is an independent permutation block, so pooling is exact
+for the omnibus test.

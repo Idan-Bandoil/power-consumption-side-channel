@@ -871,40 +871,54 @@ against +0.282 W. And `op_mov`, a register-to-register move, is the one traffic-
 row that adds nothing measurable, which is consistent with the rest of the chapter: a
 move that stays inside the register file is not movement in the sense that leaks.
 
-## 11. Bit placement matters a little, and is not explained
+## 11. Bit placement, tested and not resolved
 
-At equal Hamming weight, two bit patterns differ by 0.01–0.16 W. Pooling both sweep
-sessions gives eight weights with more than one pattern; at two of them the spread between
-patterns exceeds the between-repeat SD:
+An earlier version of this section reported that bit placement matters at fixed Hamming
+weight — that at equal weight two patterns differ by up to 0.16 W — from a heuristic that
+flagged a weight whenever the spread between its patterns exceeded twice the between-repeat
+SD. Pooling the two sweep sessions gives eight weights with more than one pattern, and the
+heuristic fired at two of them, HW 2 (spread 0.102 W) and HW 8 (0.162 W). That was not a
+test, and it does not survive being made into one.
 
-| HW | patterns | spread | between-run SD | verdict |
-|---|---|---|---|---|
-| 1 | three | 0.115 W | 0.095 | within noise |
-| 2 | two | 0.102 W | 0.018 | **larger than noise** |
-| 3 | two | 0.009 W | 0.054 | within noise |
-| 4 | two | 0.052 W | 0.058 | within noise |
-| 6 | two | 0.021 W | 0.115 | within noise |
-| 8 | two | 0.162 W | 0.077 | **larger than noise** |
-| 16 | two | 0.085 W | 0.071 | within noise |
-| 24 | two | 0.041 W | 0.029 | within noise |
+**The three-repeat design could not resolve placement, in either direction.** Patterns at a
+weight were interleaved across the same three repeats, so a repeat index is a session-wide
+thermal state shared by every pattern, and the powerful comparison is the paired one:
+difference the patterns repeat by repeat, cancelling that state. Done so, the two flagged
+weights are the two with the *largest* paired separation — HW 2 at *t* = 5.3, HW 8 at
+*t* = −3.9, each consistent in sign across its three repeats — so the heuristic was
+tracking signal, not noise. But an exact paired sign-flip test on three repeats cannot
+return a *p* below 0.25 however clean the effect (there are only 2³ sign assignments), and
+across eight weights the Šidák-corrected smallest *p* is 0.90. The original claim rested on
+a design whose best possible result was "not significant."
 
-Neither a count of cyclic adjacent-bit transitions nor a count of non-zero bytes accounts
-for the residual, and the two weights that exceed noise have no structure in common — at
-HW 2 the two patterns are `0x01000040` and `0x00200080`, both with their bits in separate
-bytes.
+**Six repeats at HW 8 resolve it, and the answer is no.** HW 8 carried the larger and
+cleaner of the two hits, so it is the one to settle. Four patterns spanning the placement
+axis — the two original scattered operands `0x0180D203` and `0xD004B080`, eight contiguous
+bits `0x000000FF`, and one bit per nibble `0x11111111` — each contrasted against the
+all-zero baseline exactly as §6's sweep did, over six repeats
+(`results/20260930-155653-phase1_placement` and its top-up
+`results/20260930-162959-phase1_placement_topup`; anchor +1.126 W against the corpus's
++1.133/+1.215/+1.228/+1.160; A/A −0.006 W). The four pattern means are +0.745, +0.780,
++0.696 and +0.701 W. Their spread is **0.083 W — now below the effect-scale noise floor**
+the `sham` control sets at 0.094 W (§8.2). An omnibus permutation test that exchanges the
+pattern labels *within each repeat*, so that it cancels the between-repeat state exactly as
+the paired reading does, returns **p = 0.10** — not significant, on a design whose paired
+floor at six repeats is 0.031 and which therefore had the power to find a real term of this
+size.
 
-Hamming weight is therefore a good predictor of this leakage but not a complete one. The
-honest statement is that a placement term exists, is of order 0.1 W against a 1.9 W full
-range, appears at some weights and not others, and is not modelled here.
+**And the hit that motivated the claim did not replicate.** `hw08_a` against `hw08_b` read
+−0.162 W over three repeats and was consistent in sign; over six it is −0.035 W, and the
+sign is no longer consistent — the two added repeats came in at +0.077 and +0.015 W, the
+opposite direction — for a sign-flip *p* of 0.31. The original figure was the tail of a
+three-sample draw, and a design that could not have distinguished it from zero happened to
+land on a large value twice.
 
-This is placement of bits *within the operand*, and it should not be confused with the
-placement of the *buffer in memory* reported in §8.2, which is a separate and larger
-effect. The two are hard to separate on the current victim, and the `sham` control makes
-the point: it contrasts an operand against its complement, matched in both weight and
-distance, so it ought to be a clean bit-placement measurement at HW 16 — and it reads
-−0.174 W, larger than anything in the table above. But its two conditions also occupy two
-different mappings, so that figure is an upper bound carrying both terms at once, and it
-is quoted in §8.2 as a noise floor rather than here as a placement result.
+Hamming weight is therefore the predictor of this leakage, and no bit-placement term is
+established at fixed weight: what looked like one is below the noise floor and does not
+survive a test with the power to see it. This is placement of bits *within the operand*; it
+should not be confused with the placement of the *buffer in memory* of §8.2, which is a
+separate effect, real, and about 230 mW — the `sham` control's −0.174 W carries that term,
+not this one, which is why it is quoted there as a noise floor and not here as a result.
 
 ## 12. Threats to validity
 
@@ -1068,11 +1082,15 @@ A quantitative leakage model for operand movement on this platform:
 - Register-resident leakage is instruction-dependent: null for `vpmuludq`, +0.045 W for
   `vfmadd231ps`, +0.200 W for `vpdpbusd` at detector accuracy 0.94. The more the
   execution unit does per operand bit, the more it leaks with no traffic at all.
-- A residual placement effect of order 0.1 W exists at fixed weight and is unmodelled,
-  and a second one is larger: two buffers holding bit-identical data at different
-  addresses differ by about 230 mW (§8.2). The polarity control bounds its mean at
-  +0.7 ± 3.1 mW, so it is a variance term rather than a bias, and it is the leading
-  candidate for the ~100 mW between-run spread this chapter reports throughout.
+- Bit placement *within the operand* does not measurably matter at fixed weight. A
+  heuristic once suggested a term of order 0.1 W; a six-repeat test at HW 8 with a proper
+  permutation test puts the spread between four patterns at 0.083 W, below the noise floor,
+  at p = 0.10, and the one hit that motivated the claim collapsed from 0.16 W to −0.03 W
+  and flipped sign (§11). A *different* placement effect is real and larger: two buffers
+  holding bit-identical data at different addresses differ by about 230 mW (§8.2). The
+  polarity control bounds its mean at +0.7 ± 3.1 mW, so it is a variance term rather than a
+  bias, and it is the leading candidate for the ~100 mW between-run spread this chapter
+  reports throughout.
 
 For the chapters that follow, the operationally important number is not the largest
 effect but the best-conditioned one. `ws_l3_x8` under Config-A reaches 95% detector

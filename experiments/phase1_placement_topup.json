@@ -1,0 +1,83 @@
+{
+  "name": "phase1_placement_topup",
+  "description": [
+    "Top-up for phase1_placement (critique C5): the first session was cut",
+    "to 4 of 6 repeats by a background time limit. Two more repeats, pooled",
+    "with results/20260930-155653-phase1_placement by analysis.placement, to",
+    "complete the pre-registered six. Fresh seeds; identical everything else so",
+    "the blocks pool. Each (session,repeat) is its own permutation block."
+  ],
+  "config": "A",
+  "repeats": 2,
+  "shuffle_runs": true,
+  "run_order_seed": 13579,
+  "cooldown_s": 35,
+  "cooldown_target_c": 48,
+  "driver": {
+    "threads": 4,
+    "samples": 120,
+    "blocks": 150,
+    "settle": 8,
+    "warmup_blocks": 4,
+    "mode": "edge",
+    "attacker_core": 0,
+    "seed": 13579
+  },
+  "runs": [
+    {
+      "label": "aa_l3",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        0
+      ],
+      "control": "aa",
+      "comment": "session A/A gate."
+    },
+    {
+      "label": "hw08_a",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        25219587
+      ],
+      "comment": "HW 8, 0x0180D203 (original scattered)."
+    },
+    {
+      "label": "hw08_b",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        3489968256
+      ],
+      "comment": "HW 8, 0xD004B080 (original scattered); differed from a by 0.162 W at 3 repeats."
+    },
+    {
+      "label": "hw08_lo",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        255
+      ],
+      "comment": "HW 8, 0x000000FF (eight contiguous bits, low byte)."
+    },
+    {
+      "label": "hw08_sp",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        286331153
+      ],
+      "comment": "HW 8, 0x11111111 (one bit per nibble, maximally spread)."
+    },
+    {
+      "label": "anchor_hw16",
+      "victim": "ws_l3_x8",
+      "selectors": [
+        0,
+        94757711
+      ],
+      "comment": "HW 16, 0x05A5E34F. Cross-session anchor."
+    }
+  ]
+}
