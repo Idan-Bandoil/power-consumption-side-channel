@@ -10,7 +10,9 @@ The working plan is at `~/.claude/plans/resilient-squishing-spindle.md`: Phase 0
 
 Hardware facts that constrain everything: P-cores are logical CPUs 0-11 (SMT pairs), E-cores 12-19. `/proc/cpuinfo` shows `avx avx2 avx_vnni` — **no AVX-512** (fused off on consumer Alder Lake). RAPL MSRs and `/sys/class/powercap/.../energy_uj` are root-only; `scaling_cur_freq` is world-readable. Kernel cmdline has `isolcpus=0`.
 
-## Where things stand (last updated 2026-09-21)
+## Where things stand (last updated 2026-10-03)
+
+**Latest (2026-09-29 → 10-03): critique items B1, E2 and C5 done.** B1 cross-validated RAPL three ways (core/uncore split, battery V×I, tier-3 timing); E2 showed a sparsity *mixture* follows the weight law in mean bit density rather than inheriting the cheap zero word-by-word, and random data leaks ~0.65 W more than the model; C5 withdrew the bit-placement claim (not resolved at six repeats, motivating hit collapsed). All three are in *Findings so far*, the critique's *Outcomes* sections, and the relevant chapters. Committed on `phase0-measurement-rework` (not pushed — Idan's call). **Critique work order: items 1–5, 7, 8-C5 done; remaining are item 6 (Phase 2 matched tier sweep + C1/D2/D3) and item 8's C6 (model-comparison script).** The three chapter drafts have no stubs for the done work.
 
 **Phase 0 is complete.** The measurement pipeline was rebuilt and validated; see *Findings so far* below for results and *Validity gates* for what every claim must pass.
 
