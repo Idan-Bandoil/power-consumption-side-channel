@@ -28,3 +28,10 @@ echo
 echo "### analysis.hwfit $r"
 echo
 ./venv/bin/python3 -m analysis.hwfit "$r"
+echo
+echo "### analysis.modelcompare $r"
+echo
+# §6's model comparison (critique C6): every functional form fitted with a free
+# intercept and ranked on AICc + held-out RMSE, not raw R². Single-session here;
+# the pooled comparison §6/§8 also quote is wired into the low_end run.
+./venv/bin/python3 -m analysis.modelcompare "$r"

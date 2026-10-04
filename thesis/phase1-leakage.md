@@ -306,10 +306,21 @@ Fitting one line per repeat and taking the spread across repeats as the error ba
 **dP = 0.362 + 0.0500·HW watts, R² = 0.974, slope +50.0 mW/bit (SD 0.25 over three
 repeats, 95% CI [49.8, 50.3]).**
 
-Alternative shapes were fitted and rejected: √HW gives R² 0.951, log(1+HW) 0.874, and a
-pure power law through the origin 0.928. Adding a quadratic term, a count of cyclic
-adjacent-bit transitions, or a count of non-zero bytes each buys ≤0.003 of R² for an
-extra parameter. The `hw32` point also reproduces `phase1_polarity`'s `l3_forward` across
+Alternative shapes were fitted and rejected by `analysis.modelcompare`, one fit per repeat
+as above. Raw R² alone would not be a fair test: √HW and log(1+HW) sit near the origin that
+dP(0)=0 makes exact, while the line misses it by 23 SE (§7), so a curved form would be
+judged partly on the one point the line is licensed to ignore. Giving *every* candidate a
+free intercept and scoring on AICc — which charges for parameters instead of rewarding
+flexibility — keeps the verdict. Against the line (R² 0.974) √HW (R² 0.951) loses by
+ΔAICc 6.8 and log(1+HW) (R² 0.875) by 16.5; pooling the low-end points §8 adds, where the
+shapes diverge most, widens both to 13.7 and 30.9. The two forms flexible enough to curve
+toward the origin — a free-intercept power law a+b·HWᵏ and a saturating a+b(1−e^(−HW/τ)) —
+instead straighten out: their shape parameters converge on the line (exponent 0.90,
+τ ≈ 90 ≫ 32), and after AICc's penalty for the extra parameter they still fall short. Held
+out one whole Hamming weight at a time, the line predicts it to 90 mW RMSE against √HW's 139
+and log's 232. Adding a quadratic term, a count of cyclic adjacent-bit transitions, or a
+count of non-zero bytes each buys ≤0.003 of R² for an extra parameter — which AICc rejects
+outright. The `hw32` point also reproduces `phase1_polarity`'s `l3_forward` across
 sessions (+1.904 against +1.841 W), which is the only cross-session check that session
 had.
 

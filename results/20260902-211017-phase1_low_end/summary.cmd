@@ -27,3 +27,10 @@
 ./venv/bin/python3 -m analysis.report "$r"
 ./venv/bin/python3 -m analysis.aggregate "$r"
 ./venv/bin/python3 -m analysis.hwfit "$r" --labels 'hw*'
+echo
+echo "### analysis.modelcompare (pooled with the 2026-09-01 sweep, 18 operands) $r"
+echo
+# The pooled fair model comparison §6/§8 quote (critique C6): ΔAICc √HW 13.7,
+# log 30.9; held-out RMSE linear 90 mW vs √HW 139, log 232. Pools both sessions,
+# --labels hw* keeping the anchor out exactly as the hwfit line above does.
+./venv/bin/python3 -m analysis.modelcompare results/20260901-213211-phase1_hamming_weight "$r"

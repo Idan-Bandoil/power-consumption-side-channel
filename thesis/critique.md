@@ -496,7 +496,20 @@ permutation test across patterns. The second is more valuable than it looks: a r
 placement term at fixed weight would be a genuinely novel result, and the current design
 cannot claim it either way.
 
-### C6. §6's model comparison is not reproducible and is structurally rigged
+### C6. §6's model comparison is not reproducible and is structurally rigged — DONE 2026-10-04
+
+> **Done, and §6 strengthens.** `analysis.modelcompare` fits every functional form with a
+> free intercept and ranks them on AICc/BIC plus leave-one-weight-out RMSE, not raw R².
+> Linear wins on every criterion, single-session and pooled; the two curved forms given a
+> free shape parameter degenerate toward the line (power exponent 0.90, saturating τ ≈ 90 ≫
+> 32) and still lose after the parameter penalty, and held out a whole Hamming weight the
+> line predicts it to 90 mW RMSE against √HW's 139 and log's 232. The script self-validates
+> (reproduces §6's R² 0.974 and §8's +50.75 / +349 / 0.967 exactly). §6 rewritten to rank on
+> AICc + held-out and to state the free-intercept fairness point; the power-law "0.928" (a
+> log-log fit, a different objective, incomparable) is dropped rather than reproduced. See
+> *Outcomes — items C1, C6, E1* at the foot.
+>
+> *Original finding:*
 
 `phase1` §6 rejects √HW (R² 0.951), log(1+HW) (0.874) and a power law through the origin
 (0.928) against the linear fit's 0.974. Two problems:
@@ -835,7 +848,8 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
 8. **Placement at 6 repeats (C5)** — **DONE 2026-09-30**: measured, not dropped. Placement
    does not matter at fixed weight (spread below the noise floor, p = 0.10 with power to
    see it, the motivating hit collapsed and flipped sign). See *Outcomes — item 8* below.
-   The committed model-comparison script (C6) remains, if time allows.
+   The committed model-comparison script (C6) is **DONE 2026-10-04** — linear wins under a
+   free-intercept AICc + held-out comparison; see *Outcomes — items C1, C6, E1* below.
 
 ---
 
