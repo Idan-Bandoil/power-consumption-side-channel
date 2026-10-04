@@ -1042,10 +1042,44 @@ figure in §6–§9 comes from a buffer holding one repeated word or two alterna
 about 0.65 W at L3 — a quarter of the total — on random data at two bit densities. The
 coefficients are therefore a floor on real-data leakage rather than a prediction of it,
 and any combined model built from them has to be checked against, or recalibrated on,
-data that varies freely before it is used to predict a real victim.
+data that varies freely before it is used to predict a real victim — which §12.1 now does.
 
 **One machine, one microarchitecture.** Everything here is an i7-12700H at 2.3 GHz with
 no AVX-512. Nothing in this chapter establishes that the coefficients transfer.
+
+### 12.1 Where the model breaks down
+
+The four characterisations above are assembled into one predictor by `analysis.model` —
+
+    dP = f(depth)·(step·1[op≠0] + α·meanHW + β·meanHD) + γ(instruction)
+
+— and the script does two things no earlier section did: it confirms the combined fit
+reproduces every per-section coefficient it is built from, and it predicts victims the fit
+never saw. Three results bound where the model may be trusted.
+
+It is portable across sessions for the operands it was calibrated on. The weight law
+predicts the recurring HW-16 anchor at +1.161 W against a measured +1.172 W pooled over
+five independent sessions — a residual of +11 mW — and the HW-32 point to within −0.109 W.
+The per-bit *slope* in particular is portable (the depth session's L3 slope +48.96 mW/bit
+against the pooled weight sweep's +50.75); the zero-*step* is the loose coefficient,
++194 mW in the depth session against +349 mW pooled, which is why this chapter quotes the
+step with the widest error bar of any figure it reports.
+
+It predicts static mixtures of those operands within the noise floor: across the five
+densities of §8.3's scattered arm the weight law's residual is −0.02 to −0.20 W, inside or
+just past the 0.094 W effect-scale floor of §8.2.
+
+It under-predicts data whose words genuinely differ, by a known amount and in a known
+direction. On the i.i.d. victim at mean bit density one-half the model predicts +1.84 W
+against a measured +2.49 W — a residual of +0.65 W, about a quarter of the signal,
+reproducing §8.3's independently-computed excess. The cause is structural rather than a bad
+fit: every calibration victim held all eight 32-bit words of a 32-byte load identical, so
+the fitted switching term β counts only the flips *between* consecutive loads; i.i.d. data
+also flips bits word-to-word *inside* a load, and that activity is nowhere in the training
+set. The combined model is therefore a floor on real-data leakage, exact to tens of
+milliwatts on single-word operands and low by a quarter on high-entropy ones — and the one
+measurement that would turn the floor into a two-sided prediction is a held-out victim at
+an (HW, HD) combination never run, predicted in advance and then measured.
 
 ## 13. What this chapter establishes
 
@@ -1102,6 +1136,14 @@ A quantitative leakage model for operand movement on this platform:
   polarity control bounds its mean at +0.7 ± 3.1 mW, so it is a variance term rather than a
   bias, and it is the leading candidate for the ~100 mW between-run spread this chapter
   reports throughout.
+
+These coefficients are not only tabulated but assembled into a single predictor
+(`analysis.model`) and tested against victims outside the fit. It reproduces every
+coefficient it is built from, predicts single-word operands across five independent
+sessions to within 11 mW, predicts static mixtures of them within the noise floor, and
+under-predicts high-entropy data by a known +0.65 W. Phase 1 therefore delivers a leakage
+*model* with a stated domain of validity and a measured out-of-sample error, not only a
+list of coefficients valid at the points where each was taken.
 
 For the chapters that follow, the operationally important number is not the largest
 effect but the best-conditioned one. `ws_l3_x8` under Config-A reaches 95% detector

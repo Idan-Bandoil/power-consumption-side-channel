@@ -630,7 +630,21 @@ should be promoted to first. (b) Add an effective-rate column (raw ÷ frames vot
 
 ## E. The chapter-level gap
 
-### E1. Phase 1 produces coefficients, not a model — nothing is predicted out of sample
+### E1. Phase 1 produces coefficients, not a model — nothing is predicted out of sample — CORE DONE 2026-10-04
+
+> **Core done; one run remains.** `analysis.model` assembles the four characterisations into
+> dP = f(depth)·(step·1[op≠0] + α·meanHW + β·meanHD) + γ(instr), confirms the combined fit
+> reproduces every published coefficient (executable — it prints ALL MARGINALS REPRODUCE),
+> and predicts victims outside the fit on committed data: the recurring HW-16 anchor to
+> **+11 mW** across five sessions, static mixtures within the 0.094 W floor, and i.i.d.
+> real-entropy data low by a known **+0.65 W** (independently reproducing §8.3). Phase 1 now
+> ships a leakage model with a stated domain of validity and a measured out-of-sample error,
+> not only a coefficient table. New §12.1 "Where the model breaks down" and a §13 closer.
+> The one piece still needing the machine — a brand-new held-out (HW, HD) victim predicted in
+> advance then run, to convert the floor into a two-sided prediction — is flagged, not done.
+> See *Outcomes — items C1, C6, E1* at the foot.
+>
+> *Original finding:*
 
 This is the largest single "not good enough for a thesis" item, and it is structural rather
 than a defect in any one number.
@@ -1341,3 +1355,88 @@ handler restored turbo and handed the output back cleanly (`tests/test_runner_cl
 covers exactly this), and the 4 repeats were valid and pooled with a 2-repeat top-up rather
 than re-run — each (session, repeat) is an independent permutation block, so pooling is exact
 for the omnibus test.
+
+## Outcomes — items C1, C6, E1 (2026-10-04)
+
+Three items closed in one session, each zero machine time — reanalysis and tooling on
+committed data, done concurrently because none touches the machine (two power experiments
+cannot run at once) and each owns disjoint files. Every number below was reproduced
+independently of the tool that produced it before any draft was touched; no published decode
+or coefficient moves.
+
+### C1 — the Phase 2 significance is now honest, and the headline survives
+
+`analysis/covert.py` gained an exact message-space null (`match_pmf`, `message_null_p`):
+each repeat is one distinct balanced message, so a decoder biased but independent of the
+message cannot borrow strength from the frames that repeat it. It is the headline `p(msg)`
+column; the old binomial-over-transmissions is kept beside it as the labelled inflated bound
+`p(tx)`, and the A/A gate judges on `p(msg)`.
+
+- Headline unprivileged result (tier 2, 2 bit/s, zero errors after the vote): p(tx) =
+  1.8 × 10⁻¹⁸ → **p(msg) = 9.1 × 10⁻⁶**, still decisive. Not the ideal (1/70)³ = 2.9 × 10⁻⁶
+  because that run's payloads are 75% ones; a balanced run would read the floor.
+- Tier 1 (256-bit payloads): p(msg) underflows — the distinction is immaterial there, as C1
+  predicted; it bites only the small-payload tier-2 result.
+- **Do-not-degrade, verified by diff:** across every regenerated covert summary each decode
+  column (BER, SD, acq, BER|snc, capacity, vote, bits, settled-only) is byte-identical; only
+  the p-column changed. The tier-1 capacity headline (241 b/s at 3 ms) and the tier-2
+  headline are untouched. The three oldest summaries additionally pick up the documented
+  overshoot-recompute and a platform-state section — pre-existing backfill, not C1, moving no
+  measured number. A/A gates: none flipped, all pass on `p(msg)`.
+- `tests/test_covert_decode.py` gained a message-null section (match law sums to 1,
+  (1/70)³ = 2.92e-6 exact, a message-independent decoder fires at ≈1/70, p(msg) ≥ p(tx)).
+- C2 confirmed already fixed (item 1). The d′-over-payload F bullet is refuted: payload-only
+  d′_paired is *lower*, so Q(pair) rises and the gap widens — the residual is Q(d′/√2) run
+  conservative at long symbols; §8.1 corrected.
+
+Draft: §8.3's C1 paragraph and A/A line rewritten to the computed `p(msg)`; §8.1's tier-2
+"predicts 0.14 against 0.09 observed" now states the systematic beat and its cause.
+
+### C6 — §6's model comparison is reproducible and fair, and linear still wins
+
+`analysis/modelcompare.py` fits linear / √HW / log(1+HW) / power-law (through-origin and
+free-intercept) / saturating, each with a free intercept, one fit per repeat, ranked on
+AIC/AICc/BIC and leave-one-weight-out RMSE rather than raw R².
+
+- Linear wins on every criterion, single-session and pooled. ΔAICc (pooled): √HW 13.7, log
+  30.9, power-through-origin 11.4. Held-out RMSE: linear 90 mW vs √HW 139, log 232.
+- The two flexible curved forms degenerate toward the line (power exponent 0.90, saturating
+  τ ≈ 90 ≫ 32) and still lose after the parameter penalty — a stronger argument for
+  linearity than the original raw-R² one.
+- Self-validates: reproduces §6's single-session R² 0.974 and §8's pooled +50.75 / +349 /
+  0.967 exactly, and §6's √HW 0.951 / log 0.874 to the digit.
+- One honest correction: §6's power-law "R² 0.928" came from a log-log fit (a different
+  objective); it is dropped, not reproduced. The §6 verdict is unchanged, now defensible.
+
+Draft: §6's "Alternative shapes…" paragraph rewritten; provenance wired into the
+hamming_weight (single) and low_end (pooled) `summary.cmd`s.
+
+### E1 — Phase 1 now predicts out of sample (core done; one run remains)
+
+`analysis/model.py` assembles the four characterisations into one predictor,
+dP = f(depth)·(step·1[op≠0] + α·meanHW + β·meanHD) + γ(instr) — depth multiplies the operand
+terms, per item 3; β and γ were measured only at L3, so the model is fully specified there
+and carries the weight law alone elsewhere, stated as a limit.
+
+- Executable do-not-degrade: prints ALL MARGINALS REPRODUCE — L3 slope +50.75, step +349,
+  β +34.14, depth slopes 7.23/26.11/48.96/22.52 all within tolerance.
+- Out of sample, on victims the fit never saw: the HW-16 anchor to **+11 mW** across five
+  sessions, HW-32 to −0.109 W, static mixtures within the 0.094 W floor, and i.i.d.
+  real-entropy data low by **+0.65 W** at p = ½ (independently reproducing §8.3's +0.67 W).
+  The model is exact on single-word operands and a known floor on high-entropy data.
+- Portability finding: the per-bit *slope* is portable across sessions; the zero-*step* is
+  the loose coefficient (+194 vs +349 mW), which is why the chapter quotes the step with the
+  widest error bar.
+
+Draft: new §12.1 "Where the model breaks down" and a §13 closer turn §12/§13's promissory
+"has to be checked" into the delivered, cross-validated result.
+
+**Remaining:** E1's one machine-time piece — a brand-new held-out (HW, HD) victim predicted
+in advance then run, converting the +0.65 W floor into a two-sided prediction — is not done,
+and item 6's machine sweeps (D4a matched tiers, D2 unpinned receiver, D3 thread/duty) remain.
+
+### Code / files
+- `analysis/covert.py` (message-space null, `p(msg)`/`p(tx)` columns, A/A gate), new
+  `analysis/modelcompare.py`, new `analysis/model.py`, `tests/test_covert_decode.py`.
+- Draft edits in `phase1-leakage.md` (§6, §12.1, §13) and `phase2-covert.md` (§8.1, §8.3).
+- Eight covert `summary.txt` regenerated; two Phase-1 `summary.cmd`s wired for `modelcompare`.
