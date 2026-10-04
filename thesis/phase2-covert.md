@@ -785,7 +785,12 @@ observation.
 
 This is also the section where §6's caveat pays off. Tier 2's marginal per-chip d′ is
 0.08 — a number the simple model calls a dead channel — while the paired statistic reads
-1.07 and predicts BER 0.14 against the 0.09 observed. The frequency trace carries
+1.07 and predicts BER 0.14 against the 0.09 observed — a prediction the measured rate in fact beats
+in all three repeats (0.094/0.063/0.094 against 0.14/0.19/0.18). That gap is not the
+preamble flattering the statistic: recomputing d′_paired over the payload chips alone
+*widens* it, the preamble being the cleanest part of the frame, so what remains is Q(d′/√2)
+running conservative at a 256 ms symbol, where the chip noise is drift-dominated rather than
+the white noise the bound assumes. The frequency trace carries
 hundreds of MHz of slow wander on top of a ~50 MHz signal, and Manchester differencing
 removes it. The line code was chosen in §3 for exactly this reason, against thermal
 drift; here it is doing the same work against governor drift, and without it there would
@@ -894,8 +899,9 @@ Put beside tier 2 at matched rates, three repeats each, capacity in bit/s:
 
 **The receiver that reads nothing performs as well as the one that reads a file**, and at
 3.9 bit/s rather better — 0.8 bit/s of capacity against 0.2. Both A/A controls are dead at
-chance with real power behind them — pooled BER 0.500 over 384 transmissions of 96 distinct
-bits (p = 0.52) and 0.516 over 192 transmissions of 48 (p = 0.69) — against per-chip
+chance with real power behind them — pooled BER 0.500 over 96 distinct bits (message-space
+null p(msg) = 0.95; the binomial over its 384 transmissions reads 0.52) and 0.516 over 48
+distinct bits (p(msg) = 1, binomial 0.69) — against per-chip
 separations of 0.4–4 kTSC on 260–430 kTSC of noise.
 
 Tier 3 is also the one tier whose acquisition is not the binding constraint: it acquires in
@@ -1047,10 +1053,14 @@ resolve its shape. More seriously, the headline row carries **8 distinct payload
 run** — 24 across three repeats, transmitted 96 times between them. The p-value the decoder
 reports treats those 96 transmissions as independent trials, which they are not: a decoder
 that is biased but independent of the message errs the same way on every repeat of a bit,
-so the effective sample size is 24 and not 96. Against a message-permutation null, three
-runs of eight balanced bits cannot produce evidence stronger than about 10⁻⁶ however clean
-the decode, so the quoted 2 × 10⁻¹⁸ is an artifact of the counting rather than a claim the
-design can support. The channel is real — the effect is large and the control is dead —
+so the effective sample size is 24 and not 96. `analysis.covert` now reports this directly
+as `p(msg)`, a message-space null that holds the (possibly biased, self-correlated) decode
+fixed and asks how often a random balanced truth would match it as well: for the headline
+row it is **9.1 × 10⁻⁶** (this run's payloads are 75% ones, not balanced; a balanced run of
+three eight-bit messages would read (1/70)³ = 2.9 × 10⁻⁶). The binomial over transmissions,
+**1.8 × 10⁻¹⁸**, is kept beside it as `p(tx)` only to show the inflation — it counts every
+repeat of a bit as an independent trial, and three runs of eight bits cannot carry eighteen
+decades of evidence however clean the decode. The channel is real — the effect is large and the control is dead —
 but the *strength* of that evidence is overstated, and the fix is to spend the run time on
 more distinct bits rather than more repetitions of eight. This applies to every A/A gate in
 the chapter for the same reason: they pass with far less power than their bit counts

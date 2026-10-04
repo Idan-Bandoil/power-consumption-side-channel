@@ -3,36 +3,36 @@
 per-run decode
 ==============================================================================
                      run  sym us   bit/s     BER  BER|snc  acq  |pk|    pre   vote  ties  cap b/s       dW     sd W  d-marg  d-pair  Q(pair)  ovr%    sync  late
-              aa_08ms_r0    8000   125.0  0.5142   0.5068   NO  0.26  0.260  0.520 64/256      0.1   -0.019    0.964    0.02    0.01   0.4944  2.88 +302.14     0   << unsettled sampler
-              aa_08ms_r1    8000   125.0  0.4927   0.5156   NO  0.28  0.298  0.473 65/256      0.0   -0.009    0.549    0.02    0.01   0.4950  0.16 -176.29     0
-              aa_08ms_r2    8000   125.0  0.4927   0.4980   NO  0.26  0.337  0.500 63/256      0.0   -0.008    0.343    0.02    0.03   0.4880  0.15  -68.32     0
-             sym_02ms_r0    2000   500.0  0.4917   0.3667   NO  0.35  0.288  0.508 42/256      0.1    0.738    2.165    0.34    0.22   0.4128  1.43 -713.55     0   << unsettled sampler
-             sym_02ms_r1    2000   500.0  0.4961   0.3213   NO  0.33  0.269  0.492 41/256      0.0    0.545    1.670    0.33    0.23   0.4104  4.14 +582.28     0   << unsettled sampler
-             sym_02ms_r2    2000   500.0  0.0371   0.0640  yes  0.82  0.029  0.000 0/256    385.6    0.623    0.388    1.60    1.32   0.0927  0.20   +0.41     0
-             sym_03ms_r0    3000   333.3  0.1128   0.1274  yes  0.65  0.096  0.008 5/256    163.9    1.035    0.824    1.26    0.85   0.1990  0.21   +0.14     0
-             sym_03ms_r1    3000   333.3  0.0181   0.0215  yes  0.85  0.029  0.000 0/256    289.9    1.063    0.384    2.77    1.72   0.0429  0.15   +0.19     0
-             sym_03ms_r2    3000   333.3  0.0122   0.0205  yes  0.90  0.010  0.000 0/256    301.6    1.111    0.401    2.77    1.91   0.0283  0.14   +0.24     0
-             sym_04ms_r0    4000   250.0  0.4888   0.3530   NO  0.42  0.288  0.500 53/256      0.1    1.063    1.544    0.69    0.40   0.3431  4.22 +132.41     0   << unsettled sampler
-             sym_04ms_r1    4000   250.0  0.5186   0.0874   NO  0.70  0.087  0.520 1/256      0.2    1.124    0.687    1.64    1.16   0.1220  0.29 +236.18     0
-             sym_04ms_r2    4000   250.0  0.0083   0.0137  yes  0.92  0.019  0.000 0/256    232.7    1.147    0.335    3.43    2.33   0.0099  0.07   +0.15     0
-             sym_06ms_r0    6000   166.7  0.1729   0.1821  yes  0.64  0.125  0.000 7/256     56.0    1.468    0.972    1.51    0.91   0.1826  3.01   +0.21     0   << unsettled sampler
-             sym_06ms_r1    6000   166.7  0.0034   0.0049  yes  0.97  0.000  0.000 0/256    161.2    1.418    0.222    6.40    4.50   0.0000  0.09   +0.14     0
+              aa_08ms_r0    8000   125.0  0.5142   0.5068   NO  0.26  0.260  0.520 64/256      0.1   -0.019    0.964    0.02    0.01   0.4944  8.10 +302.14     0   << unsettled sampler
+              aa_08ms_r1    8000   125.0  0.4927   0.5156   NO  0.28  0.298  0.473 65/256      0.0   -0.009    0.549    0.02    0.01   0.4950  0.34 -176.29     0
+              aa_08ms_r2    8000   125.0  0.4927   0.4980   NO  0.26  0.337  0.500 63/256      0.0   -0.008    0.343    0.02    0.03   0.4880  0.13  -68.32     0
+             sym_02ms_r0    2000   500.0  0.4917   0.3667   NO  0.35  0.288  0.508 42/256      0.1    0.738    2.165    0.34    0.22   0.4128  3.00 -713.55     0   << unsettled sampler
+             sym_02ms_r1    2000   500.0  0.4961   0.3213   NO  0.33  0.269  0.492 41/256      0.0    0.545    1.670    0.33    0.23   0.4104  9.54 +582.28     0   << unsettled sampler
+             sym_02ms_r2    2000   500.0  0.0371   0.0640  yes  0.82  0.029  0.000 0/256    385.6    0.623    0.388    1.60    1.32   0.0927  0.04   +0.41     0
+             sym_03ms_r0    3000   333.3  0.1128   0.1274  yes  0.65  0.096  0.008 5/256    163.9    1.035    0.824    1.26    0.85   0.1990  0.07   +0.14     0
+             sym_03ms_r1    3000   333.3  0.0181   0.0215  yes  0.85  0.029  0.000 0/256    289.9    1.063    0.384    2.77    1.72   0.0429  0.05   +0.19     0
+             sym_03ms_r2    3000   333.3  0.0122   0.0205  yes  0.90  0.010  0.000 0/256    301.6    1.111    0.401    2.77    1.91   0.0283  0.01   +0.24     0
+             sym_04ms_r0    4000   250.0  0.4888   0.3530   NO  0.42  0.288  0.500 53/256      0.1    1.063    1.544    0.69    0.40   0.3431  9.39 +132.41     0   << unsettled sampler
+             sym_04ms_r1    4000   250.0  0.5186   0.0874   NO  0.70  0.087  0.520 1/256      0.2    1.124    0.687    1.64    1.16   0.1220  0.20 +236.18     0
+             sym_04ms_r2    4000   250.0  0.0083   0.0137  yes  0.92  0.019  0.000 0/256    232.7    1.147    0.335    3.43    2.33   0.0099  0.02   +0.15     0
+             sym_06ms_r0    6000   166.7  0.1729   0.1821  yes  0.64  0.125  0.000 7/256     56.0    1.468    0.972    1.51    0.91   0.1826  8.34   +0.21     0   << unsettled sampler
+             sym_06ms_r1    6000   166.7  0.0034   0.0049  yes  0.97  0.000  0.000 0/256    161.2    1.418    0.222    6.40    4.50   0.0000  0.01   +0.14     0
              sym_06ms_r2    6000   166.7  0.0049   0.0044  yes  0.98  0.000  0.000 0/256    159.2    1.272    0.205    6.19    4.53   0.0000  0.02   +0.07     0
-             sym_08ms_r0    8000   125.0  0.0425   0.0508  yes  0.81  0.029  0.000 0/256     93.3    1.538    0.611    2.52    1.94   0.0263  0.11   +0.06     0
-             sym_08ms_r1    8000   125.0  0.0054   0.0054  yes  0.97  0.000  0.000 0/256    119.0    1.523    0.243    6.27    4.43   0.0000  0.04   +0.08     0
+             sym_08ms_r0    8000   125.0  0.0425   0.0508  yes  0.81  0.029  0.000 0/256     93.3    1.538    0.611    2.52    1.94   0.0263  0.12   +0.06     0
+             sym_08ms_r1    8000   125.0  0.0054   0.0054  yes  0.97  0.000  0.000 0/256    119.0    1.523    0.243    6.27    4.43   0.0000  0.03   +0.08     0
              sym_08ms_r2    8000   125.0  0.0024   0.0039  yes  0.98  0.000  0.000 0/256    121.9    1.448    0.196    7.39    5.22   0.0000  0.02   +0.04     0
-             sym_12ms_r0   12000    83.3  0.0303   0.0303  yes  0.84  0.019  0.000 0/128     67.0    1.750    0.594    2.95    2.35   0.0095  0.11   +0.02     0
-             sym_12ms_r1   12000    83.3  0.0020   0.0020  yes  0.98  0.000  0.000 0/128     81.6    1.534    0.157    9.76    6.98   0.0000  0.06   +0.10     0
-             sym_12ms_r2   12000    83.3  0.0000   0.0010  yes  0.99  0.000  0.000 0/128     83.3    1.643    0.172    9.53    7.45   0.0000  0.10   +0.11     0
-             sym_16ms_r0   16000    62.5  0.0068   0.0068  yes  0.91  0.000  0.000 0/128     58.8    1.750    0.413    4.24    3.29   0.0005  0.24   -0.00     0
-             sym_16ms_r1   16000    62.5  0.0186   0.0225  yes  0.89  0.000  0.000 0/128     54.2    1.573    0.536    2.93    2.46   0.0070  0.13   +0.06     0
-             sym_16ms_r2   16000    62.5  0.0000   0.0000  yes  0.98  0.000  0.000 0/128     62.5    1.692    0.177    9.53    9.31   0.0000  0.05   +0.07     0
-             sym_24ms_r0   24000    41.7  0.0215   0.0215  yes  0.89  0.019  0.000  0/64     35.4    1.774    0.497    3.57    2.56   0.0053  4.12   +0.05     0   << unsettled sampler
-             sym_24ms_r1   24000    41.7  0.0273   0.0234  yes  0.83  0.019  0.000  0/64     34.1    1.633    0.654    2.50    2.24   0.0126  3.77   +0.07     0   << unsettled sampler
-             sym_24ms_r2   24000    41.7  0.0000   0.0000  yes  0.99  0.000  0.000  0/64     41.7    1.759    0.118   14.96   11.07   0.0000  0.11   +0.08     0
-             sym_32ms_r0   32000    31.2  0.0078   0.0059  yes  0.89  0.000  0.000  0/64     29.2    1.822    0.625    2.91    2.76   0.0029  0.22   +0.09     0
-             sym_32ms_r1   32000    31.2  0.0000   0.0000  yes  1.00  0.000  0.000  0/64     31.2    1.734    0.111   15.61   13.08   0.0000  0.08   +0.07     0
-             sym_32ms_r2   32000    31.2  0.0000   0.0000  yes  0.99  0.000  0.000  0/64     31.2    1.643    0.101   16.33   11.99   0.0000  0.08   -0.03     0
+             sym_12ms_r0   12000    83.3  0.0303   0.0303  yes  0.84  0.019  0.000 0/128     67.0    1.750    0.594    2.95    2.35   0.0095  0.06   +0.02     0
+             sym_12ms_r1   12000    83.3  0.0020   0.0020  yes  0.98  0.000  0.000 0/128     81.6    1.534    0.157    9.76    6.98   0.0000  0.01   +0.10     0
+             sym_12ms_r2   12000    83.3  0.0000   0.0010  yes  0.99  0.000  0.000 0/128     83.3    1.643    0.172    9.53    7.45   0.0000  0.02   +0.11     0
+             sym_16ms_r0   16000    62.5  0.0068   0.0068  yes  0.91  0.000  0.000 0/128     58.8    1.750    0.413    4.24    3.29   0.0005  0.29   -0.00     0
+             sym_16ms_r1   16000    62.5  0.0186   0.0225  yes  0.89  0.000  0.000 0/128     54.2    1.573    0.536    2.93    2.46   0.0070  0.10   +0.06     0
+             sym_16ms_r2   16000    62.5  0.0000   0.0000  yes  0.98  0.000  0.000 0/128     62.5    1.692    0.177    9.53    9.31   0.0000  0.02   +0.07     0
+             sym_24ms_r0   24000    41.7  0.0215   0.0215  yes  0.89  0.019  0.000  0/64     35.4    1.774    0.497    3.57    2.56   0.0053  9.34   +0.05     0   << unsettled sampler
+             sym_24ms_r1   24000    41.7  0.0273   0.0234  yes  0.83  0.019  0.000  0/64     34.1    1.633    0.654    2.50    2.24   0.0126  9.24   +0.07     0   << unsettled sampler
+             sym_24ms_r2   24000    41.7  0.0000   0.0000  yes  0.99  0.000  0.000  0/64     41.7    1.759    0.118   14.96   11.07   0.0000  0.03   +0.08     0
+             sym_32ms_r0   32000    31.2  0.0078   0.0059  yes  0.89  0.000  0.000  0/64     29.2    1.822    0.625    2.91    2.76   0.0029  0.23   +0.09     0
+             sym_32ms_r1   32000    31.2  0.0000   0.0000  yes  1.00  0.000  0.000  0/64     31.2    1.734    0.111   15.61   13.08   0.0000  0.04   +0.07     0
+             sym_32ms_r2   32000    31.2  0.0000   0.0000  yes  0.99  0.000  0.000  0/64     31.2    1.643    0.101   16.33   11.99   0.0000  0.03   -0.03     0
 
   ties: 341 of 5760 voted bits split evenly across frames and were
   decided on the summed decision margin rather than resolved to 0. An even
@@ -64,17 +64,17 @@ by condition (between-repeat spread is the error bar)
   project's own rule everywhere else -- and at a given rate the repeats
   here span far more than any one of them admits.
 
-               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
-             aa_08ms   3    125.0   0.4998   0.0124   0/3   0.5068      0.0    0.4974      15.6    768/6144   4.95e-01  0.4927 (n=2)
-            sym_02ms   3    500.0   0.3416   0.2637   1/3   0.2507     36.8    0.3333      62.5    768/6144  1.49e-138  0.0371 (n=1)
-            sym_03ms   3    333.3   0.0477   0.0565   3/3   0.0565    241.2    0.0026      41.7    768/6144   0.00e+00  0.0477 (n=3)
-            sym_04ms   3    250.0   0.3385   0.2864   1/3   0.1514     19.1    0.3398      31.2    768/6144  5.00e-144  0.2634 (n=2)
-            sym_06ms   3    166.7   0.0604   0.0974   3/3   0.0638    111.8    0.0000      20.8    768/6144   0.00e+00  0.0042 (n=2)
-            sym_08ms   3    125.0   0.0168   0.0223   3/3   0.0200    109.6    0.0000      15.6    768/6144   0.00e+00  0.0168 (n=3)
-            sym_12ms   3     83.3   0.0107   0.0169   3/3   0.0111     76.2    0.0000      10.4    384/3072   0.00e+00  0.0107 (n=3)
-            sym_16ms   3     62.5   0.0085   0.0094   3/3   0.0098     58.1    0.0000       7.8    384/3072   0.00e+00  0.0085 (n=3)
-            sym_24ms   3     41.7   0.0163   0.0144   3/3   0.0150     36.7    0.0000       5.2    192/1536   0.00e+00  0.0000 (n=1)
-            sym_32ms   3     31.2   0.0026   0.0045   3/3   0.0020     30.4    0.0000       3.9    192/1536   0.00e+00  0.0026 (n=3)
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx    p(msg)     p(tx)  settled-only
+             aa_08ms   3    125.0   0.4998   0.0124   0/3   0.5068      0.0    0.4974      15.6    768/6144  6.68e-01  4.95e-01  0.4927 (n=2)
+            sym_02ms   3    500.0   0.3416   0.2637   1/3   0.2507     36.8    0.3333      62.5    768/6144  9.43e-21 1.49e-138  0.0371 (n=1)
+            sym_03ms   3    333.3   0.0477   0.0565   3/3   0.0565    241.2    0.0026      41.7    768/6144 9.56e-222  0.00e+00  0.0477 (n=3)
+            sym_04ms   3    250.0   0.3385   0.2864   1/3   0.1514     19.1    0.3398      31.2    768/6144  1.92e-18 5.00e-144  0.2634 (n=2)
+            sym_06ms   3    166.7   0.0604   0.0974   3/3   0.0638    111.8    0.0000      20.8    768/6144 1.96e-226  0.00e+00  0.0042 (n=2)
+            sym_08ms   3    125.0   0.0168   0.0223   3/3   0.0200    109.6    0.0000      15.6    768/6144 1.96e-226  0.00e+00  0.0168 (n=3)
+            sym_12ms   3     83.3   0.0107   0.0169   3/3   0.0111     76.2    0.0000      10.4    384/3072 2.31e-111  0.00e+00  0.0107 (n=3)
+            sym_16ms   3     62.5   0.0085   0.0094   3/3   0.0098     58.1    0.0000       7.8    384/3072 2.31e-111  0.00e+00  0.0085 (n=3)
+            sym_24ms   3     41.7   0.0163   0.0144   3/3   0.0150     36.7    0.0000       5.2    192/1536  1.76e-54  0.00e+00  0.0000 (n=1)
+            sym_32ms   3     31.2   0.0026   0.0045   3/3   0.0020     30.4    0.0000       3.9    192/1536  1.76e-54  0.00e+00  0.0026 (n=3)
 
   acq       : repeats whose recovered sync landed within half a chip.
   BER|snc   : mean BER demodulated on the true chip grid. Where this is
@@ -86,22 +86,35 @@ by condition (between-repeat spread is the error bar)
               against the literature; BER at a rate is not one number.
   vote b/s  : raw / frames, the rate actually delivered after the majority
               vote, since the F frames carry one payload between them.
-  bits d/tx : distinct payload bits / times they were transmitted. p<chance
-              is a binomial over the second, which assumes every
-              transmission is an independent truth. It is not: a decoder
-              biased but independent of the message errs the same way on
-              every repeat of a bit, so the effective n is the first
-              number. Read p as an upper bound on the evidence.
+  bits d/tx : distinct payload bits / times they were transmitted.
+  p(msg)    : the honest significance -- the message-space null on the voted
+              decode. Each repeat is one distinct balanced message, so it is
+              one independent truth however many frames carried it; the null
+              holds the (possibly biased, self-correlated) decode fixed and
+              asks how often a random truth would match it as well. r perfect
+              repeats of m balanced bits give (1/C(m,m/2))**r.
+  p(tx)     : the binomial over transmissions, kept only as the INFLATED
+              upper bound. It counts every repeat of a bit as an independent
+              trial, which overstates the evidence by orders of magnitude at
+              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the
+              eight-bit headline row. Quote p(msg).
+
+==============================================================================
+platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    power source not recorded      60 snapshots
+
+  platform power state: constant
 
 ==============================================================================
 gates
 ==============================================================================
-  A/A aa_08ms: pooled BER 0.500 over 6144 bits, p = 0.495
-  WARN  sym_24ms_r0: 4.1% of RAPL edges seen late -- per-chip noise is 0.497 W and the decode is degraded by the instrument, not by the channel
-  WARN  sym_06ms_r0: 3.0% of RAPL edges seen late -- per-chip noise is 0.972 W and the decode is degraded by the instrument, not by the channel
-  WARN  sym_02ms_r0: 1.4% of RAPL edges seen late -- per-chip noise is 2.165 W and the decode is degraded by the instrument, not by the channel
-  WARN  aa_08ms_r0: 2.9% of RAPL edges seen late -- per-chip noise is 0.964 W and the decode is degraded by the instrument, not by the channel
-  WARN  sym_04ms_r0: 4.2% of RAPL edges seen late -- per-chip noise is 1.544 W and the decode is degraded by the instrument, not by the channel
-  WARN  sym_24ms_r1: 3.8% of RAPL edges seen late -- per-chip noise is 0.654 W and the decode is degraded by the instrument, not by the channel
-  WARN  sym_02ms_r1: 4.1% of RAPL edges seen late -- per-chip noise is 1.670 W and the decode is degraded by the instrument, not by the channel
+  A/A aa_08ms: pooled BER 0.500 over 6144 transmissions of 768 distinct bits, p(msg) = 0.668 (binom over tx 0.495)
+  WARN  sym_24ms_r0: 9.3% of RAPL edges seen late -- per-chip noise is 0.497 W and the decode is degraded by the instrument, not by the channel
+  WARN  sym_06ms_r0: 8.3% of RAPL edges seen late -- per-chip noise is 0.972 W and the decode is degraded by the instrument, not by the channel
+  WARN  sym_02ms_r0: 3.0% of RAPL edges seen late -- per-chip noise is 2.165 W and the decode is degraded by the instrument, not by the channel
+  WARN  aa_08ms_r0: 8.1% of RAPL edges seen late -- per-chip noise is 0.964 W and the decode is degraded by the instrument, not by the channel
+  WARN  sym_04ms_r0: 9.4% of RAPL edges seen late -- per-chip noise is 1.544 W and the decode is degraded by the instrument, not by the channel
+  WARN  sym_24ms_r1: 9.2% of RAPL edges seen late -- per-chip noise is 0.654 W and the decode is degraded by the instrument, not by the channel
+  WARN  sym_02ms_r1: 9.5% of RAPL edges seen late -- per-chip noise is 1.670 W and the decode is degraded by the instrument, not by the channel
   all gates pass (with warnings)

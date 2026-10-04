@@ -49,11 +49,11 @@ by condition (between-repeat spread is the error bar)
   project's own rule everywhere else -- and at a given rate the repeats
   here span far more than any one of them admits.
 
-               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
-           aa_1000ms   3      1.0   0.4271   0.1909   0/3   0.5417      0.0    0.3333       0.2       24/96   9.21e-02  0.4271 (n=3)
-          sym_0256ms   3      3.9   0.0833   0.0502   3/3   0.1458      2.3    0.0208       1.0      48/192   1.50e-35  0.0833 (n=3)
-          sym_0512ms   3      2.0   0.1042   0.0786   3/3   0.1042      1.0    0.0417       0.5       24/96   1.61e-16  0.1042 (n=3)
-          sym_1000ms   3      1.0   0.0000   0.0000   3/3   0.0000      1.0    0.0000       0.2       24/96   1.26e-29  0.0000 (n=3)
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx    p(msg)     p(tx)  settled-only
+           aa_1000ms   3      1.0   0.4271   0.1909   0/3   0.5417      0.0    0.3333       0.2       24/96  4.48e-01  9.21e-02  0.4271 (n=3)
+          sym_0256ms   3      3.9   0.0833   0.0502   3/3   0.1458      2.3    0.0208       1.0      48/192  1.05e-11  1.50e-35  0.0833 (n=3)
+          sym_0512ms   3      2.0   0.1042   0.0786   3/3   0.1042      1.0    0.0417       0.5       24/96  1.59e-04  1.61e-16  0.1042 (n=3)
+          sym_1000ms   3      1.0   0.0000   0.0000   3/3   0.0000      1.0    0.0000       0.2       24/96  3.99e-05  1.26e-29  0.0000 (n=3)
 
   acq       : repeats whose recovered sync landed within half a chip.
   BER|snc   : mean BER demodulated on the true chip grid. Where this is
@@ -65,23 +65,36 @@ by condition (between-repeat spread is the error bar)
               against the literature; BER at a rate is not one number.
   vote b/s  : raw / frames, the rate actually delivered after the majority
               vote, since the F frames carry one payload between them.
-  bits d/tx : distinct payload bits / times they were transmitted. p<chance
-              is a binomial over the second, which assumes every
-              transmission is an independent truth. It is not: a decoder
-              biased but independent of the message errs the same way on
-              every repeat of a bit, so the effective n is the first
-              number. Read p as an upper bound on the evidence.
+  bits d/tx : distinct payload bits / times they were transmitted.
+  p(msg)    : the honest significance -- the message-space null on the voted
+              decode. Each repeat is one distinct balanced message, so it is
+              one independent truth however many frames carried it; the null
+              holds the (possibly biased, self-correlated) decode fixed and
+              asks how often a random truth would match it as well. r perfect
+              repeats of m balanced bits give (1/C(m,m/2))**r.
+  p(tx)     : the binomial over transmissions, kept only as the INFLATED
+              upper bound. It counts every repeat of a bit as an independent
+              trial, which overstates the evidence by orders of magnitude at
+              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the
+              eight-bit headline row. Quote p(msg).
 
   zero errors bounds BER only as well as the bit count allows (rule of
   three, 95%): over transmissions, and over distinct bits --
             sym_1000ms  <= 3.1e-02 over 96 tx   |  <= 1.2e-01 over 24 distinct
 
 ==============================================================================
+platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    power source not recorded      24 snapshots
+
+  platform power state: constant
+
+==============================================================================
 gates
 ==============================================================================
-  A/A aa_1000ms: pooled BER 0.427 over 96 bits, p = 0.0921
+  A/A aa_1000ms: pooled BER 0.427 over 96 transmissions of 24 distinct bits, p(msg) = 0.448 (binom over tx 0.0921)
   WARN  sym_0512ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
   WARN  aa_1000ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
   WARN  sym_1000ms_r2: payload is 88% ones, so BER is vulnerable to a biased decode scoring well by coincidence -- use a balanced payload
-  WARN  aa_1000ms: one A/A repeat reached BER 0.219 while the pooled figure is 0.427 (p = 0.092) -- single-run noise, recorded not hidden
+  WARN  aa_1000ms: one A/A repeat reached BER 0.219 while the pooled figure is 0.427 (p(msg) = 0.45) -- single-run noise, recorded not hidden
   all gates pass (with warnings)

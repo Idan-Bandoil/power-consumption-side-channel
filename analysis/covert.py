@@ -510,6 +510,12 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0, sync_mode="raw"):
     voted_err = int(np.sum(voted != truth_pay))
     voted_ties = int(np.sum(votes == 0.5))
 
+    # Honest per-run significance: the message-space null on the voted word
+    # (see message_null_p), not a binomial over the n_pay*frames transmissions.
+    # A single perfect eight-bit run is 1/70, not 1/2**32.
+    p_run_msg = float(
+        match_pmf(n_pay, int(voted.sum()), int(truth_pay.sum()))[n_pay - voted_err:].sum())
+
     symbol_s = float(tx["symbol_us"]) / 1e6
     raw_bps = 1.0 / symbol_s
     # A majority vote across F frames costs a factor F in rate, because the F
@@ -549,11 +555,17 @@ def decode_run(entry, csv_path, sync_span=None, freq_column=0, sync_mode="raw"):
         # independent truths -- see the bit-count note in main().
         "payload_bits": n_pay,
         "transmitted_bits": n_pay * frames,
+        # Ones-counts the message-space null needs: the voted word's, and the
+        # (balanced) truth's. Kept on the row so the per-condition p can be
+        # recomputed from the aggregate without re-reading the trace.
+        "voted_ones_count": int(voted.sum()),
+        "truth_ones_count": int(truth_pay.sum()),
         "preamble_ber": pre_err / (n_pre * frames),
         "ber": ber,
         "decoded_ones": decoded_ones,
         "truth_ones": truth_ones,
         "p_below_chance": binom_p_below_chance(pay_err, n_pay * frames),
+        "p_below_chance_msg": p_run_msg,
         "voted_errors": voted_err,
         "voted_ber": voted_err / n_pay,
         "voted_bps": voted_bps,
@@ -615,6 +627,64 @@ def binom_p_below_chance(errors, n):
     # Integer division throughout: a run can carry a couple of thousand bits,
     # and 2.0**2048 overflows a float long before the ratio does.
     return sum(math.comb(n, k) for k in range(errors + 1)) / (1 << n)
+
+
+def match_pmf(n, a, k):
+    """Distribution of matching bits between a FIXED word and a random truth.
+
+    The honest null for this channel. The binomial over transmissions treats
+    every chip sent as an independent trial, but a frame is a *repetition of
+    one payload*: all `frames` copies of a bit share one truth, so a decoder
+    that is biased but independent of the message errs the same way on every
+    copy. The effective sample size is therefore the number of distinct
+    messages, not the number of transmissions -- which is the whole content of
+    critique item C1.
+
+    This models it directly. Under H0 the decoded word is independent of the
+    transmitted one, so the decoder's output (with all its own bias and
+    self-correlation intact) is held *fixed* and the truth is the random
+    quantity. Payloads are balanced by construction, so the truth is a uniform
+    draw from the words of exactly `k` ones, and the number of bits that then
+    match a fixed word of `a` ones is `2j + n - a - k`, where j -- the truth's
+    ones that land on the fixed word's one-positions -- is hypergeometric. No
+    Monte Carlo: the law is exact and costs O(n), so it resolves a p of 1e-77
+    (one perfect 256-bit frame) as readily as 1/70 (one perfect 8-bit one).
+
+    Returns an array indexed 0..n, so np.convolve of several composes the
+    independent per-repeat laws into the law of their total.
+    """
+    pmf = np.zeros(n + 1)
+    total = math.comb(n, k)
+    for j in range(max(0, k - (n - a)), min(a, k) + 1):
+        pmf[2 * j + n - a - k] += math.comb(a, j) * math.comb(n - a, k - j) / total
+    return pmf
+
+
+def message_null_p(group):
+    """Session p under the message-space null, over the voted decode.
+
+    Each repeat carries one distinct balanced message (the seed varies per
+    repeat), transmitted `frames` times and collapsed by the majority vote to
+    one decoded word, so a repeat is *one* independent truth and the whole
+    session is as many truths as there are repeats. The statistic is the total
+    matching bits between each voted word and its message; the null convolves
+    the per-repeat match laws (independent truths) and the p-value is the upper
+    tail at the observed total.
+
+    For r perfect repeats of an m-bit balanced payload this is
+    (1 / C(m, m/2))**r: 2.9e-6 for three 8-bit runs, where the binomial over
+    96 transmissions reads 1.8e-18. The channel is real either way -- the
+    point is that three runs of eight bits cannot carry eighteen decades of
+    evidence however clean the decode, and this is the number that can be.
+    """
+    dist = np.array([1.0])
+    s_obs = 0
+    for g in group:
+        n = g["payload_bits"]
+        dist = np.convolve(dist, match_pmf(n, g["voted_ones_count"],
+                                           g["truth_ones_count"]))
+        s_obs += n - g["voted_errors"]
+    return float(dist[s_obs:].sum())
 
 
 def bsc_capacity(p):
@@ -823,7 +893,7 @@ def main():
     print("  here span far more than any one of them admits.")
     print(f"\n  {'label':>18} {'n':>3} {'raw b/s':>8} {'BER':>8} {'SD':>8} "
           f"{'acq':>5} {'BER|snc':>8} {'cap b/s':>8} {'vote BER':>9} {'vote b/s':>9} "
-          f"{'bits d/tx':>11} {'p<chance':>10}  settled-only")
+          f"{'bits d/tx':>11} {'p(msg)':>9} {'p(tx)':>9}  settled-only")
     zero_error = []
     for label, group in sorted(aggregate(rows).items()):
         bers = np.array([g["ber"] for g in group])
@@ -845,7 +915,13 @@ def main():
         n_distinct = sum(g["payload_bits"] for g in group)
         tot_bits = sum(g["transmitted_bits"] for g in group)
         tot_err = sum(int(round(g["ber"] * g["transmitted_bits"])) for g in group)
+        # p(tx): the binomial over transmissions, kept only as the inflated
+        # upper bound. p(msg): the honest message-space null on the voted
+        # decode, whose effective n is the distinct messages. For the headline
+        # unprivileged row these read 1.8e-18 and 2.9e-6; the second is the one
+        # the design can support (critique C1).
         pval = binom_p_below_chance(tot_err, tot_bits)
+        p_msg = message_null_p(group)
         if tot_err == 0:
             zero_error.append((label, n_distinct, tot_bits))
         # Both columns, always. Restricting to settled runs is a defensible
@@ -860,7 +936,8 @@ def main():
               f"{str(int(acq.sum())) + '/' + str(len(acq)):>5} {oracle.mean():>8.4f} "
               f"{cap:>8.1f} "
               f"{votes.mean():>9.4f} {raw / group[0]['frames']:>9.1f} "
-              f"{str(n_distinct) + '/' + str(tot_bits):>11} {pval:>10.2e}  {note}")
+              f"{str(n_distinct) + '/' + str(tot_bits):>11} "
+              f"{p_msg:>9.2e} {pval:>9.2e}  {note}")
 
     print("\n  acq       : repeats whose recovered sync landed within half a chip.")
     print("  BER|snc   : mean BER demodulated on the true chip grid. Where this is")
@@ -872,12 +949,18 @@ def main():
     print("              against the literature; BER at a rate is not one number.")
     print("  vote b/s  : raw / frames, the rate actually delivered after the majority")
     print("              vote, since the F frames carry one payload between them.")
-    print("  bits d/tx : distinct payload bits / times they were transmitted. p<chance")
-    print("              is a binomial over the second, which assumes every")
-    print("              transmission is an independent truth. It is not: a decoder")
-    print("              biased but independent of the message errs the same way on")
-    print("              every repeat of a bit, so the effective n is the first")
-    print("              number. Read p as an upper bound on the evidence.")
+    print("  bits d/tx : distinct payload bits / times they were transmitted.")
+    print("  p(msg)    : the honest significance -- the message-space null on the voted")
+    print("              decode. Each repeat is one distinct balanced message, so it is")
+    print("              one independent truth however many frames carried it; the null")
+    print("              holds the (possibly biased, self-correlated) decode fixed and")
+    print("              asks how often a random truth would match it as well. r perfect")
+    print("              repeats of m balanced bits give (1/C(m,m/2))**r.")
+    print("  p(tx)     : the binomial over transmissions, kept only as the INFLATED")
+    print("              upper bound. It counts every repeat of a bit as an independent")
+    print("              trial, which overstates the evidence by orders of magnitude at")
+    print("              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the")
+    print("              eight-bit headline row. Quote p(msg).")
     if zero_error:
         print("\n  zero errors bounds BER only as well as the bit count allows (rule of")
         print("  three, 95%): over transmissions, and over distinct bits --")
@@ -964,21 +1047,29 @@ def main():
         if not group[0]["aa_control"]:
             continue
         bits = sum(g["payload_bits"] * g["frames"] for g in group)
+        distinct = sum(g["payload_bits"] for g in group)
         errs = sum(int(round(g["ber"] * g["payload_bits"] * g["frames"]))
                    for g in group)
         pooled = errs / bits
         p = binom_p_below_chance(errs, bits)
-        print(f"  A/A {label}: pooled BER {pooled:.3f} over {bits} bits, "
-              f"p = {p:.3g}")
-        if pooled < AA_BER_FLOOR and p < 0.01:
-            failures.append(f"{label}: A/A pooled BER {pooled:.3f} over {bits} "
-                            f"bits (p = {p:.2g}) -- the decoder is finding "
-                            f"structure in a transmission that has none")
+        # Gate on the message-space null, not the binomial over transmissions.
+        # A single A/A carries as few as 24-32 distinct bits, so a pass over
+        # "384 bits" claims power it does not have; p(msg) is the honest one,
+        # and a decoder that found structure in a null transmission would show
+        # a small p(msg) too, so the gate loses nothing it should keep.
+        p_msg = message_null_p(group)
+        print(f"  A/A {label}: pooled BER {pooled:.3f} over {bits} transmissions "
+              f"of {distinct} distinct bits, p(msg) = {p_msg:.3g} "
+              f"(binom over tx {p:.3g})")
+        if pooled < AA_BER_FLOOR and p_msg < 0.01:
+            failures.append(f"{label}: A/A pooled BER {pooled:.3f} over {distinct} "
+                            f"distinct bits (p(msg) = {p_msg:.2g}) -- the decoder "
+                            f"is finding structure in a transmission that has none")
         elif any(g["ber"] < AA_BER_FLOOR for g in group):
             worst = min(g["ber"] for g in group)
             warnings.append(f"{label}: one A/A repeat reached BER {worst:.3f} "
                             f"while the pooled figure is {pooled:.3f} "
-                            f"(p = {p:.2g}) -- single-run noise, recorded not hidden")
+                            f"(p(msg) = {p_msg:.2g}) -- single-run noise, recorded not hidden")
 
     for r in rows:
         if r["message"] is not None:

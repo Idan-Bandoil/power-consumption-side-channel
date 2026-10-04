@@ -351,6 +351,58 @@ def main():
         check("ASCII round-trips", d["decoded_message"] == msg,
               repr(d["decoded_message"]))
 
+        print("\nmessage-space null (critique C1): repetition is not independence")
+        from analysis.covert import match_pmf, message_null_p  # noqa: E402
+        # The match law is a proper distribution, and an exact match of an
+        # m-bit balanced word is 1/C(m, m/2) -- the honest unit of evidence,
+        # against the binomial's 1/2**m per transmission.
+        pmf8 = match_pmf(8, 4, 4)
+        check("match law sums to one", abs(pmf8.sum() - 1.0) < 1e-12)
+        check("exact 8-bit balanced match is 1/70",
+              abs(pmf8[8] - 1 / math.comb(8, 4)) < 1e-15, f"{pmf8[8]:.4g}")
+        # Three perfect balanced 8-bit repeats: (1/70)**3 ~ 2.9e-6, the honest
+        # p for the headline unprivileged result, where the binomial over 96
+        # transmissions reads 1.8e-18 -- twelve decades the design cannot carry.
+        perfect = [{"payload_bits": 8, "voted_ones_count": 4,
+                    "truth_ones_count": 4, "voted_errors": 0} for _ in range(3)]
+        p3 = message_null_p(perfect)
+        check("three perfect 8-bit runs give (1/70)**3, not 1/2**96",
+              abs(p3 - (1 / 70) ** 3) < 1e-12, f"{p3:.3g} vs {(1/70)**3:.3g}")
+        # The failure this null exists to reject: a decoder correlated with
+        # itself but independent of the message. Drawn many times against an
+        # independent balanced truth, its p must not pile up near zero -- a
+        # single eight-bit run can only reach significance by an exact match,
+        # which happens at the chance rate 1/70, well under any 0.05 alarm.
+        rng2 = np.random.default_rng(99)
+        trials, small = 4000, 0
+        for _ in range(trials):
+            t = rng2.permutation([1] * 4 + [0] * 4)
+            dc = rng2.permutation([1] * 4 + [0] * 4)
+            g = [{"payload_bits": 8, "voted_ones_count": 4, "truth_ones_count": 4,
+                  "voted_errors": int(np.sum(t != dc))}]
+            if message_null_p(g) < 0.05:
+                small += 1
+        check("message-independent decoder is not significant",
+              small / trials < 0.05, f"{small/trials:.3f} fire at 0.05 (~1/70 expected)")
+        # A real decode is: one perfect balanced run is 1/70, and it only gets
+        # smaller with more distinct bits or more clean repeats.
+        true1 = message_null_p([{"payload_bits": 8, "voted_ones_count": 4,
+                                 "truth_ones_count": 4, "voted_errors": 0}])
+        check("a single perfect balanced run is 1/70", abs(true1 - 1 / 70) < 1e-12,
+              f"{true1:.4g}")
+        # Real decodes also come through decode_run as a per-run field, and on
+        # a clean run the honest p is the *less* extreme one: the binomial over
+        # transmissions counts the repeated bits as independent and so claims
+        # more than the distinct messages can carry.
+        e, r = synth_run(payload, symbol_us=8000, delta_w=2.0)
+        d = write_and_decode(e, r, tmp)
+        check("decode_run reports a per-run message-null p in (0,1]",
+              0 < d["p_below_chance_msg"] <= 1.0,
+              f"msg {d['p_below_chance_msg']:.2g}, tx-binom {d['p_below_chance']:.2g}")
+        check("on a clean decode the message-null p is less extreme than binomial",
+              d["p_below_chance_msg"] >= d["p_below_chance"],
+              f"msg {d['p_below_chance_msg']:.2g} >= tx {d['p_below_chance']:.2g}")
+
         print("\nwindowed integration")
         t = Trace(tsc=np.array([100.0, 200.0, 300.0]),
                   ticks=np.array([1.0, 1.0, 1.0]),

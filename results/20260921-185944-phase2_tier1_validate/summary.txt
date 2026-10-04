@@ -81,16 +81,16 @@ by condition (between-repeat spread is the error bar)
   project's own rule everywhere else -- and at a given rate the repeats
   here span far more than any one of them admits.
 
-               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
-         p13_aa_08ms   1    125.0   0.4878      nan   0/1   0.4805      0.1    0.4648      15.6    256/2048   1.39e-01  0.4878 (n=1)
-        p13_sym_04ms   1    250.0   0.0391      nan   1/1   0.0508    190.5    0.0000      31.2    256/2048   0.00e+00  0.0391 (n=1)
-        p13_sym_06ms   1    166.7   0.0791      nan   1/1   0.0791    100.2    0.0000      20.8    256/2048   0.00e+00  none settled
-        p13_sym_08ms   1    125.0   0.0806      nan   1/1   0.0942     74.5    0.0000      15.6    256/2048   0.00e+00  none settled
-      p13_sym_1500us   1    666.7   0.5010      nan   0/1   0.3022      0.0    0.4922      83.3    256/2048   5.44e-01  0.5010 (n=1)
-         p63_aa_08ms   1    125.0   0.4941      nan   0/1   0.4990      0.0    0.4766      15.6    256/2048   3.06e-01  0.4941 (n=1)
-        p63_sym_04ms   1    250.0   0.0688      nan   1/1   0.0825    159.6    0.0000      31.2    256/2048   0.00e+00  0.0688 (n=1)
-        p63_sym_08ms   1    125.0   0.0112      nan   1/1   0.0166    113.9    0.0000      15.6    256/2048   0.00e+00  0.0112 (n=1)
-      p63_sym_1500us   1    666.7   0.1582      nan   1/1   0.1831    246.7    0.0547      83.3    256/2048  2.29e-230  0.1582 (n=1)
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx    p(msg)     p(tx)  settled-only
+         p13_aa_08ms   1    125.0   0.4878      nan   0/1   0.4805      0.1    0.4648      15.6    256/2048  1.58e-01  1.39e-01  0.4878 (n=1)
+        p13_sym_04ms   1    250.0   0.0391      nan   1/1   0.0508    190.5    0.0000      31.2    256/2048  1.73e-76  0.00e+00  0.0391 (n=1)
+        p13_sym_06ms   1    166.7   0.0791      nan   1/1   0.0791    100.2    0.0000      20.8    256/2048  1.73e-76  0.00e+00  none settled
+        p13_sym_08ms   1    125.0   0.0806      nan   1/1   0.0942     74.5    0.0000      15.6    256/2048  1.73e-76  0.00e+00  none settled
+      p13_sym_1500us   1    666.7   0.5010      nan   0/1   0.3022      0.0    0.4922      83.3    256/2048  4.50e-01  5.44e-01  0.5010 (n=1)
+         p63_aa_08ms   1    125.0   0.4941      nan   0/1   0.4990      0.0    0.4766      15.6    256/2048  2.66e-01  3.06e-01  0.4941 (n=1)
+        p63_sym_04ms   1    250.0   0.0688      nan   1/1   0.0825    159.6    0.0000      31.2    256/2048  1.73e-76  0.00e+00  0.0688 (n=1)
+        p63_sym_08ms   1    125.0   0.0112      nan   1/1   0.0166    113.9    0.0000      15.6    256/2048  1.73e-76  0.00e+00  0.0112 (n=1)
+      p63_sym_1500us   1    666.7   0.1582      nan   1/1   0.1831    246.7    0.0547      83.3    256/2048  9.93e-55 2.29e-230  0.1582 (n=1)
 
   acq       : repeats whose recovered sync landed within half a chip.
   BER|snc   : mean BER demodulated on the true chip grid. Where this is
@@ -102,12 +102,18 @@ by condition (between-repeat spread is the error bar)
               against the literature; BER at a rate is not one number.
   vote b/s  : raw / frames, the rate actually delivered after the majority
               vote, since the F frames carry one payload between them.
-  bits d/tx : distinct payload bits / times they were transmitted. p<chance
-              is a binomial over the second, which assumes every
-              transmission is an independent truth. It is not: a decoder
-              biased but independent of the message errs the same way on
-              every repeat of a bit, so the effective n is the first
-              number. Read p as an upper bound on the evidence.
+  bits d/tx : distinct payload bits / times they were transmitted.
+  p(msg)    : the honest significance -- the message-space null on the voted
+              decode. Each repeat is one distinct balanced message, so it is
+              one independent truth however many frames carried it; the null
+              holds the (possibly biased, self-correlated) decode fixed and
+              asks how often a random truth would match it as well. r perfect
+              repeats of m balanced bits give (1/C(m,m/2))**r.
+  p(tx)     : the binomial over transmissions, kept only as the INFLATED
+              upper bound. It counts every repeat of a bit as an independent
+              trial, which overstates the evidence by orders of magnitude at
+              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the
+              eight-bit headline row. Quote p(msg).
 
 ==============================================================================
 platform power state
@@ -119,8 +125,8 @@ platform power state
 ==============================================================================
 gates
 ==============================================================================
-  A/A p13_aa_08ms: pooled BER 0.488 over 2048 bits, p = 0.139
-  A/A p63_aa_08ms: pooled BER 0.494 over 2048 bits, p = 0.306
+  A/A p13_aa_08ms: pooled BER 0.488 over 2048 transmissions of 256 distinct bits, p(msg) = 0.158 (binom over tx 0.139)
+  A/A p63_aa_08ms: pooled BER 0.494 over 2048 transmissions of 256 distinct bits, p(msg) = 0.266 (binom over tx 0.306)
   WARN  p13_sym_08ms_r0: 2.6% of RAPL edges seen late -- per-chip noise is 1.267 W and the decode is degraded by the instrument, not by the channel
   WARN  p13_sym_06ms_r0: 4.0% of RAPL edges seen late -- per-chip noise is 0.917 W and the decode is degraded by the instrument, not by the channel
   FAIL  p13_sym_04ms_r0: the sampler estimated a 0.214 ms RAPL period where the trace shows 0.965 ms -- the estimator did not track the part, so its guard window was mis-sized and its own overshoot figure of 100.0% is not a measure of anything

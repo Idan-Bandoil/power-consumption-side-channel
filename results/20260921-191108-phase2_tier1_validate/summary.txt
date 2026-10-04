@@ -104,21 +104,21 @@ by condition (between-repeat spread is the error bar)
   project's own rule everywhere else -- and at a given rate the repeats
   here span far more than any one of them admits.
 
-               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
-         p13_aa_08ms   5    125.0   0.5018   0.0097   0/5   0.4968      0.0    0.5219      15.6  1280/10240   6.43e-01  0.5018 (n=5)
-        p13_sym_02ms   5    500.0   0.2554   0.2256   3/5   0.1931     90.2    0.2078      62.5  1280/10240   0.00e+00  0.1951 (n=4)
-        p13_sym_03ms   5    333.3   0.1185   0.2122   4/5   0.0630    158.4    0.1023      41.7  1280/10240   0.00e+00  0.1185 (n=5)
-        p13_sym_04ms   5    250.0   0.1515   0.2164   4/5   0.0426     96.6    0.1062      31.2  1280/10240   0.00e+00  0.1395 (n=4)
-        p13_sym_06ms   5    166.7   0.1176   0.2171   4/5   0.0241     79.6    0.1008      20.8  1280/10240   0.00e+00  0.1729 (n=3)
-        p13_sym_08ms   5    125.0   0.0060   0.0034   5/5   0.0088    118.4    0.0000      15.6  1280/10240   0.00e+00  0.0054 (n=4)
-      p13_sym_1500us   5    666.7   0.3183   0.1643   3/5   0.2573     65.0    0.2422      83.3  1280/10240  3.93e-303  0.2756 (n=4)
-         p63_aa_08ms   5    125.0   0.5007   0.0057   0/5   0.4941      0.0    0.4961      15.6  1280/10240   5.59e-01  0.5021 (n=3)
-        p63_sym_02ms   5    500.0   0.0732   0.0571   5/5   0.1626    311.0    0.0187      62.5  1280/10240   0.00e+00  0.0732 (n=5)
-        p63_sym_03ms   5    333.3   0.0195   0.0044   5/5   0.0255    287.1    0.0000      41.7  1280/10240   0.00e+00  0.0195 (n=5)
-        p63_sym_04ms   5    250.0   0.0914   0.1149   5/5   0.1006    139.7    0.0117      31.2  1280/10240   0.00e+00  0.0091 (n=3)
-        p63_sym_06ms   5    166.7   0.0077   0.0116   5/5   0.0080    155.8    0.0000      20.8  1280/10240   0.00e+00  0.0026 (n=4)
-        p63_sym_08ms   5    125.0   0.0195   0.0254   5/5   0.0291    107.6    0.0000      15.6  1280/10240   0.00e+00  0.0054 (n=3)
-      p63_sym_1500us   5    666.7   0.2506   0.1478   4/5   0.2377    125.2    0.1570      83.3  1280/10240   0.00e+00  0.2506 (n=5)
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx    p(msg)     p(tx)  settled-only
+         p13_aa_08ms   5    125.0   0.5018   0.0097   0/5   0.4968      0.0    0.5219      15.6  1280/10240  9.49e-01  6.43e-01  0.5018 (n=5)
+        p13_sym_02ms   5    500.0   0.2554   0.2256   3/5   0.1931     90.2    0.2078      62.5  1280/10240 2.34e-103  0.00e+00  0.1951 (n=4)
+        p13_sym_03ms   5    333.3   0.1185   0.2122   4/5   0.0630    158.4    0.1023      41.7  1280/10240 3.16e-203  0.00e+00  0.1185 (n=5)
+        p13_sym_04ms   5    250.0   0.1515   0.2164   4/5   0.0426     96.6    0.1062      31.2  1280/10240 4.79e-198  0.00e+00  0.1395 (n=4)
+        p13_sym_06ms   5    166.7   0.1176   0.2171   4/5   0.0241     79.6    0.1008      20.8  1280/10240 1.49e-204  0.00e+00  0.1729 (n=3)
+        p13_sym_08ms   5    125.0   0.0060   0.0034   5/5   0.0088    118.4    0.0000      15.6  1280/10240  0.00e+00  0.00e+00  0.0054 (n=4)
+      p13_sym_1500us   5    666.7   0.3183   0.1643   3/5   0.2573     65.0    0.2422      83.3  1280/10240  7.39e-80 3.93e-303  0.2756 (n=4)
+         p63_aa_08ms   5    125.0   0.5007   0.0057   0/5   0.4941      0.0    0.4961      15.6  1280/10240  4.11e-01  5.59e-01  0.5021 (n=3)
+        p63_sym_02ms   5    500.0   0.0732   0.0571   5/5   0.1626    311.0    0.0187      62.5  1280/10240  0.00e+00  0.00e+00  0.0732 (n=5)
+        p63_sym_03ms   5    333.3   0.0195   0.0044   5/5   0.0255    287.1    0.0000      41.7  1280/10240  0.00e+00  0.00e+00  0.0195 (n=5)
+        p63_sym_04ms   5    250.0   0.0914   0.1149   5/5   0.1006    139.7    0.0117      31.2  1280/10240  0.00e+00  0.00e+00  0.0091 (n=3)
+        p63_sym_06ms   5    166.7   0.0077   0.0116   5/5   0.0080    155.8    0.0000      20.8  1280/10240  0.00e+00  0.00e+00  0.0026 (n=4)
+        p63_sym_08ms   5    125.0   0.0195   0.0254   5/5   0.0291    107.6    0.0000      15.6  1280/10240  0.00e+00  0.00e+00  0.0054 (n=3)
+      p63_sym_1500us   5    666.7   0.2506   0.1478   4/5   0.2377    125.2    0.1570      83.3  1280/10240 6.43e-146  0.00e+00  0.2506 (n=5)
 
   acq       : repeats whose recovered sync landed within half a chip.
   BER|snc   : mean BER demodulated on the true chip grid. Where this is
@@ -130,12 +130,18 @@ by condition (between-repeat spread is the error bar)
               against the literature; BER at a rate is not one number.
   vote b/s  : raw / frames, the rate actually delivered after the majority
               vote, since the F frames carry one payload between them.
-  bits d/tx : distinct payload bits / times they were transmitted. p<chance
-              is a binomial over the second, which assumes every
-              transmission is an independent truth. It is not: a decoder
-              biased but independent of the message errs the same way on
-              every repeat of a bit, so the effective n is the first
-              number. Read p as an upper bound on the evidence.
+  bits d/tx : distinct payload bits / times they were transmitted.
+  p(msg)    : the honest significance -- the message-space null on the voted
+              decode. Each repeat is one distinct balanced message, so it is
+              one independent truth however many frames carried it; the null
+              holds the (possibly biased, self-correlated) decode fixed and
+              asks how often a random truth would match it as well. r perfect
+              repeats of m balanced bits give (1/C(m,m/2))**r.
+  p(tx)     : the binomial over transmissions, kept only as the INFLATED
+              upper bound. It counts every repeat of a bit as an independent
+              trial, which overstates the evidence by orders of magnitude at
+              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the
+              eight-bit headline row. Quote p(msg).
 
 ==============================================================================
 platform power state
@@ -147,8 +153,8 @@ platform power state
 ==============================================================================
 gates
 ==============================================================================
-  A/A p13_aa_08ms: pooled BER 0.502 over 10240 bits, p = 0.643
-  A/A p63_aa_08ms: pooled BER 0.501 over 10240 bits, p = 0.559
+  A/A p13_aa_08ms: pooled BER 0.502 over 10240 transmissions of 1280 distinct bits, p(msg) = 0.949 (binom over tx 0.643)
+  A/A p63_aa_08ms: pooled BER 0.501 over 10240 transmissions of 1280 distinct bits, p(msg) = 0.411 (binom over tx 0.559)
   WARN  p63_sym_08ms_r0: 8.8% of RAPL edges seen late -- per-chip noise is 0.828 W and the decode is degraded by the instrument, not by the channel
   WARN  p13_sym_02ms_r0: 15.2% of RAPL edges seen late -- per-chip noise is 2.177 W and the decode is degraded by the instrument, not by the channel
   WARN  p13_sym_04ms_r1: 13.1% of RAPL edges seen late -- per-chip noise is 0.856 W and the decode is degraded by the instrument, not by the channel

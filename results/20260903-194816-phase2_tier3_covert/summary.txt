@@ -52,12 +52,12 @@ by condition (between-repeat spread is the error bar)
   project's own rule everywhere else -- and at a given rate the repeats
   here span far more than any one of them admits.
 
-               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx   p<chance  settled-only
-           aa_0256ms   3      3.9   0.5000   0.0469   0/3   0.5443      0.0    0.5729       1.0      96/384   5.20e-01  0.5000 (n=3)
-           aa_1000ms   3      1.0   0.5156   0.0312   0/3   0.5052      0.0    0.5208       0.2      48/192   6.93e-01  0.5156 (n=3)
-          sym_0256ms   3      3.9   0.2370   0.1160   2/3   0.2240      0.8    0.1979       1.0      96/384   3.65e-26  0.2370 (n=3)
-          sym_0512ms   3      2.0   0.1094   0.0547   3/3   0.0365      1.0    0.0000       0.5      96/384   6.99e-60  0.1094 (n=3)
-          sym_1000ms   3      1.0   0.0000   0.0000   3/3   0.0000      1.0    0.0000       0.2      48/192   1.59e-58  0.0000 (n=3)
+               label   n  raw b/s      BER       SD   acq  BER|snc  cap b/s  vote BER  vote b/s   bits d/tx    p(msg)     p(tx)  settled-only
+           aa_0256ms   3      3.9   0.5000   0.0469   0/3   0.5443      0.0    0.5729       1.0      96/384  9.50e-01  5.20e-01  0.5000 (n=3)
+           aa_1000ms   3      1.0   0.5156   0.0312   0/3   0.5052      0.0    0.5208       0.2      48/192  1.00e+00  6.93e-01  0.5156 (n=3)
+          sym_0256ms   3      3.9   0.2370   0.1160   2/3   0.2240      0.8    0.1979       1.0      96/384  2.45e-09  3.65e-26  0.2370 (n=3)
+          sym_0512ms   3      2.0   0.1094   0.0547   3/3   0.0365      1.0    0.0000       0.5      96/384  4.60e-27  6.99e-60  0.1094 (n=3)
+          sym_1000ms   3      1.0   0.0000   0.0000   3/3   0.0000      1.0    0.0000       0.2      48/192  4.69e-13  1.59e-58  0.0000 (n=3)
 
   acq       : repeats whose recovered sync landed within half a chip.
   BER|snc   : mean BER demodulated on the true chip grid. Where this is
@@ -69,20 +69,33 @@ by condition (between-repeat spread is the error bar)
               against the literature; BER at a rate is not one number.
   vote b/s  : raw / frames, the rate actually delivered after the majority
               vote, since the F frames carry one payload between them.
-  bits d/tx : distinct payload bits / times they were transmitted. p<chance
-              is a binomial over the second, which assumes every
-              transmission is an independent truth. It is not: a decoder
-              biased but independent of the message errs the same way on
-              every repeat of a bit, so the effective n is the first
-              number. Read p as an upper bound on the evidence.
+  bits d/tx : distinct payload bits / times they were transmitted.
+  p(msg)    : the honest significance -- the message-space null on the voted
+              decode. Each repeat is one distinct balanced message, so it is
+              one independent truth however many frames carried it; the null
+              holds the (possibly biased, self-correlated) decode fixed and
+              asks how often a random truth would match it as well. r perfect
+              repeats of m balanced bits give (1/C(m,m/2))**r.
+  p(tx)     : the binomial over transmissions, kept only as the INFLATED
+              upper bound. It counts every repeat of a bit as an independent
+              trial, which overstates the evidence by orders of magnitude at
+              small payloads -- 1.8e-18 against p(msg)'s 2.9e-6 on the
+              eight-bit headline row. Quote p(msg).
 
   zero errors bounds BER only as well as the bit count allows (rule of
   three, 95%): over transmissions, and over distinct bits --
             sym_1000ms  <= 1.6e-02 over 192 tx   |  <= 6.2e-02 over 48 distinct
 
 ==============================================================================
+platform power state
+==============================================================================
+  PL1 200.0 W   PL2 80.0 W    power source not recorded      30 snapshots
+
+  platform power state: constant
+
+==============================================================================
 gates
 ==============================================================================
-  A/A aa_0256ms: pooled BER 0.500 over 384 bits, p = 0.52
-  A/A aa_1000ms: pooled BER 0.516 over 192 bits, p = 0.693
+  A/A aa_0256ms: pooled BER 0.500 over 384 transmissions of 96 distinct bits, p(msg) = 0.95 (binom over tx 0.52)
+  A/A aa_1000ms: pooled BER 0.516 over 192 transmissions of 48 distinct bits, p(msg) = 1 (binom over tx 0.693)
   all gates pass

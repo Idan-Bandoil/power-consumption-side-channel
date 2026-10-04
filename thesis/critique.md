@@ -327,7 +327,21 @@ cluster) rather than a mean over a mixture.
 
 ## C. Statistics and controls
 
-### C1. p-values and confidence bounds count repeated frames as independent bits
+### C1. p-values and confidence bounds count repeated frames as independent bits — DONE 2026-10-04
+
+> **Done.** `analysis.covert` now computes significance from an exact message-space null
+> (`match_pmf` + `message_null_p`): each repeat carries one distinct balanced message, so
+> the effective sample size is the distinct messages, not the transmissions. It is the
+> headline `p(msg)` column, with the old binomial kept beside it as the clearly-labelled
+> inflated bound `p(tx)`, and the A/A gate judges on `p(msg)` too. The headline unprivileged
+> result moves from the indefensible p(tx) = 1.8 × 10⁻¹⁸ to **p(msg) = 9.1 × 10⁻⁶** and
+> survives decisively; **no decode number (BER, capacity, vote, acquisition) moves** — only
+> the p-accounting. For tier 1's 256-bit payloads p(msg) stays astronomically small, so the
+> distinction bites only the small-payload tier-2 result, exactly as predicted. C2 was
+> already fixed by item 1; the d′-over-payload F bullet is refuted below.
+> `tests/test_covert_decode.py` pins the null. See *Outcomes — items C1, C6, E1* at the foot.
+>
+> *Original finding:*
 
 `analysis/covert.py:378-391` computes an exact binomial p over `payload_bits × frames`,
 and `phase2` §5 applies the rule of three the same way. But a frame is a *repetition of the
@@ -361,7 +375,14 @@ over transmissions; and at the slow rates, spend the run time on more distinct b
 than more repetitions of eight (keep enough frames for the vote, e.g. 32 distinct × 4
 frames instead of 8 × 4).
 
-### C2. A concrete arithmetic error in the same section
+### C2. A concrete arithmetic error in the same section — DONE (fixed by item 1)
+
+> **Done.** The §5 rewrite in work-order item 1 removed the "2048 payload bits at 83 bit/s"
+> figure and its bogus bounds; current §5 quotes the aggregated BER 0.011 with no bit-count
+> arithmetic. Confirmed 2026-10-04: `sym_12ms` is 128 × 8 = 1024 transmitted, and the draft
+> no longer makes the claim.
+>
+> *Original finding:*
 
 `phase2` §5: *"over 2048 payload bits per run at 83 bit/s and 512 at 31–42 bit/s … by the
 rule of three … 5.9 × 10⁻³ for the 512-bit runs and 1.5 × 10⁻³ for the 2048-bit ones."*
@@ -749,7 +770,13 @@ is a small change to `accuracy_vs_n` and makes Phase 1's output directly the qua
   against Q(pair) 0.142/0.186/0.183). §8.1 presents this as agreement. A systematic 2× in
   one direction across every repeat is a finding, not agreement — most likely the paired
   statistic being computed over the Barker preamble as well as the payload, or non-Gaussian
-  noise. *Fix:* compute d′_paired over payload chips only and re-check.
+  noise. *Fix:* compute d′_paired over payload chips only and re-check. **DONE 2026-10-04 —
+  the preamble cause is refuted.** Payload-only d′_paired is *lower* than all-chips
+  (0.81/0.94/0.79 vs 1.07/0.89/0.90), so Q(pair) rises and the gap *widens*: the preamble
+  is the cleanest, most separable part of the frame, so excluding it reduces separation. The
+  residual is Q(d′/√2) running conservative at a 256 ms symbol, where the chip noise is
+  drift-dominated and non-Gaussian rather than the white noise the bound assumes. §8.1
+  corrected to say so; no code change (all-chips d′_paired is the right statistic).
 - ~~**The majority vote resolves ties toward 0.**~~ **DONE 2026-09-04, and it was not
   small.** Ties now go to the summed decision margin across frames. The tie rate is far
   higher than "small, systematic" suggested — 157 of 408 voted bits in the tier-2 sweep,
@@ -799,7 +826,8 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
 6. **The matched tier sweep under Config-B** (D4a) with balanced distinct-bit payloads (C1),
    plus the unpinned-receiver run (D2) and the thread-count/duty-cycle sweep (D3). *Turns
    the ladder into a controlled comparison and the threat model's weakest point into a
-   result.*
+   result.* **C1's significance half is DONE 2026-10-04** (the message-space null in
+   `analysis.covert`, zero machine time); D4a/D2/D3 are the machine sweeps and remain.
 7. ~~**Battery cross-validation of RAPL** (B1.2) and the core/uncore split (B1.3).~~
    **DONE 2026-09-29** — plus B1.1 (tier 3 promoted into `phase0` §5.1). Both instruments
    confirm the effect: battery +1.2–1.7 W against RAPL +1.93 W, and the effect is 99–100%
