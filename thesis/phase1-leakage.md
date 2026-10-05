@@ -1017,8 +1017,10 @@ the monitor core only; victim cores 2, 4, 6, 8 and 10 still receive stray system
 Extending the isolation requires a boot-parameter change and has not been done.
 
 **The detector is a mean threshold.** It converts an effect into an accuracy-versus-*n*
-curve, which is what the covert-channel chapter needs, but it is blind to effects that
-live in variance rather than mean.
+curve, but it is blind to effects that live in variance rather than mean — and its
+absolute-threshold, trained decision is not the paired, training-free one the covert
+receiver makes, so its curve, read directly, overstates the achievable bit rate. §13
+recomputes the conversion under the receiver's own rule.
 
 **Cache residency is inferred, not measured** (§4), and the DRAM figure excludes DIMM
 energy.
@@ -1154,9 +1156,34 @@ under-predicts high-entropy data by a known +0.65 W. Phase 1 therefore delivers 
 list of coefficients valid at the points where each was taken.
 
 For the chapters that follow, the operationally important number is not the largest
-effect but the best-conditioned one. `ws_l3_x8` under Config-A reaches 95% detector
-accuracy at n = 1–8 samples and 99% at n = 2–13 across eight runs — roughly 125–1000
-bit/s raw at a ~1 ms RAPL period — while `ws_dram_x8`, which has the highest energy per
-byte in the whole set, needs n = 13–89 for the same 95%. Largest Δ power and best
-detectability are not the same property, and the covert-channel chapter picks its
+effect but the best-conditioned one. Converting an effect into a bit rate needs the
+*receiver's* decision rule, though, and the mean-threshold detector of §2 is not it: it
+fits an absolute threshold on held-out blocks and reads one window against it, whereas the
+covert receiver of the next chapter carries no training data and makes a **paired**
+decision — differencing the two chips of one Manchester symbol and taking the sign, which
+is what lets it survive drift (Phase 2 §6). Quoting the threshold detector's curve as a
+bit rate, as an earlier draft of this section did, measures a rule the receiver does not
+use. `analysis.detector` recomputes the curve under the rule it does.
+
+Two things change, and both lower the rate rather than cancelling. A Manchester bit spends
+two chips, so the raw rate is 1/(2·n·T) rather than 1/(n·T); the paired decision needs
+somewhat fewer samples per chip for the same accuracy — its per-chip requirement is d′/√2
+against the threshold detector's d′/2 — but not few enough to offset the doubled chip count,
+so the receiver-rule rate comes out roughly half the threshold detector's. Pooled over
+the Hamming-weight sweep (one curve per operand, repeats averaged), `ws_l3_x8` under
+Config-A reaches 95% per-bit accuracy at **100–250 bit/s raw** under the receiver's rule,
+against 125–501 under the threshold detector, at a ~1 ms RAPL period — while `ws_dram_x8`,
+which has the highest energy per byte in the whole set, needs substantially more integration
+for the same accuracy (reaching 95% only around 39 bit/s receiver-rule). Largest Δ power and
+best detectability are still not the same property, and the covert-channel chapter picks its
 transmitter on the second.
+
+Both figures are steady-state ceilings, and so upper bounds: the operand is held for a
+whole block, so neither sees the ~1 ms RAPL boxcar that Phase 2 §8 measures as removing
+about two-thirds of the separation at a 1 ms chip. The cleanest check is the all-zero ↔
+all-ones contrast that is also the tier-1 transmitter's: in its best-conditioned session it
+reaches 95% at a single sample per chip, i.e. **500 bit/s raw** under the receiver's rule
+(1000 under the threshold detector). That 500 is exactly tier 1's measured 2 ms-symbol
+ceiling, and once the boxcar is paid it delivers the 241–311 bit/s of *capacity* Phase 2
+actually reports. The receiver-rule conversion is therefore both the right quantity and, unlike
+the threshold detector's ~1000 bit/s, in the range the channel is observed to carry.

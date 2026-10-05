@@ -35,3 +35,12 @@ echo
 # intercept and ranked on AICc + held-out RMSE, not raw R². Single-session here;
 # the pooled comparison §6/§8 also quote is wired into the low_end run.
 ./venv/bin/python3 -m analysis.modelcompare "$r"
+echo
+echo "### analysis.detector $r --labels 'hw*'"
+echo
+# §13's detector→bit-rate conversion under the receiver's own rule (critique E4):
+# the paired, training-free Manchester decision the covert chapter uses, beside
+# the absolute mean-threshold detector report.py prints. The absolute column is
+# byte-identical to report.py (same stats.accuracy_vs_n, same seed); the paired
+# column is stats.paired_accuracy_vs_n. A/A excluded by --labels, as hwfit's is.
+./venv/bin/python3 -m analysis.detector "$r" --labels 'hw*'

@@ -174,9 +174,86 @@ def accuracy_vs_n(values, block, cond, a, b, ns=None, seed=0, trials=4000,
                        n_test=len(test_ids))
 
 
+def paired_accuracy_vs_n(values, block, cond, a, b, ns=None, seed=0,
+                         trials=4000, train_frac=0.5):
+    """Accuracy of the *receiver's own* decision rule, as a sibling to
+    `accuracy_vs_n`.
+
+    `accuracy_vs_n` scores an absolute mean-threshold detector trained on
+    held-out blocks -- on-off keying with a fitted threshold. The Phase 2
+    Manchester receiver does something different and must be scored on its own
+    terms (critique E4): it carries no training data and makes a *paired*
+    decision, differencing two chips of one symbol and taking the sign, with the
+    polarity recovered from the preamble rather than a threshold. This scores
+    that rule.
+
+    A bit is two chips here, so a decision draws one window of n samples from an
+    a-block and one from a b-block and asks whether the b-window reads higher
+    (oriented by the sign of the overall difference, which is what preamble
+    recovery supplies). The two windows are drawn independently: the interleaved
+    design never places the two conditions adjacent in time, so there is no
+    within-symbol drift to cancel -- which is the white-noise regime of
+    `phase2` S6, where the paired statistic is d'/sqrt(2). The caller converts
+    n to a raw bit rate as 1 / (2 * n * period), half the absolute detector's
+    1 / (n * period), because the Manchester bit spends two chips.
+
+    Returns (curve {n_chip: accuracy}, info); n_chip is samples per chip.
+    """
+    rng = np.random.default_rng(seed)
+    ids = np.unique(block)
+    ids = ids[np.isin([cond[block == i][0] for i in ids], [a, b])]
+    rng.shuffle(ids)
+    # Mirror accuracy_vs_n's split so both rules score the same test blocks.
+    split = int(len(ids) * train_frac)
+    train_ids, test_ids = ids[:split], ids[split:]
+
+    # Polarity is recovered from the held-out (train) blocks, the way the
+    # receiver recovers it from the preamble -- from data other than the windows
+    # being scored. No absolute threshold is fitted (that is the absolute
+    # detector's job); only the sign of the difference is taken. Recovering it
+    # from the scored windows instead would let an A/A overfit its own noise and
+    # read above chance.
+    tr = np.isin(block, train_ids)
+    mu_a = values[tr & (cond == a)].mean()
+    mu_b = values[tr & (cond == b)].mean()
+    b_is_high = mu_b > mu_a
+
+    per_block = {}
+    for i in test_ids:
+        m = block == i
+        per_block[i] = (values[m], int(cond[m][0]))
+    block_len = min(len(v) for v, _ in per_block.values())
+
+    a_blocks = [i for i in test_ids if per_block[i][1] == a]
+    b_blocks = [i for i in test_ids if per_block[i][1] == b]
+
+    if ns is None:
+        ns = [n for n in (1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144) if n <= block_len]
+        if block_len not in ns:
+            ns.append(block_len)
+
+    curve = {}
+    for n in ns:
+        if n > block_len:
+            continue
+        correct = 0
+        for _ in range(trials):
+            va, _ = per_block[a_blocks[rng.integers(len(a_blocks))]]
+            vb, _ = per_block[b_blocks[rng.integers(len(b_blocks))]]
+            ma = va[rng.integers(0, len(va) - n + 1):][:n].mean()
+            mb = vb[rng.integers(0, len(vb) - n + 1):][:n].mean()
+            d = (mb - ma) if b_is_high else (ma - mb)
+            correct += int(d > 0)
+        curve[int(n)] = correct / trials
+
+    return curve, dict(b_is_high=bool(b_is_high), block_len=int(block_len),
+                       n_test=len(test_ids))
+
+
 def samples_for_accuracy(curve, target=0.99):
     """Smallest tested n reaching `target`, or None. Also the covert-channel
-    symbol cost: bits/s is roughly 1 / (n * RAPL period)."""
+    symbol cost: bits/s is roughly 1 / (n * RAPL period) for the absolute
+    detector, 1 / (2 * n * period) for the paired Manchester rule."""
     for n in sorted(curve):
         if curve[n] >= target:
             return n

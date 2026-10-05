@@ -753,7 +753,32 @@ easy to miss.
 **Fix.** Rename it consistently — Δ pJ/byte, or "operand-dependent transport energy per
 byte" — in the tables, the prose, and `aggregate.py`'s column header.
 
-### E4. Phase 1's detector→bit-rate conversion measures a different decision rule than Phase 2 uses
+### E4. Phase 1's detector→bit-rate conversion measures a different decision rule than Phase 2 uses — DONE 2026-10-05
+
+> **Done, both halves of the fix, zero machine time.** `analysis.detector` recomputes §13's
+> conversion under the receiver's actual rule — the paired, training-free Manchester sign
+> decision of `analysis.covert`, added as `stats.paired_accuracy_vs_n` *beside* (not
+> replacing) the absolute `accuracy_vs_n`, which still feeds the committed `detector` column
+> and the A/A gate byte-for-byte. And the reanalysis turns up that the critique's own premise
+> — "two errors in opposite directions, the bracket contained the answer by luck" — is itself
+> off: **both** corrections push the rate *down*, not against each other. A Manchester bit
+> costs two chips, and the paired decision's per-chip edge (d′/√2 vs the threshold detector's
+> d′/2) does not recover the factor of two, so the receiver-rule raw rate comes out **roughly
+> half** the threshold detector's; the boxcar then lowers it again. Pooled over the
+> Hamming-weight sweep, `ws_l3_x8` reaches 95% per-bit accuracy at **100–250 bit/s raw** under
+> the receiver's rule against 125–501 under the threshold detector — and the old §13 figure
+> quoted the best single repeat (125–**1000**), the same A1 selection sin. The cleanest
+> reconciliation: the all-zero↔all-ones pair that is tier 1's transmitter reaches 95% at one
+> sample per chip = **500 bit/s raw** receiver-rule (1000 absolute), which is exactly tier 1's
+> measured 2 ms-symbol ceiling, and once the boxcar is paid delivers the 241–311 bit/s of
+> *capacity* Phase 2 reports. So §13 is now the right quantity *and* in the observed range;
+> the absolute ~1000 was neither. Both curves remain steady-state upper bounds (the operand is
+> held per block, so neither sees the ~1 ms boxcar), which is the "label as an upper bound"
+> half, stated in §13. §12's detector note and §13 rewritten; `tests/test_detector_rule.py`
+> pins both rules to Φ(d′/2) / Φ(d′/√2); `detector` wired into the hamming_weight `summary.cmd`.
+> See *Outcomes — item E4* at the foot.
+>
+> *Original finding:*
 
 `phase1` §13: *"`ws_l3_x8` reaches 95% detector accuracy at n = 1–8 samples … roughly
 125–1000 bit/s raw"*, presented as the input to the covert-channel chapter's design.
@@ -1522,5 +1547,85 @@ exist in the corpus; documented as such in the code.
 
 **Remaining in the work order:** item 6's three machine sweeps (D4a matched tiers, D2
 unpinned receiver, D3 thread/duty) and E1's one held-out run — all needing the machine. The
-zero-machine items still open are E4 (Phase 1's detector→bit-rate conversion uses a different
-decision rule than Phase 2's receiver) and F's provenance-drift checker.
+one zero-machine item still open is F's provenance-drift checker.
+
+## Outcomes — item E4 (2026-10-05)
+
+Zero machine time: reanalysis of the committed `ws_l3_x8` corpus plus one new analysis module
+and one new stats function. §13's detector→bit-rate conversion now uses the rule the Phase 2
+receiver actually applies, and the recompute both corrects the number and tightens the
+critique's own reasoning about it.
+
+### §13 measured the wrong decision rule, and the right one is slower
+
+§13 converted leakage into a covert-channel bit rate by reading the accuracy-versus-*n* curve
+`analysis.report` prints and quoting `1 / (n · T)` at the smallest *n* reaching 95%. That curve
+is `stats.accuracy_vs_n`, an **absolute mean-threshold** detector trained on held-out blocks —
+on-off keying with a fitted threshold. The Phase 2 receiver does neither: it carries no
+training data and makes a **paired** Manchester decision, differencing the two chips of one
+symbol and taking the sign (polarity from the preamble). `stats.paired_accuracy_vs_n` scores
+that rule; `analysis.detector` prints both columns side by side. The sibling leaves
+`accuracy_vs_n` untouched, because its curve feeds the committed `detector` column and the A/A
+accuracy gate, which must not move — confirmed byte-identical.
+
+### Both corrections lower the rate; the critique's "opposite directions" was wrong
+
+The review expected two offsetting errors (the paired rule, better per chip, raising the rate;
+the boxcar lowering it) that happened to bracket the truth. They do not offset. A Manchester
+bit spends **two** chips, so its raw rate is `1 / (2n·T)`. The paired decision does need fewer
+samples per chip — its requirement is d′/√2 against the threshold detector's d′/2 — but on this
+data it needs ~0.6× the *n*, not 0.5×, because the within-block noise is **negatively**
+autocorrelated (lag-1 ≈ −0.36, so a window mean falls as ≈ *n*^−0.65, faster than white's
+*n*^−0.5). The two-chip cost therefore wins, and the receiver-rule raw rate comes out **roughly
+half** the threshold detector's. The boxcar then lowers it again. So §13's absolute figure was
+high on *both* counts, not bracketed:
+
+| | §13 as published | threshold rule, aggregated | **receiver rule (paired Manchester)** |
+|---|---|---|---|
+| `ws_l3_x8` 95% per-bit | 125–1000 bit/s raw | 125–501 bit/s raw | **100–250 bit/s raw** |
+
+The jump from "125–1000" to "125–501" is item A1's sin resurfacing: §13 read the best single
+repeat at each operand (*n* = 1 → ~1000), where aggregating over the three repeats per operand
+(the project's own reporting unit) already halves the top end before the decision rule is even
+changed.
+
+### The receiver rule reconciles Phase 1 with tier 1; the absolute rule did not
+
+The all-zero↔all-ones contrast — which is also tier 1's transmitter operand pair — is the
+cleanest check. In its best-conditioned session it reaches 95% per-bit accuracy at one sample
+per chip, i.e. **500 bit/s raw** under the receiver's rule (1000 under the threshold detector).
+That 500 is exactly tier 1's measured 2 ms-symbol ceiling (`phase2` §5.1), and once the ~1 ms
+RAPL boxcar is paid — which `phase2` §8 measures as removing ~2/3 of the separation at a 1 ms
+chip — it delivers the **241–311 bit/s of capacity** Phase 2 actually reports. So the
+receiver-rule conversion lands where the channel is observed to run; the absolute rule's
+~1000 bit/s did not.
+
+### Both halves of the offered fix, done
+
+The critique offered either labelling §13 an upper bound *or* recomputing under the paired rule.
+Both are done. The recompute is the paired curve above. The label stands too: both curves are
+computed on **steady-state** samples (the operand is held for a whole block), so neither sees
+the boxcar, and §13 states that the figures are upper bounds whose small-*n* (high-rate) end is
+optimistic, with the true integration ceiling set by the boxcar and located by Phase 2 between
+a 2 ms and a 1.5 ms symbol.
+
+### Validation
+
+- `tests/test_detector_rule.py` pins both rules to their closed forms on synthetic white-noise
+  blocks — absolute to Φ(d′/2), paired to Φ(d′/√2) — which also re-confirms `accuracy_vs_n` is
+  unchanged; checks paired ≥ absolute at every *n*; checks the paired rule reaches a target at
+  ~half the *n* under white noise (the mechanism above); and checks an A/A stays unbiased in
+  expectation and under the 0.60 ceiling.
+- `analysis.detector`'s absolute column reproduces `analysis.report`'s committed per-run `n95`
+  exactly (same `accuracy_vs_n`, same seed), so the only thing differing between the columns is
+  the decision rule.
+
+### Code / files
+- `analysis/stats.py`: new `paired_accuracy_vs_n` (sibling to `accuracy_vs_n`; polarity from
+  held-out blocks as the preamble supplies it, sign decision, no threshold); `samples_for_accuracy`
+  docstring notes the two rate conventions.
+- `analysis/detector.py`: new entry point, both rules side by side, aggregated per operand with
+  a `--per-run` spread and a like-for-like range.
+- `tests/test_detector_rule.py`: new.
+- Draft edits: `phase1-leakage.md` §12 (detector-note) and §13 (rewritten conversion);
+  `results/20260901-213211-phase1_hamming_weight/summary.cmd` wires `analysis.detector`.
