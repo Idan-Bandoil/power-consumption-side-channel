@@ -223,16 +223,24 @@ that live in variance rather than in mean — an acknowledged limitation (§7).
 ## 5. Validity gates
 
 The gates below are enforced automatically by `analysis/report.py`, which exits non-zero on
-failure. No result appears in this thesis without them. These are the gates that face the
-measurement path and drift directly; Phase 1 adds the operand-specific work- and
-frequency-balance checks (§4.1, §12).
+failure. No result appears in this thesis without them. The table is complete for the
+measurement-path and session-condition gates — those that apply to any run regardless of
+what it varies. Phase 1 adds two further gates, `work_balance` and `frequency_balance`, that
+only make sense for an operand contrast (they check that switching the operand changed *what*
+is moved and not *how much*, or at *what clock*); they are described where they are used
+(§4.1, §12).
 
 | Gate | Threshold | What it catches |
 |---|---|---|
 | `zero_ticks` | ≤1% of samples read zero energy | Sampler aliasing against the RAPL update interval (§3.2; was 9.15%) |
 | `interleaving` | temporal imbalance ≤0.10 (Config-A), ≤0.05 (Config-B) | Conditions measured at different times, letting drift pose as effect (§3.1; a sequential design scores ~0.50). Tighter under Config-B, where a given imbalance buys one to two orders more drift |
 | `admitted_bias` | a significant effect exceeds 3× (imbalance × drift span) | Drift reaching the difference through the interleaving window even when imbalance alone passes — the watts the gate above admits, bounded against the effect claimed |
+| `power_state` | PL1, PL2 and the power source unchanged across every snapshot in the session | The platform moving a power *limit* underneath the measurement. `thermald` lowers PL1 mid-run as the die heats — the corpus has sessions stepping 200 → 15 → 35 W |
+| `on_mains` | AC online in every snapshot | A session recorded on battery, where the platform runs different limits, being compared against a corpus measured on mains |
 | `aa_*` | CI contains zero **and** detector accuracy ≤0.60 | The measurement path manufacturing an effect out of nothing |
+
+(`power_state` and `on_mains` are session-level: they are evaluated once over the whole
+session's before/after snapshots, not per run, and a failure fails every run in the session.)
 
 The A/A control needs no special code path: it is an ordinary experiment with the same
 operand in both conditions, so it exercises the entire pipeline — the same victim, the
