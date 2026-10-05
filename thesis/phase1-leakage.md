@@ -972,37 +972,45 @@ in the session so the gate fails visibly rather than being deleted, and it is ex
 from every figure quoted here — the L2 slope is +23.68 mW/bit over the two clean repeats
 against +25.99 over all three, which changes nothing in §8.1.
 
-**The interleaving gate bounds a unitless number, not a bias in watts.** It fails a run
-whose conditions sit more than 0.10 apart in mean chronological position, and that
-threshold was never converted into the quantity it exists to control: how much of the
-run's drift can reach the difference. Both halves are measured, so the product is
-available — a condition sitting a fraction *f* later in the run than the other picks up
-*f* of whatever the run drifted by — and `analysis.report` now prints it per run as an
-admitted-bias figure in milliwatts.
+**The interleaving gate bounds a unitless number, so it is now backed by one in watts.**
+The gate fails a run whose conditions sit more than a set distance apart in mean
+chronological position, and that distance was for a long time never converted into the
+quantity it exists to control: how much of the run's drift can reach the difference. Both
+halves are measured, so the product is available — a condition sitting a fraction *f* later
+in the run than the other picks up *f* of whatever the run drifted by — and
+`analysis.report` now both prints it per run as an admitted-bias figure and **gates on
+it**. A contrast reported as significant must carry an effect at least three times its
+admitted bias; below that, the drift the design lets through is too large a fraction of the
+effect for the effect to be trusted on its own. A null has no effect to protect and an A/A
+is covered by its own gate, so the check applies only to a significant A/B contrast.
 
 Over the 269 Phase 0 and Phase 1 runs the median admitted bias is **6.0 mW**, against a
-median effect 75× larger, so nothing in this chapter is threatened by it. The margin is
-not uniform, though, and it is thinnest where it matters most. The Hamming-weight session
-drifted 2–3 W within a condition, so its low-weight rows admit 60–90 mW: `hw01` carries
-81 mW of admitted bias against its +458 mW effect, and `hw04_a` 61 mW against +513 mW.
-Ratios of 5.7 and 8.4 are still decisive, but they are the narrowest in the chapter, and
-they sit under the §8 discontinuity — 80 mW is 23% of the +349 mW step. The step survives
-comfortably; the honest statement is that its error budget is dominated by drift admitted
-through a loose gate rather than by the between-repeat spread quoted beside it.
+median effect 75× larger, so the three-times bar passes every positive result in this
+chapter and nothing is threatened by it — no run in the committed corpus fails it. The
+margin is not uniform, though, and it is thinnest where it matters most. The Hamming-weight
+session drifted 2–3 W within a condition, so its low-weight rows admit 60–90 mW: `hw01`
+carries 81 mW of admitted bias against its +458 mW effect, and `hw04_a` 61 mW against
++513 mW. Ratios of 5.7 and 8.4 clear the gate and are decisive, but they are the narrowest
+in the chapter, and they sit under the §8 discontinuity — 80 mW is 23% of the +349 mW step.
+The step survives comfortably; the honest statement is that its error budget is dominated by
+drift admitted through the interleaving window rather than by the between-repeat spread
+quoted beside it, and that a session carrying these same effects but twice the drift would
+trip the gate.
 
-The metric also behaves as a metric should on the run built to fail: `phase0_artifact_demo`'s
-deliberately sequential A/A admits 302 mW, two orders of magnitude above the median, which
-is the design defect the gate was written to catch expressed in watts.
+The gate behaves as a gate should on the run built to fail: `phase0_artifact_demo`'s
+deliberately sequential A/A admits 302 mW, two orders of magnitude above the median, and
+fails the interleaving gate outright — the design defect the gate was written to catch,
+now expressed in watts as well as flagged.
 
-Those figures are for the Config-A sessions this chapter reports. Extending the scan to the
-whole corpus (`analysis.instrument --check bias`, output in
-`results/_crosscheck/instrument.txt`) turns up one session where the margin inverts
-entirely, and it is a Config-B one: `phase2_tier2_feasibility` drifts 29–48 W within a
-condition at an imbalance of 0.093 — passing the gate by 7% — and so admits 2.7–4.4 W of
-bias against effects of 1.3–2.8 W. Every run in it has an effect *smaller* than its own
-admitted bias. That session is already reported as a null in the covert-channel chapter;
-what this adds is that it could not have been anything else, and that the gate as
-currently thresholded does not say so.
+Those figures are for the Config-A sessions this chapter reports. A single fixed imbalance
+threshold cannot serve both configurations, because a given imbalance buys one to two orders
+more drift when the part is free to throttle. `phase2_tier2_feasibility`, the one Config-B
+driver session in the corpus, drifts 29–48 W within a condition at an imbalance of 0.093, so
+it admits 2.7–4.4 W of bias against effects of 1.3–2.8 W — every run in it has an effect
+*smaller* than its own admitted bias. Under the old single 0.10 threshold it passed by 7%.
+The imbalance gate is now tightened to 0.05 under Config-B, which that session fails, so the
+point the chapter can now make — that the session could not have resolved anything either
+way — is enforced rather than noted after the fact.
 
 **Victim cores are not isolated.** The kernel is booted with `isolcpus=0`, which isolates
 the monitor core only; victim cores 2, 4, 6, 8 and 10 still receive stray system work.

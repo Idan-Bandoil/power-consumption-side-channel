@@ -23,8 +23,29 @@ MAX_ZERO_TICK_FRACTION = 0.01
 # An A/A control must not beat this with the longest integration available.
 AA_ACCURACY_CEILING = 0.60
 # Conditions must sit at similar mean positions in the run; above this they are
-# temporally separated enough for drift to be read as a condition effect.
-MAX_TEMPORAL_IMBALANCE = 0.10
+# temporally separated enough for drift to be read as a condition effect. The
+# cap is config-dependent: under Config-B the part is free to throttle, so the
+# within-condition drift span runs one to two orders larger than under Config-A
+# (the one Config-B driver session in the corpus, phase2_tier2_feasibility,
+# drifts 29-48 W within a condition against under 2 W for any Config-A session),
+# and the same imbalance there admits vastly more bias. A single fixed threshold
+# cannot serve both. Config-B is tightened to half the Config-A value;
+# provisional, calibrated against that one session (imbalance 0.093, which it
+# must fail) rather than a population of clean Config-B runs, which do not yet
+# exist in the corpus.
+MAX_TEMPORAL_IMBALANCE_A = 0.10
+MAX_TEMPORAL_IMBALANCE_B = 0.05
+# The imbalance gate bounds how far apart in time the conditions sat; it does
+# not bound the watts of drift that buys. imbalance x drift span does (see the
+# admitted-bias line below), and an effect reported as real must stand clear of
+# it. This is the ratio the effect must clear. The narrowest margin in the
+# committed corpus is the section 8 zero-step's hw01 row at 5.7x, so 3x passes
+# every published positive effect with headroom while failing a contrast whose
+# claimed effect is within 3x of its own admitted drift -- every significant
+# contrast in the Config-B feasibility session reads 0.4-0.9x. Applied only to a
+# significant A/B contrast: a null has no effect to protect, and an A/A has its
+# own gate.
+MIN_EFFECT_OVER_ADMITTED = 3.0
 # Every operand claim in the project assumes the selector changes *what* is
 # moved and not *how much*. The victims are written to be load-bound so that
 # this holds, but it was argued architecturally and never measured until the
@@ -146,21 +167,23 @@ def analyse_run(run, fig_dir, n_perm, n_boot, config="A"):
     out["drift"] = {str(c): r for c, r in dt.items()}
 
     imbalance, pos = temporal_balance(run.block, run.cond)
-    balanced = imbalance <= MAX_TEMPORAL_IMBALANCE
+    max_imb = MAX_TEMPORAL_IMBALANCE_A if config == "A" else MAX_TEMPORAL_IMBALANCE_B
+    balanced = imbalance <= max_imb
     out["gates"]["interleaving"] = balanced
-    out["temporal_balance"] = {"imbalance": imbalance,
+    out["temporal_balance"] = {"imbalance": imbalance, "threshold": max_imb,
                                "positions": {str(k): v for k, v in pos.items()}}
     print(f"\n  interleaving     : imbalance {imbalance:.3f}  "
           f"(mean position " + ", ".join(f"cond {c} {p:.2f}" for c, p in pos.items())
-          + f")  [{'OK' if balanced else 'FAIL — conditions are temporally separated'}]")
+          + f")  [{'OK' if balanced else 'FAIL — conditions are temporally separated'}"
+          f" (<= {max_imb:.2f} under Config-{config})]")
 
-    # Imbalance on its own is a unitless number, and the 0.10 threshold has
-    # never been converted into the thing it is supposed to bound: how many
-    # watts of drift the design lets through as a condition effect. Drift over
-    # a run is already measured (the decile span above), and the two multiply
-    # -- a condition sitting a fraction f later in the run than the other picks
-    # up f of whatever the run drifted by. This is a first-order bound, not an
-    # exact bias, but it is in watts and so can be compared against the effect.
+    # Imbalance on its own is a unitless number; this converts it into the thing
+    # it exists to bound: how many watts of drift the design lets through as a
+    # condition effect. Drift over a run is already measured (the decile span
+    # above), and the two multiply -- a condition sitting a fraction f later in
+    # the run than the other picks up f of whatever the run drifted by. This is a
+    # first-order bound, not an exact bias, but it is in watts, so a significant
+    # effect is gated against it (the per-pair bias_<a>v<b> check below).
     drift_span = max(spans.values()) if spans else float("nan")
     admitted = imbalance * drift_span
     out["admitted_bias_w"] = float(admitted)
@@ -211,6 +234,20 @@ def analyse_run(run, fig_dir, n_perm, n_boot, config="A"):
         else:
             print(f"  effect is {'SIGNIFICANT' if ci_excludes_zero else 'not resolved'} "
                   f"(bootstrap CI {'excludes' if ci_excludes_zero else 'contains'} zero)")
+            # An effect reported as real must clear the drift the interleaving
+            # gate admits (the per-run figure printed above). A null has nothing
+            # to protect and an A/A is covered by its own gate, so this is
+            # enforced only on a significant contrast. The margin is how many
+            # times the effect exceeds the admitted bias.
+            if ci_excludes_zero and admitted == admitted and admitted > 0:
+                eff = abs(ci["diff"])
+                margin = eff / admitted
+                bias_ok = margin >= MIN_EFFECT_OVER_ADMITTED
+                out["gates"][f"bias_{a}v{b}"] = bias_ok
+                verdict = ("OK" if bias_ok else
+                           f"FAIL — effect within {MIN_EFFECT_OVER_ADMITTED:.0f}x of admitted drift")
+                print(f"  admitted-bias    : effect {eff * 1000:.0f} mW is {margin:.1f}x "
+                      f"the {admitted * 1000:.1f} mW admitted  [{verdict}]")
 
         out["pairs"].append(dict(a=a, b=b, ci=ci, cohens_d=d, permutation=perm,
                                  accuracy=curve, detector=info,

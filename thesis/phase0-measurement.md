@@ -222,13 +222,16 @@ that live in variance rather than in mean — an acknowledged limitation (§7).
 
 ## 5. Validity gates
 
-Three gates are enforced automatically by `analysis/report.py`, which exits non-zero on
-failure. No result appears in this thesis without them.
+The gates below are enforced automatically by `analysis/report.py`, which exits non-zero on
+failure. No result appears in this thesis without them. These are the gates that face the
+measurement path and drift directly; Phase 1 adds the operand-specific work- and
+frequency-balance checks (§4.1, §12).
 
 | Gate | Threshold | What it catches |
 |---|---|---|
 | `zero_ticks` | ≤1% of samples read zero energy | Sampler aliasing against the RAPL update interval (§3.2; was 9.15%) |
-| `interleaving` | temporal imbalance ≤0.10 | Conditions measured at different times, letting drift pose as effect (§3.1; a sequential design scores ~0.50) |
+| `interleaving` | temporal imbalance ≤0.10 (Config-A), ≤0.05 (Config-B) | Conditions measured at different times, letting drift pose as effect (§3.1; a sequential design scores ~0.50). Tighter under Config-B, where a given imbalance buys one to two orders more drift |
+| `admitted_bias` | a significant effect exceeds 3× (imbalance × drift span) | Drift reaching the difference through the interleaving window even when imbalance alone passes — the watts the gate above admits, bounded against the effect claimed |
 | `aa_*` | CI contains zero **and** detector accuracy ≤0.60 | The measurement path manufacturing an effect out of nothing |
 
 The A/A control needs no special code path: it is an ordinary experiment with the same

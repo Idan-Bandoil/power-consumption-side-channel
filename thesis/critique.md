@@ -392,8 +392,20 @@ rule of three … 5.9 × 10⁻³ for the 512-bit runs and 1.5 × 10⁻³ for the
 The 2048-bit runs are 500–125 bit/s. So the bound at 83 bit/s is **2.9 × 10⁻³**, and under
 C1's distinct-bit reading it is 3/128 = 2.3 × 10⁻².
 
-### C3. The interleaving gate does not bound the bias it admits — CONFIRMED as a design gap, ~~magnitude overstated~~
+### C3. The interleaving gate does not bound the bias it admits — DONE 2026-10-05 (design gap confirmed, ~~magnitude overstated~~, now gated)
 
+> **Gated 2026-10-05.** `analysis.report` now *enforces* the product, not only prints it: a
+> contrast reported as significant must carry an effect at least **3× its admitted bias**
+> (`imbalance × drift span`), as the `bias_<a>v<b>` gate; a null has nothing to protect and
+> an A/A has its own gate, so it applies to significant A/B contrasts only. The 3× bar is set
+> from the corpus — the narrowest margin is the §8 zero-step's `hw01` at 5.7×, so every
+> published positive effect clears it and **no committed run fails it**, while a run whose
+> claimed effect is within 3× of its own admitted drift (every significant contrast in the
+> Config-B feasibility session) fails. And the interleaving threshold is now config-dependent
+> — **0.10 under Config-A, 0.05 under Config-B** — closing the "found while doing items 1 and
+> 2" gap below: the feasibility session (imbalance 0.093) now fails rather than passing by
+> 7%. `phase1` §12 and `phase0` §5 updated; see *Outcomes — item 5 (C3 gating)* at the foot.
+>
 > **Checked 2026-09-04.** The diagnosis is right and the arithmetic below was pessimistic
 > by an order of magnitude. `analysis.report` now prints imbalance × drift span per run.
 > Over 269 Phase 0/1 runs the median admitted bias is **6.0 mW**, not the 100–200 mW
@@ -409,8 +421,9 @@ C1's distinct-bit reading it is 3/128 = 2.3 × 10⁻².
 > quoted beside it. Recorded in `phase1` §12.
 >
 > The metric validates on the run built to fail: `phase0_artifact_demo`'s deliberately
-> sequential A/A admits 302 mW, two orders of magnitude above the median. Gating on the
-> product (rather than only printing it) stays on the list as item 5.
+> sequential A/A admits 302 mW, two orders of magnitude above the median. ~~Gating on the
+> product (rather than only printing it) stays on the list as item 5.~~ **Done 2026-10-05,
+> see the gating note above.**
 
 *Original finding:*
 
@@ -847,9 +860,11 @@ Ranked by (thesis value) ÷ (machine time). Items in one row are one session.
    victim-core frequency + `frequency_balance` (B2), robust period estimator (B4.2),
    receiver-trace gate (became a throttling gate, see F), `late_chips` with teeth.
    Done ahead of item 3 deliberately, so that the depth × operand session carries the new
-   gates rather than needing a re-run to acquire them. Still outstanding from C3: gating
+   gates rather than needing a re-run to acquire them. ~~Still outstanding from C3: gating
    on `imbalance × drift_span` rather than only printing it, and a tighter imbalance
-   threshold for Config-B sessions than for Config-A ones.
+   threshold for Config-B sessions than for Config-A ones.~~ **Both DONE 2026-10-05** — the
+   `admitted_bias` gate (3× the admitted drift) and the config-dependent imbalance threshold
+   (0.05 under Config-B); see *Outcomes — item 5 (C3 gating)* at the foot.
 6. **The matched tier sweep under Config-B** (D4a) with balanced distinct-bit payloads (C1),
    plus the unpinned-receiver run (D2) and the thread-count/duty-cycle sweep (D3). *Turns
    the ladder into a controlled comparison and the threat model's weakest point into a
@@ -955,7 +970,9 @@ effect smaller than its own admitted bias**. The session is already reported as 
 nothing published is affected; what is new is that it could not have concluded anything
 either way, and the gate said it was fine. A single fixed imbalance threshold cannot serve
 both configurations — the same imbalance buys vastly more drift when the part is free to
-throttle. This belongs with item 5.
+throttle. ~~This belongs with item 5.~~ **DONE 2026-10-05**: the interleaving threshold is
+now 0.05 under Config-B, which this session's imbalance of 0.093 fails, so the gate no
+longer says it was fine.
 
 **A receiver cannot tell it acquired from the peak-to-sidelobe ratio, but can from the
 absolute peak.** Recorded under A3 above; it was not anticipated and it is a threat-model
@@ -1440,3 +1457,70 @@ and item 6's machine sweeps (D4a matched tiers, D2 unpinned receiver, D3 thread/
   `analysis/modelcompare.py`, new `analysis/model.py`, `tests/test_covert_decode.py`.
 - Draft edits in `phase1-leakage.md` (§6, §12.1, §13) and `phase2-covert.md` (§8.1, §8.3).
 - Eight covert `summary.txt` regenerated; two Phase-1 `summary.cmd`s wired for `modelcompare`.
+
+## Outcomes — item 5 (C3 gating) (2026-10-05)
+
+Zero machine time: reanalysis of the committed CSVs plus one `analysis.report` change. The
+last named remainder of work-order item 5 — "gating on `imbalance × drift_span` rather than
+only printing it, and a tighter imbalance threshold for Config-B" — is closed. No published
+number moves; one gate is added and one is made config-dependent.
+
+### The admitted-bias figure is now a gate, not just a printed number
+
+`analysis.report` has printed `admitted bias = imbalance × drift_span` per run since item 5's
+first pass but never failed on it. It now does, as `bias_<a>v<b>`: **a contrast reported as
+significant must carry an effect at least 3× its admitted bias.** The restriction to
+*significant* contrasts is the point — a null has no effect to protect (the significance/A/A
+logic covers it) and an A/A has its own gate, so the new gate fires only where a watt-scale
+drift could be masquerading as a claimed operand effect.
+
+The 3× bar is set from the corpus, not chosen. Scanning every driver run in `results/` for
+`|effect| / (imbalance × drift_span)` on the primary contrast:
+
+- The **narrowest margin among published positive effects is the §8 zero-step's `hw01` at
+  5.7×** (`hw04_a` 8.4×, `hw08_a` 6.7×); every stronger effect is 100–50000×. So 3× passes
+  every positive result in the thesis with headroom, and **no committed run fails the gate.**
+- The low-ratio contrasts my first scan flagged (register-only, idle, the L1/DRAM low-weight
+  cells at ~2–3×) are all **"not resolved"** under the bootstrap CI — nulls, where the gate
+  correctly does not apply. The raw ratio overstated the risk precisely because it ignored
+  significance.
+- It is not vacuous: `hw01` at 5.7× is under 2× above the bar, so a session carrying these
+  same effects but twice the drift would trip it. The gate is a live safeguard sitting just
+  above the current corpus, which is what a gate should be.
+
+### A single imbalance threshold cannot serve both configs
+
+The "found while doing items 1 and 2" note recorded that `phase2_tier2_feasibility` (the one
+Config-B driver session in the corpus) drifts 29–48 W within a condition and so admits
+2.7–4.4 W of bias at an imbalance of 0.093 — passing the old flat 0.10 gate by 7%, with
+every run's effect smaller than its own admitted bias. The interleaving threshold is now
+**0.10 under Config-A, 0.05 under Config-B**: a free-throttling part turns a given imbalance
+into one-to-two orders more drift, so the cap is halved where that happens. The feasibility
+session now **fails** (the 0.093 runs on `interleaving`; the well-interleaved 0.012 runs with
+large real effects still pass at 12–15×, correctly). The threshold is provisional, set
+against that one session rather than a population of clean Config-B runs, which do not yet
+exist in the corpus; documented as such in the code.
+
+### Validation
+
+- Config-B feasibility: session fails (`interleaving`), exit non-zero. Target met.
+- `phase0_artifact_demo`'s sequential A/A: still fails `interleaving` (imbalance 0.502) and
+  now reports its 301.5 mW admitted bias as the watt-scale expression of the defect.
+- `phase1_hamming_weight`: every zero-step row passes the new gate (hw01 5.7×, hw04 8.4×,
+  hw08 6.7×); the session's only failure remains the pre-existing `power_state` (thermald's
+  PL1 move), untouched by this change.
+- Corpus sweep: **zero `bias_` gate failures** across all driver sessions.
+
+### Code / files
+- `analysis/report.py`: `MAX_TEMPORAL_IMBALANCE` split into `_A` (0.10) / `_B` (0.05) with
+  the interleaving gate selecting by config; new `MIN_EFFECT_OVER_ADMITTED = 3.0` and the
+  per-pair `bias_<a>v<b>` gate on significant contrasts; `temporal_balance` JSON now records
+  its threshold.
+- Draft edits: `phase1-leakage.md` §12 (metric is now gated, not printed; Config-B tightening)
+  and `phase0-measurement.md` §5 (gate table: config-dependent `interleaving`, new
+  `admitted_bias` row). `CLAUDE.md`'s validity-gates table updated to match.
+
+**Remaining in the work order:** item 6's three machine sweeps (D4a matched tiers, D2
+unpinned receiver, D3 thread/duty) and E1's one held-out run — all needing the machine. The
+zero-machine items still open are E4 (Phase 1's detector→bit-rate conversion uses a different
+decision rule than Phase 2's receiver) and F's provenance-drift checker.
